@@ -1,7 +1,8 @@
 {
-  "name": "mapem-skpt-2026",
-  "private": true,
-  "type": "module",
-  "version": "1.0.0",
-  "description": "MaPeM SKPT 2026 - Cloudflare Pages Functions + D1"
+ "name":"mapem-skpt-2026",
+ "private":true,
+ "type":"module",
+ "version":"2.0.0",
+ "description":"PWA MaPeM 2026: Google OAuth login, Cloudflare Pages + D1 role-based access",
+ "scripts":{"test":"node --test tests/security.test.mjs","check":"node --check public/app.js && node --check functions/api/[[path]].js"}
 }
