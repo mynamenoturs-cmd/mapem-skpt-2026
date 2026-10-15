@@ -2,6 +2,22 @@
 
 **Sistem pencalonan & pengumpulan penerima anugerah Tahap 1** untuk 26 kelas (Tahun 1: 9, Tahun 2: 9, Tahun 3: 8 tanpa Amber). Menggunakan **GitHub → Cloudflare Pages + Pages Functions + Cloudflare D1**.
 
+## Padanan dengan fail Apps Script MaPeM 26 Kelas
+
+Konfigurasi kategori di portal ini telah diselaraskan dengan `KONFIG.KATEGORI` daripada fail `MaPeM_Tahap1_2026_26_Kelas.gs`:
+
+- **Diisi oleh guru kelas (6 kategori):** PBD, UASA, Mata Pelajaran Terbaik, PLAN, AINS NILAM Hamper Individu dan Ikon Navigator DELIMa.
+- **Diurus oleh urus setia (6 kategori):** Ikon Cemara, Khas Kurikulum, Harapan Kokurikulum, Harapan HEM, Tokoh AINS NILAM Tahap 1 dan Tokoh Murid Mawar (hanya Tahun 3).
+- **Kuota per tahun:** PBD 45/45/40; UASA 10/10/10; Mata Pelajaran 30/30/30; AINS Hamper 18/18/16.
+- **Kuota seluruh Tahap 1:** Cemara 2, Kurikulum 2, Kokurikulum 2, HEM 2, Tokoh AINS 3. Tokoh Murid Mawar 2 bagi Tahun 3.
+- **Kuota belum ditetapkan:** PLAN dan DELIMa (bukan kuota sifar).
+- Penanda *(L/P)* digunakan pada nama anugerah yang memerlukan semakan lelaki/perempuan oleh urus setia, tetapi **tiada medan jantina** bagi guru.
+- **ID kategori dalam Cloudflare D1 dikekalkan** daripada versi terdahulu supaya data yang sedia ada dalam `drafts` tidak hilang.
+- Untuk anugerah khas, admin memilih kelas penerima dan merekodkan nama melalui panel **Anugerah Khas — Urus Setia**. Guru tidak melihat kategori khas tersebut.
+- Sumber `.gs` hanya mengandungi konfigurasi dan kod, **bukan respons sebenar Google Forms**. Rekod Google Sheets perlu dieksport dan diimport secara berasingan jika mahu dipindahkan.
+
+**Tiada migrasi SQL baharu diperlukan** semata-mata untuk menukar kategori kerana metadata kategori ditakrifkan dalam Pages Functions, bukannya jadual D1. Pastikan migrasi awal `0001_init.sql` sudah dijalankan sekali.
+
 ## Ciri
 
 - Reka bentuk responsif, tema merah songket/emas, dengan imej rasmi MaPeM.
@@ -62,7 +78,7 @@ Jika kunci `ADMIN_KEY` diubah kemudian, *semua pautan kelas lama* akan terbatal 
 
 1. Buka `https://mapem-skpt-2026.pages.dev` (atau domain projek sebenar).
 2. Di bahagian **Akses Urus Setia**, masukkan nilai `ADMIN_KEY` yang disimpan di Cloudflare.
-3. Dashboard akan menyenaraikan 26 kelas. Klik **Salin pautan** pada setiap kelas dan berikan hanya kepada guru berkenaan.
+3. Dashboard akan menyenaraikan 26 kelas. Klik **Salin pautan** pada setiap kelas dan berikan hanya kepada guru berkenaan. Panel **Anugerah Khas — Urus Setia** tersedia untuk nama kategori bukan tugas guru kelas.
 4. Buka satu pautan sebagai guru: kelas dipilih automatik, isi satu nama setiap baris. Tunggu status **Disimpan automatik**.
 5. Klik **Hantar Senarai Akhir** selepas lengkap. Uji fungsi **Buka semula** dari dashboard admin, dan semak eksport CSV.
 6. Periksa kuota keseluruhan. Penerima kategori khas yang perlu seorang L dan seorang P memerlukan semakan manual kerana medan jantina tidak dikumpul.
