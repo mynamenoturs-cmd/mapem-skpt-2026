@@ -34,6 +34,9 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       MAPEM_D1_DATABASE_ID: ${{ vars.MAPEM_D1_DATABASE_ID }}
+      GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      MAPEM_ADMIN_EMAILS: ${{ secrets.MAPEM_ADMIN_EMAILS }}
     steps:
       - uses: actions/checkout@v4
 
@@ -92,6 +95,10 @@ jobs:
       - name: Pautkan D1 secara automatik kepada Pages Production
         if: steps.ready.outputs.enabled == 'true'
         run: node .github/scripts/bind-pages-d1.mjs
+
+      - name: Konfigurasi Google Login dan APP_ORIGIN secara automatik
+        if: steps.ready.outputs.enabled == 'true'
+        run: node .github/scripts/configure-google-oauth.mjs
 
       - name: Terbit ke Cloudflare Pages sedia ada
         if: steps.ready.outputs.enabled == 'true'
