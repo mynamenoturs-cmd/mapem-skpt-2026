@@ -1,16 +1,16 @@
 const CATEGORIES=[
-{id:"pbd",name:"Anugerah Pencapaian PBD Terbaik",scope:"year",quota:{1:45,2:45,3:40}},
-{id:"uasa",name:"Anugerah 10 Pencapaian Terbaik (UASA)",scope:"year",quota:{1:10,2:10,3:10}},
-{id:"matapelajaran",name:"Anugerah Pencapaian Mata Pelajaran Terbaik",scope:"year",quota:{1:30,2:30,3:30}},
-{id:"plan",name:"Anugerah Khas PLAN",scope:"none"},
-{id:"cemara",name:"Anugerah Ikon Cemara Tahap 1",scope:"total",quota:2},
-{id:"kurikulum",name:"Anugerah Khas Kurikulum Tahap 1",scope:"total",quota:2},
-{id:"kokurikulum",name:"Harapan Kokurikulum Tahap 1",scope:"total",quota:2},
-{id:"hem",name:"Harapan HEM",scope:"total",quota:2},
-{id:"ains",name:"AINS NILAM — Hamper Individu",scope:"year",quota:{1:18,2:18,3:16}},
-{id:"ains-tokoh",name:"Tokoh AINS NILAM 2026 — Tahap 1",scope:"total",quota:3},
-{id:"delima",name:"Ikon Navigator DELIMa",scope:"none"},
-{id:"mawar",name:"Anugerah Tokoh Murid Mawar",scope:"year",quota:{3:2},years:[3]}
+{id:"pbd",code:"PBD",name:"Anugerah Pencapaian PBD Terbaik",scope:"year",quota:{1:45,2:45,3:40},teacher:true},
+{id:"uasa",code:"UASA",name:"Anugerah 10 Pencapaian Terbaik (UASA)",scope:"year",quota:{1:10,2:10,3:10},teacher:true},
+{id:"matapelajaran",code:"MP",name:"Anugerah Pencapaian Mata Pelajaran Terbaik",scope:"year",quota:{1:30,2:30,3:30},teacher:true},
+{id:"plan",code:"PLAN",name:"Anugerah Khas PLAN",scope:"year",quota:{1:null,2:null,3:null},teacher:true},
+{id:"cemara",code:"CEMARA",name:"Anugerah Ikon Cemara Tahap 1 (L/P)",scope:"total",quota:2,teacher:false,manualGenderCheck:true},
+{id:"kurikulum",code:"KURIKULUM",name:"Anugerah Khas Kurikulum Tahap 1 (L/P)",scope:"total",quota:2,teacher:false,manualGenderCheck:true},
+{id:"kokurikulum",code:"KOKU",name:"Harapan Kokurikulum Tahap 1 (L/P)",scope:"total",quota:2,teacher:false,manualGenderCheck:true},
+{id:"hem",code:"HEM",name:"Harapan HEM (L/P)",scope:"total",quota:2,teacher:false,manualGenderCheck:true},
+{id:"ains",code:"AINS_HAMPER",name:"AINS NILAM - Hamper Individu",scope:"year",quota:{1:18,2:18,3:16},teacher:true},
+{id:"ains-tokoh",code:"AINS_TOKOH",name:"AINS NILAM - Tokoh Tahap 1 (Piala)",scope:"total",quota:3,teacher:false},
+{id:"delima",code:"DELIMA",name:"Ikon Navigator DELIMa",scope:"year",quota:{1:null,2:null,3:null},teacher:true},
+{id:"mawar",code:"MAWAR",name:"Anugerah Tokoh Murid Mawar (L/P)",scope:"year",quota:{3:2},years:[3],teacher:false,manualGenderCheck:true}
 ];
 const H={"content-type":"application/json; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff","referrer-policy":"no-referrer","x-robots-tag":"noindex,nofollow"};
 function j(v,s=200){return new Response(JSON.stringify(v),{status:s,headers:H});}
@@ -52,16 +52,16 @@ export async function onRequest({request:req,env}){
  if(path==="class"&&req.method==="GET"){
   let cls=await teacher(req,env);if(!cls)return bad("Pautan kelas tidak sah.",401);
   let data=await env.DB.prepare("SELECT category_id,names_json,version FROM drafts WHERE class_id=?").bind(cls.id).all();
-  return j({class:cls,categories:CATEGORIES.filter(c=>!c.years||c.years.includes(cls.year)),drafts:Object.fromEntries((data.results||[]).map(d=>[d.category_id,{names:JSON.parse(d.names_json),version:d.version}]))});
+  return j({class:cls,categories:CATEGORIES.filter(c=>c.teacher!==false&&(!c.years||c.years.includes(cls.year))),drafts:Object.fromEntries((data.results||[]).map(d=>[d.category_id,{names:JSON.parse(d.names_json),version:d.version}]))});
  }
  if(path==="class/save"&&req.method==="POST"){
   let cls=await teacher(req,env);if(!cls)return bad("Pautan kelas tidak sah.",401);
   if(cls.status==="submitted")return bad("Senarai telah dihantar. Hubungi urus setia untuk pembetulan.",423);
-  let b=await body(req),category=CATEGORIES.find(c=>c.id===b.categoryId&&(!c.years||c.years.includes(cls.year)));
+  let b=await body(req),category=CATEGORIES.find(c=>c.id===b.categoryId&&c.teacher!==false&&(!c.years||c.years.includes(cls.year)));
   if(!category)return bad("Kategori tidak sah.");
   let v=Number(b.version),list=namesValid(b.names);
   if(!Number.isSafeInteger(v)||v<0)return bad("Versi simpanan tidak sah.");
-  let result=await env.DB.prepare("INSERT INTO drafts(class_id,category_id,names_json,version,updated_at) VALUES(?,?,?,1,datetime('now')) ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json,version=drafts.version+1,updated_at=datetime('now') WHERE drafts.version=?").bind(cls.id,category.id,JSON.stringify(list),v).run();
+  let result=await env.DB.prepare("INSERT INTO drafts(class_id,category_id,names_json,version,updated_at) SELECT ?,?,?,1,datetime('now') WHERE ?=0 ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json,version=drafts.version+1,updated_at=datetime('now') WHERE drafts.version=?").bind(cls.id,category.id,JSON.stringify(list),v,v).run();
   if(!result.meta?.changes)return bad("Suntingan bertembung. Muat semula halaman dan cuba lagi.",409);
   await env.DB.prepare("UPDATE classes SET updated_at=datetime('now') WHERE id=?").bind(cls.id).run();
   return j({ok:true,version:v+1,total:list.length});
@@ -81,6 +81,26 @@ export async function onRequest({request:req,env}){
    for(let a of d.results||[]){let n=JSON.parse(a.names_json).length,y=Number(a.class_id[0]);sums.set(a.class_id,(sums.get(a.class_id)||0)+n);(totals[a.category_id]??={})[y]=((totals[a.category_id]||{})[y]||0)+n;}
    let classes=await Promise.all((c.results||[]).map(async cls=>({...cls,total:sums.get(cls.id)||0,token:await classToken(env,cls)})));
    return j({classes,categories:CATEGORIES,totals,submitted:classes.filter(c=>c.status==="submitted").length});
+  }
+  if(path==="admin/special"&&req.method==="GET"){
+   const id=new URL(req.url).searchParams.get("classId")||"";
+   const cls=await env.DB.prepare("SELECT id,year,name,status FROM classes WHERE id=?").bind(id).first();
+   if(!cls)return bad("Kelas tidak ditemui.",404);
+   const records=await env.DB.prepare("SELECT category_id,names_json,version FROM drafts WHERE class_id=?").bind(cls.id).all();
+   return j({class:cls,categories:CATEGORIES.filter(c=>c.teacher===false&&(!c.years||c.years.includes(cls.year))),drafts:Object.fromEntries((records.results||[]).filter(d=>CATEGORIES.some(c=>c.id===d.category_id&&c.teacher===false)).map(d=>[d.category_id,{names:JSON.parse(d.names_json),version:d.version}]))});
+  }
+  if(path==="admin/special/save"&&req.method==="POST"){
+   const b=await body(req);
+   const cls=await env.DB.prepare("SELECT id,year FROM classes WHERE id=?").bind(String(b.classId||"")).first();
+   if(!cls)return bad("Kelas tidak ditemui.",404);
+   const category=CATEGORIES.find(c=>c.id===b.categoryId&&c.teacher===false&&(!c.years||c.years.includes(cls.year)));
+   if(!category)return bad("Kategori anugerah khas tidak sah.");
+   const version=Number(b.version),list=namesValid(b.names);
+   if(!Number.isSafeInteger(version)||version<0)return bad("Versi simpanan tidak sah.");
+   const saved=await env.DB.prepare("INSERT INTO drafts(class_id,category_id,names_json,version,updated_at) SELECT ?,?,?,1,datetime('now') WHERE ?=0 ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json,version=drafts.version+1,updated_at=datetime('now') WHERE drafts.version=?").bind(cls.id,category.id,JSON.stringify(list),version,version).run();
+   if(!saved.meta?.changes)return bad("Suntingan bertembung. Muat semula senarai dan cuba lagi.",409);
+   await env.DB.prepare("UPDATE classes SET updated_at=datetime('now') WHERE id=?").bind(cls.id).run();
+   return j({ok:true,version:version+1,total:list.length});
   }
   if(path==="admin/status"&&req.method==="POST"){
    let b=await body(req);if(!["draft","submitted"].includes(b.status))return bad("Status tidak sah.");
