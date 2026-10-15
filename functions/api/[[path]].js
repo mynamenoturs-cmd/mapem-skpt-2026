@@ -130,6 +130,23 @@ export async function onRequest({request,env}){
   // Only same-origin JSON writes may mutate personal data.
   if(!['GET','HEAD'].includes(request.method)){const reqOrigin=request.headers.get('Origin');if(!reqOrigin||reqOrigin!==url.origin)return fail('Origin permintaan tidak sah.',403);}
   const user=await userFor(request,env);
+  if(path==='portal/announcement'&&request.method==='GET'){
+   const row=await env.DB.prepare('SELECT title,body,enabled,version,updated_at FROM portal_announcement WHERE id=1').first();
+   return JSON_RESPONSE({announcement:row?.enabled?{title:row.title,body:row.body,updatedAt:row.updated_at}:null});
+  }
+  if(path==='admin/announcement'&&request.method==='GET'){
+   requireRole(user,'admin');const row=await env.DB.prepare('SELECT title,body,enabled,version FROM portal_announcement WHERE id=1').first();
+   return JSON_RESPONSE({title:row.title,body:row.body,enabled:!!row.enabled,version:row.version});
+  }
+  if(path==='admin/announcement'&&request.method==='POST'){
+   requireRole(user,'admin');const b=await reqBody(request);
+   if(typeof b.title!=='string'||typeof b.body!=='string'||typeof b.enabled!=='boolean'||!Number.isSafeInteger(b.version)||b.version<0)return fail('Format pengumuman tidak sah.');
+   const title=b.title.trim(),body=b.body.trim();
+   if(title.length>120||body.length>3000||(b.enabled&&(!title||!body)))return fail('Isi tajuk (maksimum 120 aksara) dan mesej (maksimum 3000 aksara) sebelum menerbitkan.');
+   const saved=await env.DB.prepare('UPDATE portal_announcement SET title=?,body=?,enabled=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=1 AND version=?').bind(title,body,b.enabled?1:0,b.version).run();
+   if(!saved.meta.changes)return fail('Pengumuman telah diubah oleh admin lain. Muat semula sebelum menyunting.',409);
+   return JSON_RESPONSE({ok:true,version:b.version+1});
+  }
   if(path==='me'&&request.method==='GET')return JSON_RESPONSE(user?{authenticated:true,user}:{authenticated:false});
   if(path==='logout'&&request.method==='POST'){const sid=cookies(request)[SESSION_COOKIE];if(sid)await env.DB.prepare('DELETE FROM sessions WHERE id_hash=?').bind(await sha256(sid)).run();return JSON_RESPONSE({ok:true},200,{'Set-Cookie':cookie(SESSION_COOKIE,'',0)});}
   if(!user)return fail('Sila log masuk menggunakan Google.',401);

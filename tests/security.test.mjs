@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {onRequest,CATEGORIES} from '../functions/api/[[path]].js';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
-function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));
+function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));db.exec(file('../migrations/0005_portal_announcement.sql'));
 const adapter={prepare(sql){return {bind(...params){const statement=db.prepare(sql);return {first(){return statement.get(...params)||null},all(){return {results:statement.all(...params)}},run(){let result=statement.run(...params);return {meta:{changes:result.changes}}}};},all(){return {results:db.prepare(sql).all()}},first(){return db.prepare(sql).get()||null}}}};
 const env={DB:adapter,GOOGLE_CLIENT_ID:'fake.client',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
 async function addLogin(email,name=email){const sub=email;db.prepare('INSERT INTO users(sub,email,name) VALUES(?,?,?)').run(sub,email,name);const sid=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode('fixture:'+email))).toString('hex');const digest=await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(sid));const hash=Buffer.from(digest).toString('hex');db.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').run(hash,sub,Math.floor(Date.now()/1000)+3600);return `${'__Host-mapem_session'}=${sid}`;}
@@ -99,4 +99,21 @@ test('nominations are isolated from recipients, only selected names publish, tot
  assert.equal((await final(['Calon Satu'],1)).status,200);assert.equal((await final(['Calon Empat'],0,true,'2-crystal')).status,200);
  const csv=await (await call(env,'admin/export',{cookie:admin})).text();assert(!csv.includes('Calon Tiga'));
  assert.equal((await call(env,'work/save',{cookie:admin,method:'POST',body:{classId:'1-amber',categoryId:'mawar',names:['Calon Satu'],version:0,confirmedLP:true}})).status,403);
+});
+
+test('public announcements require admin, explicit publication and optimistic version',async()=>{
+ const {env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com'),viewer=await addLogin('parent@gmail.com');
+ assert.deepEqual(await json(await call(env,'portal/announcement')),{announcement:null});
+ assert.equal((await call(env,'admin/announcement')).status,401);
+ assert.equal((await call(env,'admin/announcement',{cookie:viewer})).status,403);
+ const post=(body,cookie=admin,origin=ORIGIN)=>call(env,'admin/announcement',{cookie,origin,method:'POST',body});
+ const draft={title:'Makluman contoh',body:'Baris satu\nBaris dua',enabled:false,version:0};
+ assert.equal((await post(draft,viewer)).status,403);assert.equal((await post(draft,admin,'https://evil.example')).status,403);
+ assert.equal((await post(draft)).status,200);assert.equal((await json(await call(env,'portal/announcement'))).announcement,null);
+ assert.equal((await post({...draft,enabled:true})).status,409);
+ assert.equal((await post({...draft,enabled:true,version:1})).status,200);
+ const pub=await json(await call(env,'portal/announcement'));assert.equal(pub.announcement.body,draft.body);assert(!JSON.stringify(pub).includes('email'));assert(!('version' in pub.announcement));
+ assert.equal((await post({...draft,title:'',enabled:true,version:2})).status,400);
+ assert.equal((await post({...draft,body:'x'.repeat(3001),version:2})).status,400);
+ assert.equal((await post({...draft,version:2})).status,200);assert.equal((await json(await call(env,'portal/announcement'))).announcement,null);
 });

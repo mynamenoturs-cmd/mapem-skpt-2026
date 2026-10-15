@@ -80,3 +80,6 @@ Admin membuka **Tugasan kategori**, mendaftarkan e-mel Google sebenar dan memili
 Kuota penerima akhir disemak merentas kelas, termasuk 2 bagi kategori khas, UASA 10 setiap tahun, mata pelajaran 30 setiap tahun, hamper AINS 18/18/16 dan Tokoh AINS Tahap 1 sebanyak 3. Catatan sumber 100 hamper/sijil dan 3 piala Tahap 2 disimpan sebagai nota; portal ini mengekalkan skop Tahap 1. Data penerima lama tidak dipadam atau ditukar menjadi pencalonan secara automatik. Migrasi `0004_award_responsibilities.sql` hanya menambah jadual tugasan, pencalonan dan semakan.
 
 Senarai yang sudah diterbitkan dikunci daripada suntingan. Admin menarik balik penerbitan dahulu untuk membolehkan guru kategori menyunting; guru kelas pula memerlukan kelas dibuka semula.
+
+### Pengumuman halaman log masuk
+Admin: menu **Pengumuman portal** → sunting tajuk/mesej → semak pratonton → tandakan paparan awam → Simpan. Nyah tanda dan simpan untuk menyembunyikan. Teks dipaparkan sebagai teks biasa, bukan HTML. Versi simpanan mengelakkan perubahan admin lain tertindih. Pengumuman awam tidak mengandungi data murid; senarai penerima masih memerlukan log masuk.
