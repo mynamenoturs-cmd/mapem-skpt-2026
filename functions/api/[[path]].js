@@ -61,7 +61,8 @@ export async function onRequest({request:req,env}){
   if(!category)return bad("Kategori tidak sah.");
   let v=Number(b.version),list=namesValid(b.names);
   if(!Number.isSafeInteger(v)||v<0)return bad("Versi simpanan tidak sah.");
-  let result=await env.DB.prepare("INSERT INTO drafts(class_id,category_id,names_json,version,updated_at) SELECT ?,?,?,1,datetime('now') WHERE ?=0 ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json,version=drafts.version+1,updated_at=datetime('now') WHERE drafts.version=?").bind(cls.id,category.id,JSON.stringify(list),v,v).run();
+  if(v>0&&!await env.DB.prepare("SELECT 1 AS found FROM drafts WHERE class_id=? AND category_id=?").bind(cls.id,category.id).first())return bad("Suntingan bertembung. Muat semula halaman.",409);
+  let result=await env.DB.prepare("INSERT INTO drafts(class_id,category_id,names_json,version,updated_at) VALUES(?,?,?,1,datetime('now')) ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json,version=drafts.version+1,updated_at=datetime('now') WHERE drafts.version=?").bind(cls.id,category.id,JSON.stringify(list),v).run();
   if(!result.meta?.changes)return bad("Suntingan bertembung. Muat semula halaman dan cuba lagi.",409);
   await env.DB.prepare("UPDATE classes SET updated_at=datetime('now') WHERE id=?").bind(cls.id).run();
   return j({ok:true,version:v+1,total:list.length});
@@ -97,7 +98,8 @@ export async function onRequest({request:req,env}){
    if(!category)return bad("Kategori anugerah khas tidak sah.");
    const version=Number(b.version),list=namesValid(b.names);
    if(!Number.isSafeInteger(version)||version<0)return bad("Versi simpanan tidak sah.");
-   const saved=await env.DB.prepare("INSERT INTO drafts(class_id,category_id,names_json,version,updated_at) SELECT ?,?,?,1,datetime('now') WHERE ?=0 ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json,version=drafts.version+1,updated_at=datetime('now') WHERE drafts.version=?").bind(cls.id,category.id,JSON.stringify(list),version,version).run();
+   if(version>0&&!await env.DB.prepare("SELECT 1 AS found FROM drafts WHERE class_id=? AND category_id=?").bind(cls.id,category.id).first())return bad("Suntingan bertembung. Muat semula senarai.",409);
+   const saved=await env.DB.prepare("INSERT INTO drafts(class_id,category_id,names_json,version,updated_at) VALUES(?,?,?,1,datetime('now')) ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json,version=drafts.version+1,updated_at=datetime('now') WHERE drafts.version=?").bind(cls.id,category.id,JSON.stringify(list),version).run();
    if(!saved.meta?.changes)return bad("Suntingan bertembung. Muat semula senarai dan cuba lagi.",409);
    await env.DB.prepare("UPDATE classes SET updated_at=datetime('now') WHERE id=?").bind(cls.id).run();
    return j({ok:true,version:version+1,total:list.length});
