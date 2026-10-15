@@ -1,0 +1,7 @@
+{
+  "name": "mapem-skpt-2026",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "MaPeM SKPT 2026 - Cloudflare Pages Functions + D1"
+}

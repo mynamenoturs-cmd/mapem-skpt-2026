@@ -1,0 +1,12 @@
+PORTAL MAPEM SKPT 2026
+
+1. Cloudflare Pages sambung GitHub repo ini (branch main).
+2. Framework: None; build command kosong; build output: public; root: /.
+3. Cipta Cloudflare D1, jalankan migrations/0001_init.sql di D1 Console.
+4. Settings -> Bindings -> D1 binding nama DB; pilih D1 yang dicipta.
+5. Settings -> Variables & Secrets -> tambah ADMIN_KEY sebagai secret, sekurang-kurangnya 32 aksara rawak. Jangan masukkan ke GitHub.
+6. Redeploy selepas menetapkan binding dan secret.
+7. Lawat domain Pages, masukkan ADMIN_KEY pada paparan pentadbir.
+8. Dalam dashboard, salin pautan kelas dan agihkan kepada guru masing-masing.
+
+Data murid berada dalam D1 sahaja. Jangan letakkan data murid atau kunci dalam GitHub.
