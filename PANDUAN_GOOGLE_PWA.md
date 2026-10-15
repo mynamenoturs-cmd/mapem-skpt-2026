@@ -1,6 +1,6 @@
 # PANDUAN PEMASANGAN — MAPEM SKPT 2026 (GOOGLE LOGIN + PWA)
 
-**Objektif:** aplikasi yang boleh dipasang di telefon, masuk dengan Google, pengisian satu kelas untuk setiap guru, paparan sahaja untuk guru lain dan ibu bapa. Aplikasi beroperasi melalui Cloudflare, bukan Google Apps Script.
+**Objektif:** aplikasi yang boleh dipasang di telefon, masuk dengan Google, lima pengisian untuk setiap guru kelas, tugasan khusus untuk guru kategori/penyelaras dan paparan sahaja untuk pengguna tanpa tugasan. Aplikasi beroperasi melalui Cloudflare, bukan Google Apps Script.
 
 ## 1. Semak D1 asas
 
@@ -91,7 +91,7 @@ Guru yang tidak mempunyai penugasan dan ibu bapa akan masuk sebagai **Paparan Sa
 - Admin > **Kelas & Penerbitan** > **Semak nama**. Selepas kelulusan sekolah, klik **Terbitkan** bagi kelas tersebut.
 - Senarai hanya boleh dilihat pengguna Paparan Sahaja **selepas diterbitkan**.
 - Jika pembetulan diperlukan, Admin > **Buka semula**. Sistem menarik balik senarai diterbitkan sehingga disemak dan diterbitkan semula.
-- Admin > **Anugerah Khas** untuk kategori peringkat Tahap 1 yang bukan tugasan guru kelas.
+- Admin > **Tugasan kategori** untuk mendaftarkan e-mel Google guru mengikut nota. Gunakan **Pemilihan & pengisian** untuk memilih penerima akhir daripada pencalonan guru kelas. Lima pengisian guru kelas ialah PBD (5 murid), pencalonan Cemara, Kurikulum, Kokurikulum dan HEM. Rujuk jadual tanggungjawab terkini dalam README.
 - Admin > **Pemantauan Kuota** untuk kuota keseluruhan.
 
 ## 9. Pasang pada telefon (Android)

@@ -8,8 +8,9 @@
 
 | Peranan | Diperoleh dengan | Hak akses |
 |---|---|---|
-| Pentadbir / urus setia | E-mel berada dalam `ADMIN_EMAILS` | Semua kelas, tugasan guru, kategori khas, semak, eksport, terbit/tarik balik |
-| Guru kelas | E-mel Google ditugaskan oleh admin kepada satu kelas | Isi, ubah dan hantar nama **kelas sendiri sahaja**; melihat paparan diterbitkan |
+| Pentadbir / urus setia | E-mel dalam `ADMIN_EMAILS` atau ditambah oleh admin | Semua kelas, tugasan guru, kategori khas, semak, eksport, terbit/tarik balik |
+| Guru kelas | E-mel Google ditugaskan oleh admin kepada satu kelas | 5 pengisian kelas sendiri: PBD dan 4 pencalonan; melihat paparan diterbitkan |
+| Guru bertugas / penyelaras | E-mel ditugaskan kepada kategori oleh admin | Pengisian / pemilihan kategori sendiri bagi kelas yang berkaitan; boleh juga memegang tugasan kelas |
 | Paparan sahaja (guru lain/ibu bapa) | Akaun Google sah yang tidak mempunyai tugasan | Hanya melihat **nama penerima anugerah yang telah diterbitkan** |
 
 Tiada nama murid dipaparkan kepada pengguna paparan sebelum admin menekan **Terbitkan**. Pengguna tanpa log masuk Google tidak dapat melihat senarai.
@@ -26,7 +27,7 @@ Tiada nama murid dipaparkan kepada pengguna paparan sebelum admin menekan **Terb
 
 ## Pemasangan
 
-Baca **[PANDUAN_GOOGLE_PWA.md](PANDUAN_GOOGLE_PWA.md)** dahulu. Jangan jalankan `0001_init.sql` semula jika jadual `classes` dan `drafts` telah berjaya dibuat. **Jalankan hanya migrasi tambahan `0002_google_pwa.sql`**.
+Baca **[PANDUAN_GOOGLE_PWA.md](PANDUAN_GOOGLE_PWA.md)** dahulu. Jangan jalankan `0001_init.sql` semula jika jadual `classes` dan `drafts` telah berjaya dibuat. Jalankan migrasi tambahan `0002` hingga `0004` yang belum digunakan, mengikut turutan. Workflow deployment menguruskannya secara automatik tanpa memadam data.
 
 Cloudflare Pages:
 - Repository: `mynamenoturs-cmd/mapem-skpt-2026`
@@ -59,3 +60,23 @@ Pentadbir sedia ada boleh membuka **Menu → Urus admin**, memasukkan e-mel Goog
 Migrasi tambahan `0003_admin_roles.sql` hanya mencipta jadual `admin_grants`, tanpa mengubah data kelas atau murid. Semakan peranan berlaku pada server untuk setiap permintaan; UI bukan sumber kebenaran akses.
 
 Banner dan ikon baharu berada dalam `public/assets/mapem-banner-v2.webp` dan `public/assets/mapem-emblem-v2.webp`. `scripts/build-brand.mjs` membina ikon PWA dan laluan aset lama daripada imej yang sama. Animasi cahaya banner dan ikon dijalankan melalui CSS serta dihentikan apabila pengguna memilih reduced motion.
+
+
+## Pembahagian pengisian mengikut senarai anugerah Tahap 1
+
+| Pengisi | Tugasan |
+| --- | --- |
+| Guru kelas (5 pengisian) | PBD (tepat 5 murid setiap kelas), pencalonan Ikon Cemara, Khas Kurikulum, Harapan Kokurikulum dan Harapan HEM |
+| Cikgu Fitri | UASA dan Mata Pelajaran Terbaik |
+| Guru PSS | AINS NILAM hamper individu dan Tokoh AINS Tahap 1 |
+| Teacher Abby | Ikon Navigator DELIMa |
+| Cikgu Wyn / Cikgu Zura | Anugerah Khas PLAN dan Tokoh Murid Mawar (Tahun 3 sahaja) |
+| Penyelaras / keputusan undian guru-guru | Pilih penerima akhir bagi empat kategori pencalonan; kuota 2 bagi setiap kategori untuk seluruh Tahap 1 |
+
+Admin membuka **Tugasan kategori**, mendaftarkan e-mel Google sebenar dan memilih profil panduan atau kategori satu persatu. Nama dalam senarai sumber tidak ditukarkan kepada e-mel secara automatik. Seorang guru boleh memegang tugasan kelas dan kategori serentak. Guru kategori hanya mempunyai akses kepada kategori yang diberikan, bukan akses admin.
+
+**Pemilihan & pengisian** menampilkan calon daripada guru kelas. Empat kategori khas disimpan dalam `nominations`, berasingan daripada penerima akhir di `drafts`. Calon tidak dieksport atau diterbitkan sebagai penerima secara automatik. Penyelaras memilih nama mengikut kelas dan mengesahkan semakan L/P serta keputusan pemilihan. Sistem merekod pengesah dan versi keputusan. Jika melebihi 2 calon, pemilihan/undian dibuat oleh pihak sekolah; portal tidak menjalankan undian secara automatik.
+
+Kuota penerima akhir disemak merentas kelas, termasuk 2 bagi kategori khas, UASA 10 setiap tahun, mata pelajaran 30 setiap tahun, hamper AINS 18/18/16 dan Tokoh AINS Tahap 1 sebanyak 3. Catatan sumber 100 hamper/sijil dan 3 piala Tahap 2 disimpan sebagai nota; portal ini mengekalkan skop Tahap 1. Data penerima lama tidak dipadam atau ditukar menjadi pencalonan secara automatik. Migrasi `0004_award_responsibilities.sql` hanya menambah jadual tugasan, pencalonan dan semakan.
+
+Senarai yang sudah diterbitkan dikunci daripada suntingan. Admin menarik balik penerbitan dahulu untuk membolehkan guru kategori menyunting; guru kelas pula memerlukan kelas dibuka semula.

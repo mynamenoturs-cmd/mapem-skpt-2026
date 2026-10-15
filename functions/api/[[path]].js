@@ -1,19 +1,20 @@
 // MaPeM 2026: same-origin Google OAuth, server-side sessions, explicit RBAC.
 // Teacher edits are scoped to the class assigned to their verified Google email.
 export const CATEGORIES = [
-  {id:'pbd',name:'Anugerah Pencapaian PBD Terbaik',scope:'year',quota:{1:45,2:45,3:40},teacher:true},
-  {id:'uasa',name:'Anugerah 10 Pencapaian Terbaik (UASA)',scope:'year',quota:{1:10,2:10,3:10},teacher:true},
-  {id:'matapelajaran',name:'Anugerah Pencapaian Mata Pelajaran Terbaik',scope:'year',quota:{1:30,2:30,3:30},teacher:true},
-  {id:'plan',name:'Anugerah Khas PLAN',scope:'year',quota:{1:null,2:null,3:null},teacher:true},
-  {id:'cemara',name:'Anugerah Ikon Cemara Tahap 1 (L/P)',scope:'total',quota:2,teacher:false},
-  {id:'kurikulum',name:'Anugerah Khas Kurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:false},
-  {id:'kokurikulum',name:'Harapan Kokurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:false},
-  {id:'hem',name:'Harapan HEM (L/P)',scope:'total',quota:2,teacher:false},
-  {id:'ains',name:'AINS NILAM — Hamper Individu',scope:'year',quota:{1:18,2:18,3:16},teacher:true},
-  {id:'ains-tokoh',name:'Tokoh AINS NILAM 2026 — Tahap 1',scope:'total',quota:3,teacher:false},
-  {id:'delima',name:'Ikon Navigator DELIMa',scope:'year',quota:{1:null,2:null,3:null},teacher:true},
-  {id:'mawar',name:'Anugerah Tokoh Murid Mawar (L/P)',scope:'year',quota:{3:2},years:[3],teacher:false}
+ {id:'pbd',name:'Anugerah Pencapaian PBD Terbaik',scope:'year',quota:{1:45,2:45,3:40},teacher:true,classLimit:5,owner:'Guru kelas',note:'1 kelas 5 orang sahaja. Isi tepat 5 nama sebelum menghantar.'},
+ {id:'uasa',name:'Anugerah 10 Pencapaian Terbaik (UASA)',scope:'year',quota:{1:10,2:10,3:10},teacher:false,owner:'Cikgu Fitri'},
+ {id:'matapelajaran',name:'Anugerah Pencapaian Mata Pelajaran Terbaik',scope:'year',quota:{1:30,2:30,3:30},teacher:false,owner:'Cikgu Fitri'},
+ {id:'cemara',name:'Anugerah Ikon Cemara Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,owner:'GK calonkan; penyelaras pilih',note:'Pencalonan sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir seluruh Tahap 1, bukan setiap kelas.'},
+ {id:'kurikulum',name:'Anugerah Khas Kurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,owner:'GK calonkan; penyelaras pilih',note:'Pencalonan sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir seluruh Tahap 1, bukan setiap kelas.'},
+ {id:'kokurikulum',name:'Harapan Kokurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,owner:'GK calonkan; penyelaras pilih',note:'Pencalonan sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir seluruh Tahap 1, bukan setiap kelas.'},
+ {id:'hem',name:'Harapan HEM (L/P)',scope:'total',quota:2,teacher:true,nomination:true,owner:'GK calonkan; penyelaras pilih',note:'Pencalonan sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir seluruh Tahap 1, bukan setiap kelas.'},
+ {id:'ains',name:'AINS NILAM — Hamper Individu',scope:'year',quota:{1:18,2:18,3:16},teacher:false,owner:'Guru PSS',note:'Kuota Tahap 1: 18 / 18 / 16. Nota sumber: hamper individu (50 kelas × 2 orang = 100 orang) dan sijil penghargaan 100 helai. Gunakan lajur Tahun 1–3 untuk portal ini.'},
+ {id:'ains-tokoh',name:'Tokoh AINS NILAM 2026 — Tahap 1',scope:'total',quota:3,teacher:false,owner:'Guru PSS',note:'3 piala Tahap 1. Nota 3 piala Tokoh AINS Tahap 2 di luar skop portal Tahap 1 ini.'},
+ {id:'delima',name:'Ikon Navigator DELIMa',scope:'year',quota:{1:null,2:null,3:null},teacher:false,owner:'Teacher Abby'},
+ {id:'plan',name:'Anugerah Khas PLAN',scope:'year',quota:{1:null,2:null,3:null},teacher:false,owner:'Cikgu Wyn / Cikgu Zura'},
+ {id:'mawar',name:'Anugerah Tokoh Murid Mawar (L/P)',scope:'year',quota:{3:2},years:[3],teacher:false,owner:'Cikgu Wyn / Cikgu Zura',note:'2 penerima Tahun 3 sahaja. Semak ketetapan L/P sebelum pengesahan.'}
 ];
+
 const HEAD={'content-type':'application/json;charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer','x-robots-tag':'noindex,nofollow'};
 const SESSION_COOKIE='__Host-mapem_session';
 const STATE_COOKIE='__Host-mapem_oauth';
@@ -38,17 +39,48 @@ async function userFor(request,env){const sid=cookies(request)[SESSION_COOKIE];i
  const user=await env.DB.prepare('SELECT u.sub,u.email,u.name,s.expires_at FROM sessions s JOIN users u ON u.sub=s.user_sub WHERE s.id_hash=? AND s.expires_at>?').bind(hash,now()).first();
  if(!user)return null;const email=user.email.toLowerCase();const isAdmin=await isAdminEmail(env,email);
  const assignment=isAdmin?null:await env.DB.prepare('SELECT a.class_id,c.year,c.name AS class_name FROM teacher_assignments a JOIN classes c ON c.id=a.class_id WHERE a.email=?').bind(email).first();
- return {sub:user.sub,email,name:user.name,role:isAdmin?'admin':assignment?'teacher':'viewer',classId:assignment?.class_id||null,className:assignment?`${assignment.year} ${assignment.class_name}`:null};}
+ const tasks=isAdmin?[]:(await env.DB.prepare('SELECT category_id FROM category_assignments WHERE email=? ORDER BY category_id').bind(email).all()).results||[];
+ return {sub:user.sub,email,name:user.name,categoryIds:tasks.map(t=>t.category_id),role:isAdmin?'admin':assignment?'teacher':tasks.length?'specialist':'viewer',classId:assignment?.class_id||null,className:assignment?`${assignment.year} ${assignment.class_name}`:null};}
 function requireRole(user,role){if(!user)safeError('Sila log masuk dengan akaun Google.',401);if(role==='admin'&&user.role!=='admin')safeError('Akses pentadbir sahaja.',403);if(role==='teacher'&&user.role!=='teacher')safeError('Akses guru kelas sahaja.',403);}
-function categoryOf(id,year,teacher){return CATEGORIES.find(c=>c.id===id&&c.teacher===teacher&&(!c.years||c.years.includes(year)));}
-async function saveDraft(env,classId,categoryId,version,list){if(!Number.isSafeInteger(version)||version<0)safeError('Versi simpanan tidak sah.');
- const current=await env.DB.prepare('SELECT version FROM drafts WHERE class_id=? AND category_id=?').bind(classId,categoryId).first();
+function categoryOf(id,year,teacher){return CATEGORIES.find(c=>c.id===id&&(teacher?c.teacher:c.id!=='pbd')&&(!c.years||c.years.includes(year)));}
+async function saveDraft(env,classId,categoryId,version,list,table='drafts',limit=null,year=0){
+ if(!['drafts','nominations'].includes(table))safeError('Jadual simpanan tidak sah.');
+ if(!Number.isSafeInteger(version)||version<0)safeError('Versi simpanan tidak sah.');
+ const current=await env.DB.prepare(`SELECT version FROM ${table} WHERE class_id=? AND category_id=?`).bind(classId,categoryId).first();
  if((current?.version??0)!==version)safeError('Data telah diubah di peranti lain. Muat semula sebelum menyimpan.',409);
- const sql='INSERT INTO drafts(class_id,category_id,names_json,version,updated_at) VALUES(?,?,?,1,datetime(\'now\')) ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json, version=drafts.version+1,updated_at=datetime(\'now\') WHERE drafts.version=?';
- const result=await env.DB.prepare(sql).bind(classId,categoryId,JSON.stringify(list),version).run();
- if(result.meta?.changes!==1)safeError('Versi simpanan berubah. Muat semula sebelum menyimpan.',409);
- await env.DB.prepare('UPDATE classes SET updated_at=datetime(\'now\') WHERE id=?').bind(classId).run();
- return {ok:true,version:version+1,total:list.length};}
+ const sql=`INSERT INTO ${table}(class_id,category_id,names_json,version,updated_at) SELECT ?,?,?,1,datetime('now') WHERE (? IS NULL OR (SELECT COALESCE(SUM(json_array_length(names_json)),0) FROM ${table} WHERE category_id=? AND class_id!=? AND (?=0 OR substr(class_id,1,1)=?))+?<=?) ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json,version=${table}.version+1,updated_at=datetime('now') WHERE ${table}.version=?`;
+ const r=await env.DB.prepare(sql).bind(classId,categoryId,JSON.stringify(list),limit,categoryId,classId,year,String(year),list.length,limit,version).run();
+ if(r.meta?.changes!==1)safeError(limit!=null?'Kuota keseluruhan kategori akan melebihi '+limit+' penerima. Semak kelas lain atau muat semula.':'Versi simpanan berubah. Muat semula sebelum menyimpan.',409);
+ await env.DB.prepare("UPDATE classes SET updated_at=datetime('now') WHERE id=?").bind(classId).run();
+ return {ok:true,version:version+1,total:list.length};
+}
+function canWork(user,id){return user?.role==='admin'||user?.categoryIds?.includes(id);}
+async function workData(env,cls,cat){
+ const row=await env.DB.prepare('SELECT names_json,version FROM drafts WHERE class_id=? AND category_id=?').bind(cls.id,cat.id).first();
+ const final= row?{names:JSON.parse(row.names_json),version:row.version}:{names:[],version:0};
+ const review=await env.DB.prepare('SELECT version FROM final_reviews WHERE class_id=? AND category_id=?').bind(cls.id,cat.id).first();
+ const pub=await env.DB.prepare('SELECT class_id FROM publications WHERE class_id=?').bind(cls.id).first();
+ const all=cat.nomination?(await env.DB.prepare('SELECT n.class_id,n.names_json,c.year,c.name FROM nominations n JOIN classes c ON c.id=n.class_id WHERE n.category_id=? ORDER BY c.year,c.name').bind(cat.id).all()).results||[]:[];
+ return {class:cls,category:cat,draft:final,confirmedLP:review?.version===final.version,published:!!pub,nominees:all.map(n=>({classId:n.class_id,label:n.year+' '+n.name,names:JSON.parse(n.names_json)}))};
+}
+async function saveFinal(env,user,b){
+ const id=validateClassId(b.classId),cls=await env.DB.prepare('SELECT id,year,name,status FROM classes WHERE id=?').bind(id).first();
+ const cat=cls&&categoryOf(b.categoryId,cls.year,false);if(!cat||!canWork(user,cat.id))safeError('Kategori ini bukan tugasan anda.',403);
+ if(await env.DB.prepare('SELECT class_id FROM publications WHERE class_id=?').bind(id).first())safeError('Senarai kelas telah diterbitkan. Minta admin menarik balik penerbitan sebelum menyunting.',423);
+ const list=names(b.names);
+ if(list.length&&(cat.nomination||cat.id==='mawar')&&b.confirmedLP!==true)safeError('Sahkan semakan L/P dan keputusan pemilihan dahulu.');
+ if(cat.nomination&&list.length){
+  const candidate=await env.DB.prepare('SELECT names_json FROM nominations WHERE class_id=? AND category_id=?').bind(id,cat.id).first();
+  const old=await env.DB.prepare('SELECT names_json FROM drafts WHERE class_id=? AND category_id=?').bind(id,cat.id).first();
+  const allowed=new Set([...JSON.parse(candidate?.names_json||'[]'),...JSON.parse(old?.names_json||'[]')].map(n=>n.toLocaleLowerCase('ms')));
+  if(list.some(n=>!allowed.has(n.toLocaleLowerCase('ms'))))safeError('Pilih nama daripada pencalonan guru kelas.');
+ }
+ const limit=cat.scope==='year'?cat.quota?.[cls.year]:cat.quota;
+ const r=await saveDraft(env,id,cat.id,Number(b.version),list,'drafts',limit??null,cat.scope==='year'?cls.year:0);
+ if(cat.nomination||cat.id==='mawar')await env.DB.prepare("INSERT INTO final_reviews(class_id,category_id,version,confirmed_by) VALUES(?,?,?,?) ON CONFLICT(class_id,category_id) DO UPDATE SET version=excluded.version,confirmed_by=excluded.confirmed_by,confirmed_at=datetime('now')").bind(id,cat.id,r.version,user.email).run();
+ return r;
+}
+
 async function overview(env){const [classes,drafts,assignments,publications]=await Promise.all([
  env.DB.prepare('SELECT id,year,name,status,submitted_at,updated_at FROM classes ORDER BY year,name').all(),
  env.DB.prepare('SELECT class_id,category_id,names_json,version FROM drafts').all(),
@@ -107,20 +139,48 @@ export async function onRequest({request,env}){
   }
   if(path==='teacher/class'&&request.method==='GET'){
    requireRole(user,'teacher');const cls=await env.DB.prepare('SELECT id,year,name,status,updated_at,submitted_at FROM classes WHERE id=?').bind(user.classId).first();
-   const drafts=await env.DB.prepare('SELECT category_id,names_json,version FROM drafts WHERE class_id=?').bind(user.classId).all();
-   return JSON_RESPONSE({class:cls,categories:CATEGORIES.filter(c=>c.teacher&&(!c.years||c.years.includes(cls.year))),drafts:Object.fromEntries((drafts.results||[]).map(x=>[x.category_id,{names:JSON.parse(x.names_json),version:x.version}]))});
+   const d=await env.DB.prepare('SELECT category_id,names_json,version FROM drafts WHERE class_id=? AND category_id=?').bind(user.classId,'pbd').all();
+   const n=await env.DB.prepare('SELECT category_id,names_json,version FROM nominations WHERE class_id=?').bind(user.classId).all();
+   const categories=CATEGORIES.filter(c=>c.teacher),allowed=new Set(categories.map(c=>c.id));
+   return JSON_RESPONSE({class:cls,categories,drafts:Object.fromEntries([...(d.results||[]),...(n.results||[])].filter(x=>allowed.has(x.category_id)).map(x=>[x.category_id,{names:JSON.parse(x.names_json),version:x.version}]))});
   }
+
   if(path==='teacher/save'&&request.method==='POST'){
    requireRole(user,'teacher');const input=await reqBody(request);const cls=await env.DB.prepare('SELECT year,status FROM classes WHERE id=?').bind(user.classId).first();
    if(cls?.status!=='draft')return fail('Senarai telah dihantar. Minta urus setia membuka semula.',423);
-   if(!categoryOf(input.categoryId,cls.year,true))return fail('Kategori tidak dibenarkan.',403);
-   return JSON_RESPONSE(await saveDraft(env,user.classId,input.categoryId,Number(input.version),names(input.names)));
+   const cat=categoryOf(input.categoryId,cls.year,true);if(!cat)return fail('Kategori tidak dibenarkan.',403);const list=names(input.names);
+   if(cat.classLimit&&list.length>cat.classLimit)return fail('PBD: maksimum 5 murid setiap kelas.');
+   return JSON_RESPONSE(await saveDraft(env,user.classId,input.categoryId,Number(input.version),list,cat.nomination?'nominations':'drafts'));
   }
   if(path==='teacher/submit'&&request.method==='POST'){
-   requireRole(user,'teacher');await reqBody(request);const row=await env.DB.prepare('SELECT COUNT(*) AS n FROM drafts WHERE class_id=? AND names_json!=?').bind(user.classId,'[]').first();
-   if(!row?.n)return fail('Isi sekurang-kurangnya satu nama dahulu.');
+   requireRole(user,'teacher');await reqBody(request);const row=await env.DB.prepare('SELECT names_json FROM drafts WHERE class_id=? AND category_id=?').bind(user.classId,'pbd').first();
+   if(JSON.parse(row?.names_json||'[]').length!==5)return fail('PBD: isi tepat 5 nama murid sebelum menghantar senarai akhir.');
    const r=await env.DB.prepare("UPDATE classes SET status='submitted',submitted_at=datetime('now'),updated_at=datetime('now') WHERE id=? AND status='draft'").bind(user.classId).run();
    return r.meta?.changes?JSON_RESPONSE({ok:true}):fail('Senarai sudah dihantar.',409);
+  }
+  if(path==='work/overview'&&request.method==='GET'){
+   const categories=CATEGORIES.filter(c=>c.id!=='pbd'&&canWork(user,c.id));if(!categories.length)return fail('Tiada tugasan kategori diberikan.',403);
+   const classes=(await env.DB.prepare('SELECT id,year,name,status FROM classes ORDER BY year,name').all()).results||[];
+   return JSON_RESPONSE({categories,classes});
+  }
+  if(path==='work/class'&&request.method==='GET'){
+   const id=validateClassId(url.searchParams.get('classId')),cls=await env.DB.prepare('SELECT id,year,name,status FROM classes WHERE id=?').bind(id).first();
+   const cat=cls&&categoryOf(url.searchParams.get('categoryId'),cls.year,false);if(!cat||!canWork(user,cat.id))return fail('Kategori ini bukan tugasan anda.',403);
+   return JSON_RESPONSE(await workData(env,cls,cat));
+  }
+  if(path==='work/save'&&request.method==='POST')return JSON_RESPONSE(await saveFinal(env,user,await reqBody(request)));
+  if(path==='admin/category-assignments'&&request.method==='GET'){
+   requireRole(user,'admin');return JSON_RESPONSE({assignments:(await env.DB.prepare('SELECT email,category_id,assigned_by FROM category_assignments ORDER BY email,category_id').all()).results||[],categories:CATEGORIES.filter(c=>c.id!=='pbd')});
+  }
+  if(path==='admin/category-assignments'&&request.method==='POST'){
+   requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
+   const ids=b.categoryIds;if(!Array.isArray(ids)||!ids.length||ids.length>11||new Set(ids).size!==ids.length||ids.some(id=>!CATEGORIES.some(c=>c.id===id&&c.id!=='pbd')))return fail('Pilih tugasan kategori yang sah.');
+   for(const id of ids)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by) VALUES(?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,updated_at=datetime('now')").bind(email,id,user.email).run();
+   return JSON_RESPONSE({ok:true});
+  }
+  if(path==='admin/category-assignments/revoke'&&request.method==='POST'){
+   requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
+   if(typeof b.categoryId!=='string')return fail('Kategori tidak sah.');await env.DB.prepare('DELETE FROM category_assignments WHERE email=? AND category_id=?').bind(email,b.categoryId).run();return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/admins'&&request.method==='GET'){
    requireRole(user,'admin');const grants=await env.DB.prepare('SELECT email,granted_by,created_at FROM admin_grants ORDER BY email').all();
@@ -166,16 +226,22 @@ export async function onRequest({request,env}){
    return r.meta?.changes?JSON_RESPONSE({ok:true}):fail('Kelas tidak ditemui.',404);
   }
   if(path==='admin/special/save'&&request.method==='POST'){
-   requireRole(user,'admin');const b=await reqBody(request),id=validateClassId(b.classId),cls=await env.DB.prepare('SELECT year FROM classes WHERE id=?').bind(id).first();
-   if(!cls||!categoryOf(b.categoryId,cls.year,false))return fail('Kategori khas tidak sah.',403);
-   return JSON_RESPONSE(await saveDraft(env,id,b.categoryId,Number(b.version),names(b.names)));
+   requireRole(user,'admin');return JSON_RESPONSE(await saveFinal(env,user,await reqBody(request)));
   }
+
   if(path==='admin/publish'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),id=validateClassId(b.classId);
-   const cls=await env.DB.prepare('SELECT id,status FROM classes WHERE id=?').bind(id).first();if(!cls)return fail('Kelas tidak ditemui.',404);
+   const cls=await env.DB.prepare('SELECT id,year,status FROM classes WHERE id=?').bind(id).first();if(!cls)return fail('Kelas tidak ditemui.',404);
    if(cls.status!=='submitted')return fail('Guru perlu menghantar senarai akhir sebelum penerbitan.',409);
-   const d=await env.DB.prepare('SELECT category_id,names_json FROM drafts WHERE class_id=?').bind(id).all();const snapshot={};
-   for(const item of d.results||[])if(CATEGORIES.some(x=>x.id===item.category_id)){const n=JSON.parse(item.names_json);if(n.length)snapshot[item.category_id]=n;}
+   const d=await env.DB.prepare('SELECT category_id,names_json,version FROM drafts WHERE class_id=?').bind(id).all();const snapshot={};
+   for(const item of d.results||[]){const cat=CATEGORIES.find(x=>x.id===item.category_id);if(!cat)continue;const n=JSON.parse(item.names_json);if(!n.length)continue;
+    if(cat.id==='pbd'&&n.length!==5)return fail('PBD mesti mempunyai tepat 5 penerima sebelum diterbitkan.',409);
+    if(cat.nomination||cat.id==='mawar'){const review=await env.DB.prepare('SELECT version FROM final_reviews WHERE class_id=? AND category_id=?').bind(id,cat.id).first();if(review?.version!==item.version)return fail('Semak dan sahkan L/P bagi '+cat.name+' melalui Pemilihan & pengisian dahulu.',409);}
+    if(cat.years&&!cat.years.includes(cls.year))return fail('Kategori di luar tahun yang dibenarkan.',409);
+    const limit=cat.scope==='year'?cat.quota?.[cls.year]:cat.quota;
+    if(limit!=null){const all=await env.DB.prepare('SELECT class_id,names_json FROM drafts WHERE category_id=?').bind(cat.id).all();const count=(all.results||[]).filter(r=>cat.scope!=='year'||+r.class_id[0]===cls.year).reduce((s,r)=>s+JSON.parse(r.names_json).length,0);if(count>limit)return fail('Kuota keseluruhan '+cat.name+' melebihi '+limit+' penerima.',409);}
+    snapshot[item.category_id]=n;
+   }
    if(!Object.keys(snapshot).length)return fail('Tiada nama penerima untuk diterbitkan.');
    await env.DB.prepare('INSERT INTO publications(class_id,snapshot_json,published_at,published_by) VALUES(?,?,datetime(\'now\'),?) ON CONFLICT(class_id) DO UPDATE SET snapshot_json=excluded.snapshot_json,published_at=datetime(\'now\'),published_by=excluded.published_by').bind(id,JSON.stringify(snapshot),user.email).run();
    return JSON_RESPONSE({ok:true});
@@ -186,5 +252,5 @@ export async function onRequest({request,env}){
   }
   if(path==='admin/export'&&request.method==='GET'){requireRole(user,'admin');return exportCSV(env);}
   return fail('Laluan API tidak wujud.',404);
- }catch(err){if(err.status)return fail(err.message,err.status);console.error('MaPeM API failure:',err);if(/no such table|D1_ERROR/i.test(err.message||''))return fail('Database belum mempunyai migrasi 0002_google_pwa.sql atau jadual asas.',503);return fail('Ralat pelayan. Cuba lagi atau hubungi urus setia.',500);}
+ }catch(err){if(err.status)return fail(err.message,err.status);console.error('MaPeM API failure:',err);if(/no such table|D1_ERROR/i.test(err.message||''))return fail('Database belum lengkap. Jalankan semua migrasi aplikasi terkini.',503);return fail('Ralat pelayan. Cuba lagi atau hubungi urus setia.',500);}
 }

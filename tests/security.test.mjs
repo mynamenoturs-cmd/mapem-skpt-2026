@@ -6,32 +6,32 @@ import {webcrypto} from 'node:crypto';
 import {onRequest,CATEGORIES} from '../functions/api/[[path]].js';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
-function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));
+function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));
 const adapter={prepare(sql){return {bind(...params){const statement=db.prepare(sql);return {first(){return statement.get(...params)||null},all(){return {results:statement.all(...params)}},run(){let result=statement.run(...params);return {meta:{changes:result.changes}}}};},all(){return {results:db.prepare(sql).all()}},first(){return db.prepare(sql).get()||null}}}};
 const env={DB:adapter,GOOGLE_CLIENT_ID:'fake.client',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
-async function addLogin(email,name=email){const sub=email;db.prepare('INSERT INTO users(sub,email,name) VALUES(?,?,?)').run(sub,email,name);const sid=(email.includes('admin')?'a':email.includes('teacher')?'b':'c').repeat(64);const digest=await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(sid));const hash=Buffer.from(digest).toString('hex');db.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').run(hash,sub,Math.floor(Date.now()/1000)+3600);return `${'__Host-mapem_session'}=${sid}`;}
+async function addLogin(email,name=email){const sub=email;db.prepare('INSERT INTO users(sub,email,name) VALUES(?,?,?)').run(sub,email,name);const sid=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode('fixture:'+email))).toString('hex');const digest=await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(sid));const hash=Buffer.from(digest).toString('hex');db.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').run(hash,sub,Math.floor(Date.now()/1000)+3600);return `${'__Host-mapem_session'}=${sid}`;}
 return {db,env,addLogin};}
 const request=(route,opts={})=>new Request(ORIGIN+'/api/'+route,{method:opts.method||'GET',headers:{...(opts.cookie?{Cookie:opts.cookie}:{}),...(opts.body!==undefined?{'Content-Type':'application/json',Origin:opts.origin||ORIGIN}:{}),...(opts.headers||{})},body:opts.body!==undefined?JSON.stringify(opts.body):undefined});
 const call=(env,route,opts)=>onRequest({request:request(route,opts),env});
 const json=async r=>r.json();
-test('schema 26 classes, 12 award categories and PWA files',()=>{const {db}=fixture();assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,26);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=3').get().n,8);assert.equal(CATEGORIES.length,12);assert.equal(CATEGORIES.filter(c=>c.teacher).length,6);assert.equal(CATEGORIES.filter(c=>!c.teacher).length,6);assert.match(file('../public/manifest.webmanifest'),/"display":"standalone"/);assert.doesNotMatch(file('../public/sw.js'),/caches\.match\('\/api/);});
+test('schema 26 classes, 12 award categories and PWA files',()=>{const {db}=fixture();assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,26);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=3').get().n,8);assert.equal(CATEGORIES.length,12);assert.equal(CATEGORIES.filter(c=>c.teacher).length,5);assert.equal(CATEGORIES.filter(c=>!c.teacher).length,7);assert.match(file('../public/manifest.webmanifest'),/"display":"standalone"/);assert.doesNotMatch(file('../public/sw.js'),/caches\.match\('\/api/);});
 test('auth, class isolation, drafts, publication and revocation',async()=>{const {db,env,addLogin}=fixture();const admin=await addLogin('admin@gmail.com'),teacher=await addLogin('teacher@gmail.com'),viewer=await addLogin('parent@gmail.com');db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('teacher@gmail.com','1-amber');
 assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'teacher');assert.equal((await json(await call(env,'me',{cookie:viewer}))).user.role,'viewer');assert.equal((await json(await call(env,'me',{cookie:admin}))).user.role,'admin');
 assert.equal((await call(env,'admin/overview',{cookie:viewer})).status,403);assert.equal((await call(env,'teacher/class',{cookie:viewer})).status,403);
-let teacherData=await json(await call(env,'teacher/class',{cookie:teacher}));assert.equal(teacherData.class.id,'1-amber');assert(!teacherData.categories.some(c=>c.id==='cemara'));
-assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'cemara',names:['Test murid'],version:0}})).status,403);
+let teacherData=await json(await call(env,'teacher/class',{cookie:teacher}));assert.equal(teacherData.class.id,'1-amber');assert(teacherData.categories.some(c=>c.id==='cemara'));assert(!teacherData.categories.some(c=>c.id==='uasa'));
+assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'uasa',names:['Test murid'],version:0}})).status,403);
 assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',origin:'https://evil.example',body:{categoryId:'pbd',names:['Test murid'],version:0}})).status,403);
 let saved=await json(await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'pbd',names:['Murid Contoh Satu'],version:0}}));assert.equal(saved.version,1);
 assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'pbd',names:['Murid Contoh Dua'],version:0}})).status,409);
 assert.deepEqual((await json(await call(env,'published',{cookie:viewer}))).classes,[]);
 assert.equal((await call(env,'admin/publish',{cookie:admin,method:'POST',body:{classId:'1-amber'}})).status,409);
-assert.equal((await call(env,'teacher/submit',{cookie:teacher,method:'POST',body:{}})).status,200);
+assert.equal((await call(env,'teacher/submit',{cookie:teacher,method:'POST',body:{}})).status,400);assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'pbd',version:1,names:['Murid Contoh Satu','Murid Dua','Murid Tiga','Murid Empat','Murid Lima']}})).status,200);assert.equal((await call(env,'teacher/submit',{cookie:teacher,method:'POST',body:{}})).status,200);
 assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'pbd',names:['Murid Tiga'],version:1}})).status,423);
 assert.equal((await call(env,'admin/publish',{cookie:admin,method:'POST',body:{classId:'1-amber'}})).status,200);
-const pub=await json(await call(env,'published',{cookie:viewer}));assert.equal(pub.classes.length,1);assert.deepEqual(pub.classes[0].awards.pbd,['Murid Contoh Satu']);
+const pub=await json(await call(env,'published',{cookie:viewer}));assert.equal(pub.classes.length,1);assert.equal(pub.classes[0].awards.pbd.length,5);assert.equal(pub.classes[0].awards.pbd[0],'Murid Contoh Satu');
 assert.equal((await call(env,'admin/class/status',{cookie:admin,method:'POST',body:{classId:'1-amber',status:'draft'}})).status,200);
 assert.equal((await json(await call(env,'published',{cookie:viewer}))).classes.length,0);
-assert.equal((await call(env,'admin/special/save',{cookie:admin,method:'POST',body:{classId:'1-amber',categoryId:'cemara',names:['Ikon Contoh'],version:0}})).status,200);
+assert.equal((await call(env,'admin/special/save',{cookie:admin,method:'POST',body:{classId:'1-amber',categoryId:'plan',names:['Ikon Contoh'],version:0}})).status,200);
 assert.equal((await call(env,'admin/unassign',{cookie:admin,method:'POST',body:{email:'teacher@gmail.com'}})).status,200);
 assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'viewer');
 assert.equal((await call(env,'teacher/class',{cookie:teacher})).status,403);
@@ -57,4 +57,46 @@ test('only admins can delegate; grants apply to live sessions and revocation is 
  assert.equal((await call(env,'admin/admins',{cookie:teacher})).status,403);
  assert.equal((await call(env,'admin/admins/revoke',{cookie:teacher,method:'POST',body:{email:'other@gmail.com'}})).status,403);
  assert.equal(db.prepare('SELECT count(*) AS n FROM classes').get().n,26);
+});
+
+test('responsibilities: exactly five GK inputs and legacy specialist records retained but hidden',async()=>{
+ const {db,env,addLogin}=fixture(),teacher=await addLogin('teacher@gmail.com');db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('teacher@gmail.com','1-amber');
+ db.prepare('INSERT INTO drafts(class_id,category_id,names_json,version) VALUES(?,?,?,?)').run('1-amber','uasa','["Rekod Lama UASA"]',3);
+ const d=await json(await call(env,'teacher/class',{cookie:teacher}));assert.deepEqual(d.categories.map(c=>c.id),['pbd','cemara','kurikulum','kokurikulum','hem']);assert(!d.drafts.uasa);
+ assert.equal(db.prepare('SELECT version FROM drafts WHERE category_id=?').get('uasa').version,3);
+ assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'pbd',names:Array.from({length:6},(_,i)=>'Murid '+i),version:0}})).status,400);
+ for(const id of ['uasa','matapelajaran','ains','ains-tokoh','delima','plan','mawar'])assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:id,names:['Murid Contoh'],version:0}})).status,403);
+});
+test('category assignments support specialists and dual-role teachers; revoke takes effect immediately',async()=>{
+ const {db,env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com'),fitri=await addLogin('fitri@gmail.com'),abby=await addLogin('abby@gmail.com');
+ assert.equal((await call(env,'admin/category-assignments',{cookie:fitri,method:'POST',body:{email:'fitri@gmail.com',categoryIds:['uasa']}})).status,403);
+ assert.equal((await call(env,'admin/category-assignments',{cookie:admin,method:'POST',body:{email:'fitri@gmail.com',categoryIds:['pbd']}})).status,400);
+ assert.equal((await call(env,'admin/category-assignments',{cookie:admin,method:'POST',body:{email:'fitri@gmail.com',categoryIds:['uasa','matapelajaran']}})).status,200);
+ assert.equal((await json(await call(env,'me',{cookie:fitri}))).user.role,'specialist');assert.deepEqual((await json(await call(env,'work/overview',{cookie:fitri}))).categories.map(c=>c.id),['uasa','matapelajaran']);
+ assert.equal((await call(env,'teacher/class',{cookie:fitri})).status,403);
+ assert.equal((await call(env,'work/class?classId=1-amber&categoryId=uasa',{cookie:abby})).status,403);
+ assert.equal((await call(env,'work/save',{cookie:fitri,method:'POST',body:{classId:'1-amber',categoryId:'delima',names:['Murid Contoh'],version:0}})).status,403);
+ assert.equal((await call(env,'work/save',{cookie:fitri,method:'POST',origin:'https://evil.example',body:{classId:'1-amber',categoryId:'uasa',names:['Murid Contoh'],version:0}})).status,403);
+ assert.equal((await call(env,'work/save',{cookie:fitri,method:'POST',body:{classId:'1-amber',categoryId:'uasa',names:['Murid Ujian'],version:0}})).status,200);
+ db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('fitri@gmail.com','1-amber');assert.equal((await json(await call(env,'me',{cookie:fitri}))).user.role,'teacher');assert.equal((await call(env,'work/overview',{cookie:fitri})).status,200);
+ assert.equal((await call(env,'admin/category-assignments/revoke',{cookie:admin,method:'POST',body:{email:'fitri@gmail.com',categoryId:'uasa'}})).status,200);
+ assert.equal((await call(env,'work/class?classId=1-amber&categoryId=uasa',{cookie:fitri})).status,403);assert.equal((await call(env,'teacher/class',{cookie:fitri})).status,200);
+});
+test('nominations are isolated from recipients, only selected names publish, total limit two and LP review enforced',async()=>{
+ const {db,env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com'),teacher=await addLogin('teacher@gmail.com');db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('teacher@gmail.com','1-amber');
+ const save=async(categoryId,ns,version=0)=>call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId,names:ns,version}});
+ assert.equal((await save('pbd',['Murid Satu','Murid Dua','Murid Tiga','Murid Empat','Murid Lima'])).status,200);
+ assert.equal((await save('cemara',['Calon Satu','Calon Dua','Calon Tiga'])).status,200);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM drafts WHERE category_id=?').get('cemara').n,0);
+ assert.equal((await call(env,'teacher/submit',{cookie:teacher,method:'POST',body:{}})).status,200);
+ const final=async(ns,version=0,confirmedLP=true,classId='1-amber')=>call(env,'work/save',{cookie:admin,method:'POST',body:{classId,categoryId:'cemara',names:ns,version,confirmedLP}});
+ assert.equal((await final(['Calon Satu'],0,false)).status,400);assert.equal((await final(['Bukan Calon'])).status,400);assert.equal((await final(['Calon Satu','Calon Dua','Calon Tiga'])).status,409);
+ assert.equal((await final(['Calon Satu','Calon Dua'])).status,200);
+ db.prepare('INSERT INTO nominations(class_id,category_id,names_json,version) VALUES(?,?,?,1)').run('2-crystal','cemara','["Calon Empat"]');assert.equal((await final(['Calon Empat'],0,true,'2-crystal')).status,409);
+ assert.equal((await call(env,'admin/publish',{cookie:admin,method:'POST',body:{classId:'1-amber'}})).status,200);
+ const parent=await addLogin('parent@gmail.com'),pub=await json(await call(env,'published',{cookie:parent}));assert.deepEqual(pub.classes[0].awards.cemara,['Calon Satu','Calon Dua']);assert(!JSON.stringify(pub).includes('Calon Tiga'));
+ assert.equal((await final(['Calon Satu'],1)).status,423);
+ assert.equal((await call(env,'admin/class/status',{cookie:admin,method:'POST',body:{classId:'1-amber',status:'draft'}})).status,200);
+ assert.equal((await final(['Calon Satu'],1)).status,200);assert.equal((await final(['Calon Empat'],0,true,'2-crystal')).status,200);
+ const csv=await (await call(env,'admin/export',{cookie:admin})).text();assert(!csv.includes('Calon Tiga'));
+ assert.equal((await call(env,'work/save',{cookie:admin,method:'POST',body:{classId:'1-amber',categoryId:'mawar',names:['Calon Satu'],version:0,confirmedLP:true}})).status,403);
 });
