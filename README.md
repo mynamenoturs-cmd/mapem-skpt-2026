@@ -50,3 +50,12 @@ Kunci `ADMIN_KEY` lama **tidak digunakan** oleh versi ini. Jangan simpan rahsia 
 ## Ujian
 
 `node --test tests/security.test.mjs` (Node 22+) dan semak pemasangan sebenar selepas konfigurasi Cloudflare/Google OAuth. Ujian tempatan **bukan pengesahan deployment production**.
+
+
+## Pengurusan admin dalam portal
+
+Pentadbir sedia ada boleh membuka **Menu → Urus admin**, memasukkan e-mel Google, kemudian mengesahkan **Tambah sebagai admin**. Akaun itu mendapat akses pentadbir pada permintaan seterusnya; muat semula portal jika paparan lama masih terbuka. Pentadbir yang ditambah boleh dibuang melalui **Buang akses**. Akaun dalam konfigurasi `ADMIN_EMAILS` kekal sebagai pentadbir utama dan dilindungi daripada pembatalan melalui portal. Pengguna tidak boleh membuang akses sendiri.
+
+Migrasi tambahan `0003_admin_roles.sql` hanya mencipta jadual `admin_grants`, tanpa mengubah data kelas atau murid. Semakan peranan berlaku pada server untuk setiap permintaan; UI bukan sumber kebenaran akses.
+
+Banner dan ikon baharu berada dalam `public/assets/mapem-banner-v2.webp` dan `public/assets/mapem-emblem-v2.webp`. `scripts/build-brand.mjs` membina ikon PWA dan laluan aset lama daripada imej yang sama. Animasi cahaya banner dan ikon dijalankan melalui CSS serta dihentikan apabila pengguna memilih reduced motion.

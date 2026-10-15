@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {onRequest,CATEGORIES} from '../functions/api/[[path]].js';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
-function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));
+function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));
 const adapter={prepare(sql){return {bind(...params){const statement=db.prepare(sql);return {first(){return statement.get(...params)||null},all(){return {results:statement.all(...params)}},run(){let result=statement.run(...params);return {meta:{changes:result.changes}}}};},all(){return {results:db.prepare(sql).all()}},first(){return db.prepare(sql).get()||null}}}};
 const env={DB:adapter,GOOGLE_CLIENT_ID:'fake.client',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
 async function addLogin(email,name=email){const sub=email;db.prepare('INSERT INTO users(sub,email,name) VALUES(?,?,?)').run(sub,email,name);const sid=(email.includes('admin')?'a':email.includes('teacher')?'b':'c').repeat(64);const digest=await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(sid));const hash=Buffer.from(digest).toString('hex');db.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').run(hash,sub,Math.floor(Date.now()/1000)+3600);return `${'__Host-mapem_session'}=${sid}`;}
@@ -37,3 +37,24 @@ assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'view
 assert.equal((await call(env,'teacher/class',{cookie:teacher})).status,403);
 });
 test('Google OAuth starts with per-browser state, server-side redirect',async()=>{const {env}=fixture();const r=await call(env,'auth/google/start');assert.equal(r.status,302);assert.match(r.headers.get('location'),/^https:\/\/accounts\.google\.com\//);assert.match(r.headers.get('set-cookie'),/__Host-mapem_oauth=/);assert.match(r.headers.get('set-cookie'),/SameSite=Lax/);});
+
+test('only admins can delegate; grants apply to live sessions and revocation is immediate',async()=>{
+ const {db,env,addLogin}=fixture();const admin=await addLogin('admin@gmail.com'),teacher=await addLogin('teacher@gmail.com');
+ db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('teacher@gmail.com','1-amber');
+ assert.equal((await call(env,'admin/admins',{cookie:teacher})).status,403);
+ assert.equal((await call(env,'admin/admins',{cookie:teacher,method:'POST',body:{email:'other@gmail.com'}})).status,403);
+ assert.equal((await call(env,'admin/admins',{cookie:admin,method:'POST',origin:'https://evil.example',body:{email:'other@gmail.com'}})).status,403);
+ assert.equal((await call(env,'admin/admins',{cookie:admin,method:'POST',body:{email:'not-an-email'}})).status,400);
+ assert.equal((await call(env,'admin/admins',{cookie:admin,method:'POST',body:{email:' TEACHER@gmail.com '}})).status,200);
+ assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'admin');
+ assert.equal((await call(env,'admin/admins',{cookie:admin,method:'POST',body:{email:'teacher@gmail.com'}})).status,409);
+ assert.equal((await call(env,'admin/assign',{cookie:admin,method:'POST',body:{email:'teacher@gmail.com',classId:'1-amber'}})).status,400);
+ const admins=await json(await call(env,'admin/admins',{cookie:teacher}));assert.equal(admins.admins.length,2);assert.equal(admins.admins.find(a=>a.email==='admin@gmail.com').protected,true);
+ assert.equal((await call(env,'admin/admins/revoke',{cookie:teacher,method:'POST',body:{email:'admin@gmail.com'}})).status,403);
+ assert.equal((await call(env,'admin/admins/revoke',{cookie:teacher,method:'POST',body:{email:'teacher@gmail.com'}})).status,409);
+ assert.equal((await call(env,'admin/admins/revoke',{cookie:admin,method:'POST',body:{email:'teacher@gmail.com'}})).status,200);
+ assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'teacher');
+ assert.equal((await call(env,'admin/admins',{cookie:teacher})).status,403);
+ assert.equal((await call(env,'admin/admins/revoke',{cookie:teacher,method:'POST',body:{email:'other@gmail.com'}})).status,403);
+ assert.equal(db.prepare('SELECT count(*) AS n FROM classes').get().n,26);
+});

@@ -27,6 +27,7 @@ function cookies(request){return Object.fromEntries((request.headers.get('Cookie
 function cookie(name,val,seconds){return `${name}=${val}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${seconds}`;}
 function redirect(url,headers={}){return new Response(null,{status:302,headers:{Location:url,'Cache-Control':'no-store',...headers}});}
 function adminEmails(env){return new Set(String(env.ADMIN_EMAILS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean));}
+async function isAdminEmail(env,email){return adminEmails(env).has(email)||!!(await env.DB.prepare('SELECT email FROM admin_grants WHERE email=?').bind(email).first());}
 function origin(env){return String(env.APP_ORIGIN||'').replace(/\/$/,'');}
 function getConfig(env){return !!(env.DB && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && /^https:\/\/[^/]+$/.test(origin(env)) && adminEmails(env).size>0);}
 function googleCallback(env){return origin(env)+'/api/auth/google/callback';}
@@ -35,7 +36,7 @@ async function reqBody(request){if(!request.headers.get('content-type')?.include
 function names(input){if(!Array.isArray(input)||input.length>150)safeError('Maksimum 150 nama bagi satu kategori.');const list=input.map(x=>String(x||'').trim().replace(/\s+/g,' ')).filter(Boolean);if(list.some(x=>x.length<2||x.length>160||/[<>]/.test(x)))safeError('Nama mesti 2–160 aksara dan tanpa simbol HTML.');if(new Set(list.map(x=>x.toLocaleLowerCase('ms'))).size!==list.length)safeError('Terdapat nama berulang dalam kategori.');return list;}
 async function userFor(request,env){const sid=cookies(request)[SESSION_COOKIE];if(!sid||!/^[a-f0-9]{64}$/.test(sid))return null;const hash=await sha256(sid);
  const user=await env.DB.prepare('SELECT u.sub,u.email,u.name,s.expires_at FROM sessions s JOIN users u ON u.sub=s.user_sub WHERE s.id_hash=? AND s.expires_at>?').bind(hash,now()).first();
- if(!user)return null;const email=user.email.toLowerCase();const isAdmin=adminEmails(env).has(email);
+ if(!user)return null;const email=user.email.toLowerCase();const isAdmin=await isAdminEmail(env,email);
  const assignment=isAdmin?null:await env.DB.prepare('SELECT a.class_id,c.year,c.name AS class_name FROM teacher_assignments a JOIN classes c ON c.id=a.class_id WHERE a.email=?').bind(email).first();
  return {sub:user.sub,email,name:user.name,role:isAdmin?'admin':assignment?'teacher':'viewer',classId:assignment?.class_id||null,className:assignment?`${assignment.year} ${assignment.class_name}`:null};}
 function requireRole(user,role){if(!user)safeError('Sila log masuk dengan akaun Google.',401);if(role==='admin'&&user.role!=='admin')safeError('Akses pentadbir sahaja.',403);if(role==='teacher'&&user.role!=='teacher')safeError('Akses guru kelas sahaja.',403);}
@@ -60,7 +61,7 @@ function csvEscape(v){let s=String(v??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;retu
 async function exportCSV(env){const [cls,rows]=await Promise.all([env.DB.prepare('SELECT id,year,name,status FROM classes').all(),env.DB.prepare('SELECT class_id,category_id,names_json FROM drafts').all()]);const lookup=new Map((cls.results||[]).map(c=>[c.id,c])),cat=new Map(CATEGORIES.map(c=>[c.id,c.name]));const body=[['Tahun','Kelas','Kategori','Bil','Nama Penuh Murid','Status']];for(const r of rows.results||[]){const c=lookup.get(r.class_id);if(c)JSON.parse(r.names_json).forEach((name,i)=>body.push([c.year,`${c.year} ${c.name}`,cat.get(r.category_id)||r.category_id,i+1,name,c.status]));}
  return new Response('\uFEFF'+body.map(a=>a.map(csvEscape).join(',')).join('\r\n'),{headers:{'content-type':'text/csv;charset=utf-8','content-disposition':'attachment; filename=mapem-skpt-2026.csv','cache-control':'no-store','x-content-type-options':'nosniff'}});}
 function validateClassId(v){if(typeof v!=='string'||!/^[123]-(amber|crystal|diamond|emerald|jade|pearl|ruby|sapphire|topaz)$/.test(v)||v==='3-amber')safeError('Kelas tidak sah.');return v;}
-function adminTeacherEmail(v){const value=String(v||'').trim().toLowerCase();if(value.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))safeError('Alamat e-mel guru tidak sah.');return value;}
+function adminTeacherEmail(v){const value=String(v||'').trim().toLowerCase();if(value.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))safeError('Alamat e-mel tidak sah.');return value;}
 export async function onRequest({request,env}){
  const url=new URL(request.url),path=url.pathname.replace(/^\/api\/?/,'').replace(/\/$/,'');
  try{
@@ -121,6 +122,23 @@ export async function onRequest({request,env}){
    const r=await env.DB.prepare("UPDATE classes SET status='submitted',submitted_at=datetime('now'),updated_at=datetime('now') WHERE id=? AND status='draft'").bind(user.classId).run();
    return r.meta?.changes?JSON_RESPONSE({ok:true}):fail('Senarai sudah dihantar.',409);
   }
+  if(path==='admin/admins'&&request.method==='GET'){
+   requireRole(user,'admin');const grants=await env.DB.prepare('SELECT email,granted_by,created_at FROM admin_grants ORDER BY email').all();
+   const fixed=adminEmails(env);return JSON_RESPONSE({admins:[...Array.from(fixed,email=>({email,protected:true})),...(grants.results||[]).filter(a=>!fixed.has(a.email)).map(a=>({...a,protected:false}))]});
+  }
+  if(path==='admin/admins'&&request.method==='POST'){
+   requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
+   if(await isAdminEmail(env,email))return fail('Akaun ini sudah menjadi pentadbir.',409);
+   const result=await env.DB.prepare('INSERT OR IGNORE INTO admin_grants(email,granted_by) VALUES(?,?)').bind(email,user.email).run();
+   return result.meta?.changes?JSON_RESPONSE({ok:true}):fail('Akaun ini sudah menjadi pentadbir.',409);
+  }
+  if(path==='admin/admins/revoke'&&request.method==='POST'){
+   requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
+   if(adminEmails(env).has(email))return fail('Pentadbir utama dilindungi. Ubah konfigurasi Cloudflare untuk menguruskannya.',403);
+   if(email===user.email)return fail('Anda tidak boleh membatalkan akses sendiri.',409);
+   const result=await env.DB.prepare('DELETE FROM admin_grants WHERE email=?').bind(email).run();
+   return result.meta?.changes?JSON_RESPONSE({ok:true}):fail('Pentadbir tidak ditemui.',404);
+  }
   if(path==='admin/overview'&&request.method==='GET'){requireRole(user,'admin');return JSON_RESPONSE(await overview(env));}
   if(path==='admin/class'&&request.method==='GET'){
    requireRole(user,'admin');const id=validateClassId(url.searchParams.get('id'));
@@ -130,7 +148,7 @@ export async function onRequest({request,env}){
   }
   if(path==='admin/assign'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email),id=validateClassId(b.classId);
-   if(adminEmails(env).has(email))return fail('Gunakan akaun bukan admin untuk guru kelas.');
+   if(await isAdminEmail(env,email))return fail('Gunakan akaun bukan admin untuk guru kelas.');
    const cls=await env.DB.prepare('SELECT id FROM classes WHERE id=?').bind(id).first();if(!cls)return fail('Kelas tidak ditemui.',404);
    await env.DB.prepare('INSERT INTO teacher_assignments(email,class_id,updated_at) VALUES(?,?,datetime(\'now\')) ON CONFLICT(email) DO UPDATE SET class_id=excluded.class_id,updated_at=datetime(\'now\')').bind(email,id).run();
    return JSON_RESPONSE({ok:true});
