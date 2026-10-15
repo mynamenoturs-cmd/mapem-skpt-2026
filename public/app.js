@@ -1,7 +1,7 @@
 (()=>{
 "use strict";
 const app=document.getElementById("app"),toastBox=document.getElementById("toast");
-const state={token:"",role:"",data:null,year:0,timers:{},pending:{},editing:{}};
+const state={token:"",role:"",data:null,year:0,timers:{},pending:{},editing:{},specialClass:"",specialCategory:"",specialDetails:null};
 const h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const el=id=>document.getElementById(id);
 function notify(s){toastBox.textContent=s;toastBox.classList.add("show");clearTimeout(notify.t);notify.t=setTimeout(()=>toastBox.classList.remove("show"),3800);}
@@ -10,7 +10,7 @@ async function api(route,method="GET",data){let o={method,headers:{Authorization
 function loadError(message){app.innerHTML=hero("Akses tidak berjaya","Sila semak pautan kelas atau hubungi urus setia.")+'<section class="section"><div class="card"><h2>Tidak dapat membuka portal</h2><p>'+h(message)+'</p><button class="btn" id="retry">Cuba semula</button></div></section>';el("retry").onclick=()=>location.reload();}
 function welcome(){
  app.innerHTML=hero("Setiap pencapaian, satu penghargaan.","Portal pengumpulan senarai nama penerima anugerah MaPeM SK Pekan Telipok. Satu pautan bagi satu kelas.")+
- '<section class="section login"><div class="card"><span class="eyebrow" style="color:#aa7a40">PANDUAN GURU KELAS</span><h2 style="margin-top:11px">Isi sekali, kemas kini dengan mudah.</h2><p>Semua kategori ada pada satu halaman. Anda tidak perlu memasukkan e-mel, jantina atau mengisi borang berulang kali.</p>'+
+ '<section class="section login"><div class="card"><span class="eyebrow" style="color:#aa7a40">PANDUAN GURU KELAS</span><h2 style="margin-top:11px">Isi sekali, kemas kini dengan mudah.</h2><p>Kategori untuk guru kelas dipaparkan pada satu halaman. Anda tidak perlu memasukkan e-mel, jantina atau mengisi borang berulang kali.</p>'+
  [["01","Buka pautan kelas","Gunakan pautan kelas yang dikongsikan urus setia."],["02","Isikan senarai nama","Satu nama penuh murid pada setiap baris. Perubahan disimpan automatik."],["03","Hantar senarai akhir","Semak semua nama sebelum mengesahkan penghantaran."]].map(x=>'<div class="step"><b>'+x[0]+'</b><div><strong>'+x[1]+'</strong><p>'+x[2]+'</p></div></div>').join("")+'<div class="notice">Guru kelas: sila gunakan pautan khas kelas masing-masing daripada urus setia.</div></div>'+
  '<div class="card"><span class="eyebrow" style="color:#aa7a40">URUS SETIA</span><h2 style="margin-top:11px">Masuk Pentadbir</h2><p>Urus pautan 26 kelas, pantau kuota dan eksport senarai akhir.</p><form id="admin-form"><div class="field"><label for="key">Kunci pentadbir</label><input id="key" type="password" minlength="32" required placeholder="Masukkan ADMIN_KEY"></div><button class="btn block">Buka dashboard →</button></form><p class="muted">Rahsia pentadbir dikonfigurasi di Cloudflare. Jangan kongsi dengan guru kelas.</p></div></section>';
  el("admin-form").onsubmit=async ev=>{ev.preventDefault();let b=ev.currentTarget.querySelector("button");b.disabled=true;state.token=el("key").value.trim();try{let r=await api("auth");if(r.role!=="admin")throw Error("Kunci admin tidak sah.");state.role="admin";sessionStorage.setItem("mapem-admin",state.token);await admin();}catch(e){notify(e.message);b.disabled=false;}};
@@ -20,22 +20,79 @@ async function admin(){
  try{state.data=await api("admin/overview");}catch(e){return loadError(e.message);}
  state.role="admin";const d=state.data,classes=d.classes,shown=classes.filter(x=>!state.year||x.year===state.year);
  const count=classes.reduce((s,x)=>s+x.total,0);
- const quotas=d.categories.flatMap(c=>c.scope==="year"?Object.entries(c.quota).map(([y,q])=>({title:c.name+" · Tahun "+y,limit:q,count:d.totals[c.id]?.[y]||0})):c.scope==="total"?[{title:c.name,limit:c.quota,count:Object.values(d.totals[c.id]||{}).reduce((a,b)=>a+b,0)}]:[]);
+ const quotas=d.categories.flatMap(c=>c.scope==="year"?Object.entries(c.quota||{}).map(([y,q])=>({title:c.name+" · Tahun "+y,limit:q,count:d.totals[c.id]?.[y]||0})):c.scope==="total"?[{title:c.name,limit:c.quota,count:Object.values(d.totals[c.id]||{}).reduce((a,b)=>a+b,0)}]:[]);
  app.innerHTML=hero("Dashboard Urus Setia","Status pengumpulan penerima anugerah, pautan kelas, kuota dan eksport dalam satu halaman.","PENGURUSAN MAPEM 2026")+
  '<section class="section"><div class="grid metrics">'+[["Jumlah Kelas",26,"9 + 9 + 8 kelas"],["Telah Hantar",d.submitted,"Senarai akhir disahkan"],["Belum Hantar",26-d.submitted,"Masih memerlukan tindakan"],["Nama Direkod",count,"Semua kategori"]].map(x=>'<div class="metric"><label>'+x[0]+'</label><b>'+x[1]+'</b><small>'+x[2]+'</small></div>').join("")+'</div>'+
  '<div class="section-head"><div><h2>Senarai Kelas</h2><p>Edarkan pautan mengikut kelas sahaja. Pautan tidak meminta log masuk guru.</p></div><div class="tools"><button class="btn alt small" id="export">↓ Eksport CSV</button><button class="btn alt small" id="refresh">↻ Segar semula</button><button class="btn danger small" id="logout">Keluar</button></div></div><div class="layout"><div class="card">'+
  '<div class="filters" style="margin-bottom:14px">'+[0,1,2,3].map(n=>'<button class="btn small '+(n===state.year?"":"alt")+'" data-filter="'+n+'">'+(n?"Tahun "+n:"Semua")+'</button>').join("")+'</div>'+
  '<div class="scroll"><table><thead><tr><th>Kelas</th><th>Nama</th><th>Status</th><th>Tindakan</th></tr></thead><tbody>'+shown.map(c=>'<tr><td><b>'+h(c.year+" "+c.name)+'</b></td><td>'+c.total+'</td><td>'+statusTag(c.status)+'</td><td><div class="buttons"><button class="btn small" data-copy="'+h(c.id)+'">Salin pautan</button><button class="btn alt small" data-status="'+h(c.id)+'">'+(c.status==="submitted"?"Buka":"Kunci")+'</button><button class="btn danger small" data-rotate="'+h(c.id)+'">Reset pautan</button></div></td></tr>').join("")+'</tbody></table></div></div>'+
  '<div class="card"><h3>Pemantauan Kuota Anugerah</h3><p>Kuota keseluruhan mengikut tahun atau Tahap 1; bukan kuota untuk setiap kelas.</p>'+
- quotas.map(q=>'<div class="quota"><div class="legend"><strong>'+h(q.title)+'</strong><span>'+q.count+" / "+q.limit+'</span></div><div class="bar-bg"><div class="bar '+(q.count>q.limit?"over":"")+'" style="width:'+Math.min(100,q.count/q.limit*100)+'%"></div></div></div>').join("")+'</div></div></section>';
+ quotas.map(q=>'<div class="quota"><div class="legend"><strong>'+h(q.title)+'</strong><span>'+(q.limit==null?q.count+' nama · Kuota belum ditetapkan':q.count+" / "+q.limit)+'</span></div>'+(q.limit==null?'':'<div class="bar-bg"><div class="bar '+(q.count>q.limit?"over":"")+'" style="width:'+Math.min(100,q.count/q.limit*100)+'%"></div></div>')+'</div>').join("")+'</div></div>'+specialBlock(d)+'</section>';
  document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{state.year=Number(b.dataset.filter);admin();});
  document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{let c=d.classes.find(c=>c.id===b.dataset.copy);let url=location.origin+location.pathname+"?k="+encodeURIComponent(c.token);try{await navigator.clipboard.writeText(url);notify("Pautan "+c.year+" "+c.name+" disalin.");}catch{window.prompt("Salin pautan kelas:",url);}});
  document.querySelectorAll("[data-status]").forEach(b=>b.onclick=async()=>{let c=d.classes.find(c=>c.id===b.dataset.status);let next=c.status==="submitted"?"draft":"submitted";if(!confirm((next==="draft"?"Buka semula":"Kunci")+" pengisian kelas "+c.year+" "+c.name+"?"))return;try{await api("admin/status","POST",{classId:c.id,status:next});await admin();notify("Status berjaya dikemas kini.");}catch(e){notify(e.message);}});
  document.querySelectorAll("[data-rotate]").forEach(b=>b.onclick=async()=>{let c=d.classes.find(c=>c.id===b.dataset.rotate);if(!confirm("Batalkan pautan lama kelas "+c.year+" "+c.name+"? Guru perlu menerima pautan baharu."))return;try{await api("admin/rotate","POST",{classId:c.id});await admin();notify("Pautan lama telah dibatalkan. Salin pautan baharu.");}catch(e){notify(e.message);}});
+ setupSpecialEditor(d);
  el("refresh").onclick=()=>admin();
  el("logout").onclick=()=>{sessionStorage.removeItem("mapem-admin");state.token="";history.replaceState({},"",location.pathname);welcome();};
  el("export").onclick=async()=>{try{let b=await api("admin/export");let u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="MaPeM_SKPT_Penerima_2026.csv";a.click();setTimeout(()=>URL.revokeObjectURL(u),1500);}catch(e){notify(e.message);}};
 }
+
+function specialBlock(d){
+ const cls=d.classes,selected=cls.some(c=>c.id===state.specialClass)?state.specialClass:cls[0]?.id;
+ return '<div class="card special-editor"><div class="section-head"><div><h2>Anugerah Khas — Urus Setia</h2><p>Kategori khas dalam fail sumber dikendalikan oleh urus setia, bukan diisi berulang kali oleh semua guru kelas. Pilih kelas penerima bagi merekodkan nama.</p></div></div>'+
+ '<div class="special-fields"><div class="field"><label for="special-class">Kelas penerima</label><select id="special-class">'+cls.map(c=>'<option value="'+h(c.id)+'" '+(c.id===selected?'selected':'')+'>'+h(c.year+' '+c.name)+'</option>').join("")+'</select></div>'+
+ '<div class="field"><label for="special-category">Kategori khas</label><select id="special-category"></select></div></div>'+
+ '<div class="field"><label for="special-names">Senarai nama murid</label><textarea id="special-names" placeholder="Satu nama penuh murid setiap baris"></textarea><small class="muted">Tiada medan e-mel atau jantina. Untuk kategori L/P, urus setia perlu menyemak pembahagian lelaki/perempuan secara manual.</small></div>'+
+ '<div class="edit-bottom"><span id="special-status">Pilih kategori untuk melihat senarai.</span><button class="btn" id="special-save">Simpan Anugerah Khas</button></div></div>';
+}
+function setupSpecialEditor(d){
+ const clsEl=el("special-class"),categoryEl=el("special-category"),nameEl=el("special-names"),statusEl=el("special-status"),saveEl=el("special-save");
+ if(!clsEl||!categoryEl||!nameEl||!saveEl)return;
+ state.specialClass=clsEl.value;
+ function populate(){
+  const c=d.classes.find(x=>x.id===clsEl.value);
+  const items=d.categories.filter(x=>x.teacher===false&&(!x.years||x.years.includes(c?.year)));
+  categoryEl.innerHTML=items.map(cat=>'<option value="'+h(cat.id)+'">'+h(cat.name)+'</option>').join('');
+  if(items.some(cat=>cat.id===state.specialCategory))categoryEl.value=state.specialCategory;
+  state.specialCategory=categoryEl.value;
+ }
+ function paint(){
+  const r=state.specialDetails?.drafts?.[categoryEl.value]||{names:[],version:0};
+  nameEl.value=r.names.join("\n");
+  statusEl.textContent="Tersimpan: "+r.names.length+" nama";
+  saveEl.disabled=false;
+ }
+ async function load(){
+  const expected=clsEl.value;
+  statusEl.textContent="Memuatkan...";
+  saveEl.disabled=true;
+  try{
+   const result=await api("admin/special?classId="+encodeURIComponent(expected));
+   if(clsEl.value!==expected)return;
+   state.specialDetails=result;
+   paint();
+  }catch(e){statusEl.textContent="Ralat: "+e.message;notify(e.message);}
+ }
+ clsEl.onchange=()=>{state.specialClass=clsEl.value;populate();load();};
+ categoryEl.onchange=()=>{state.specialCategory=categoryEl.value;paint();};
+ saveEl.onclick=async()=>{
+  const clsId=clsEl.value,catId=categoryEl.value,record=state.specialDetails?.drafts?.[catId]||{names:[],version:0};
+  if(!catId||!clsId)return;
+  const names=nameEl.value.split(/\r?\n/).map(v=>v.trim().replace(/\s+/g," ")).filter(Boolean);
+  saveEl.disabled=true;statusEl.textContent="Menyimpan...";
+  try{
+   const r=await api("admin/special/save","POST",{classId:clsId,categoryId:catId,names,version:record.version});
+   state.specialClass=clsId;state.specialCategory=catId;
+   if(!state.specialDetails.drafts)state.specialDetails.drafts={};
+   state.specialDetails.drafts[catId]={names,version:r.version};
+   notify("Senarai anugerah khas berjaya disimpan.");
+   await admin();
+  }catch(e){statusEl.textContent="Gagal: "+e.message;notify(e.message);saveEl.disabled=false;}
+ };
+ populate();load();
+}
+
 function readNames(id){return (el("ta-"+id)?.value||"").split(/\r?\n/).map(n=>n.trim().replace(/\s+/g," ")).filter(Boolean);}
 function editorStatus(id,msg,cls){let e=el("save-"+id);if(e){e.textContent=msg;e.className=cls||"";}}
 async function persist(id){
