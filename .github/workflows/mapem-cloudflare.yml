@@ -89,6 +89,10 @@ jobs:
           npx wrangler d1 execute DB --remote --config .wrangler-ci.toml --command "SELECT COUNT(*) AS bilangan FROM classes;"
           npx wrangler d1 execute DB --remote --config .wrangler-ci.toml --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('users','teacher_assignments','sessions','oauth_states','publications') ORDER BY name;"
 
+      - name: Pautkan D1 secara automatik kepada Pages Production
+        if: steps.ready.outputs.enabled == 'true'
+        run: node .github/scripts/bind-pages-d1.mjs
+
       - name: Terbit ke Cloudflare Pages sedia ada
         if: steps.ready.outputs.enabled == 'true'
         shell: bash
