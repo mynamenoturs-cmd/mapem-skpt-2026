@@ -38,10 +38,10 @@ function names(input){if(!Array.isArray(input)||input.length>150)safeError('Maks
 async function userFor(request,env){const sid=cookies(request)[SESSION_COOKIE];if(!sid||!/^[a-f0-9]{64}$/.test(sid))return null;const hash=await sha256(sid);
  const user=await env.DB.prepare('SELECT u.sub,u.email,u.name,s.expires_at FROM sessions s JOIN users u ON u.sub=s.user_sub WHERE s.id_hash=? AND s.expires_at>?').bind(hash,now()).first();
  if(!user)return null;const email=user.email.toLowerCase();const isAdmin=await isAdminEmail(env,email);
- const assignment=isAdmin?null:await env.DB.prepare('SELECT a.class_id,c.year,c.name AS class_name FROM teacher_assignments a JOIN classes c ON c.id=a.class_id WHERE a.email=?').bind(email).first();
- const tasks=isAdmin?[]:(await env.DB.prepare('SELECT category_id FROM category_assignments WHERE email=? ORDER BY category_id').bind(email).all()).results||[];
+ const assignment=await env.DB.prepare('SELECT a.class_id,c.year,c.name AS class_name FROM teacher_assignments a JOIN classes c ON c.id=a.class_id WHERE a.email=?').bind(email).first();
+ const tasks=(await env.DB.prepare('SELECT category_id FROM category_assignments WHERE email=? ORDER BY category_id').bind(email).all()).results||[];
  return {sub:user.sub,email,name:user.name,categoryIds:tasks.map(t=>t.category_id),role:isAdmin?'admin':assignment?'teacher':tasks.length?'specialist':'viewer',classId:assignment?.class_id||null,className:assignment?`${assignment.year} ${assignment.class_name}`:null};}
-function requireRole(user,role){if(!user)safeError('Sila log masuk dengan akaun Google.',401);if(role==='admin'&&user.role!=='admin')safeError('Akses pentadbir sahaja.',403);if(role==='teacher'&&user.role!=='teacher')safeError('Akses guru kelas sahaja.',403);}
+function requireRole(user,role){if(!user)safeError('Sila log masuk dengan akaun Google.',401);if(role==='admin'&&user.role!=='admin')safeError('Akses pentadbir sahaja.',403);if(role==='teacher'&&!user.classId)safeError('Akses guru kelas sahaja.',403);}
 function categoryOf(id,year,teacher){return CATEGORIES.find(c=>c.id===id&&(teacher?c.teacher:c.id!=='pbd')&&(!c.years||c.years.includes(year)));}
 async function saveDraft(env,classId,categoryId,version,list,table='drafts',limit=null,year=0){
  if(!['drafts','nominations'].includes(table))safeError('Jadual simpanan tidak sah.');
@@ -54,7 +54,7 @@ async function saveDraft(env,classId,categoryId,version,list,table='drafts',limi
  await env.DB.prepare("UPDATE classes SET updated_at=datetime('now') WHERE id=?").bind(classId).run();
  return {ok:true,version:version+1,total:list.length};
 }
-function canWork(user,id){return user?.role==='admin'||user?.categoryIds?.includes(id);}
+function canWork(user,id,assignedOnly=false){return (!assignedOnly&&user?.role==='admin')||user?.categoryIds?.includes(id);}
 async function workData(env,cls,cat){
  const row=await env.DB.prepare('SELECT names_json,version FROM drafts WHERE class_id=? AND category_id=?').bind(cls.id,cat.id).first();
  const final= row?{names:JSON.parse(row.names_json),version:row.version}:{names:[],version:0};
@@ -63,9 +63,9 @@ async function workData(env,cls,cat){
  const all=cat.nomination?(await env.DB.prepare('SELECT n.class_id,n.names_json,c.year,c.name FROM nominations n JOIN classes c ON c.id=n.class_id WHERE n.category_id=? ORDER BY c.year,c.name').bind(cat.id).all()).results||[]:[];
  return {class:cls,category:cat,draft:final,confirmedLP:review?.version===final.version,published:!!pub,nominees:all.map(n=>({classId:n.class_id,label:n.year+' '+n.name,names:JSON.parse(n.names_json)}))};
 }
-async function saveFinal(env,user,b){
+async function saveFinal(env,user,b,assignedOnly=false){
  const id=validateClassId(b.classId),cls=await env.DB.prepare('SELECT id,year,name,status FROM classes WHERE id=?').bind(id).first();
- const cat=cls&&categoryOf(b.categoryId,cls.year,false);if(!cat||!canWork(user,cat.id))safeError('Kategori ini bukan tugasan anda.',403);
+ const cat=cls&&categoryOf(b.categoryId,cls.year,false);if(!cat||!canWork(user,cat.id,assignedOnly))safeError('Kategori ini bukan tugasan anda.',403);
  if(await env.DB.prepare('SELECT class_id FROM publications WHERE class_id=?').bind(id).first())safeError('Senarai kelas telah diterbitkan. Minta admin menarik balik penerbitan sebelum menyunting.',423);
  const list=names(b.names);
  if(list.length&&(cat.nomination||cat.id==='mawar')&&b.confirmedLP!==true)safeError('Sahkan semakan L/P dan keputusan pemilihan dahulu.');
@@ -176,16 +176,16 @@ export async function onRequest({request,env}){
    return r.meta?.changes?JSON_RESPONSE({ok:true}):fail('Senarai sudah dihantar.',409);
   }
   if(path==='work/overview'&&request.method==='GET'){
-   const categories=CATEGORIES.filter(c=>c.id!=='pbd'&&canWork(user,c.id));if(!categories.length)return fail('Tiada tugasan kategori diberikan.',403);
+   const categories=CATEGORIES.filter(c=>c.id!=='pbd'&&canWork(user,c.id,url.searchParams.get('scope')==='mine'));if(!categories.length)return fail('Tiada tugasan kategori diberikan.',403);
    const classes=(await env.DB.prepare('SELECT id,year,name,status FROM classes ORDER BY year,name').all()).results||[];
    return JSON_RESPONSE({categories,classes});
   }
   if(path==='work/class'&&request.method==='GET'){
    const id=validateClassId(url.searchParams.get('classId')),cls=await env.DB.prepare('SELECT id,year,name,status FROM classes WHERE id=?').bind(id).first();
-   const cat=cls&&categoryOf(url.searchParams.get('categoryId'),cls.year,false);if(!cat||!canWork(user,cat.id))return fail('Kategori ini bukan tugasan anda.',403);
+   const cat=cls&&categoryOf(url.searchParams.get('categoryId'),cls.year,false);if(!cat||!canWork(user,cat.id,url.searchParams.get('scope')==='mine'))return fail('Kategori ini bukan tugasan anda.',403);
    return JSON_RESPONSE(await workData(env,cls,cat));
   }
-  if(path==='work/save'&&request.method==='POST')return JSON_RESPONSE(await saveFinal(env,user,await reqBody(request)));
+  if(path==='work/save'&&request.method==='POST')return JSON_RESPONSE(await saveFinal(env,user,await reqBody(request),url.searchParams.get('scope')==='mine'));
   if(path==='admin/category-assignments'&&request.method==='GET'){
    requireRole(user,'admin');return JSON_RESPONSE({assignments:(await env.DB.prepare('SELECT email,category_id,assigned_by FROM category_assignments ORDER BY email,category_id').all()).results||[],categories:CATEGORIES.filter(c=>c.id!=='pbd')});
   }
@@ -225,7 +225,6 @@ export async function onRequest({request,env}){
   }
   if(path==='admin/assign'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email),id=validateClassId(b.classId);
-   if(await isAdminEmail(env,email))return fail('Gunakan akaun bukan admin untuk guru kelas.');
    const cls=await env.DB.prepare('SELECT id FROM classes WHERE id=?').bind(id).first();if(!cls)return fail('Kelas tidak ditemui.',404);
    await env.DB.prepare('INSERT INTO teacher_assignments(email,class_id,updated_at) VALUES(?,?,datetime(\'now\')) ON CONFLICT(email) DO UPDATE SET class_id=excluded.class_id,updated_at=datetime(\'now\')').bind(email,id).run();
    return JSON_RESPONSE({ok:true});

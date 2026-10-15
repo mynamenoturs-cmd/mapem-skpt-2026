@@ -48,7 +48,7 @@ test('only admins can delegate; grants apply to live sessions and revocation is 
  assert.equal((await call(env,'admin/admins',{cookie:admin,method:'POST',body:{email:' TEACHER@gmail.com '}})).status,200);
  assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'admin');
  assert.equal((await call(env,'admin/admins',{cookie:admin,method:'POST',body:{email:'teacher@gmail.com'}})).status,409);
- assert.equal((await call(env,'admin/assign',{cookie:admin,method:'POST',body:{email:'teacher@gmail.com',classId:'1-amber'}})).status,400);
+ assert.equal((await call(env,'admin/assign',{cookie:admin,method:'POST',body:{email:'teacher@gmail.com',classId:'1-amber'}})).status,200);
  const admins=await json(await call(env,'admin/admins',{cookie:teacher}));assert.equal(admins.admins.length,2);assert.equal(admins.admins.find(a=>a.email==='admin@gmail.com').protected,true);
  assert.equal((await call(env,'admin/admins/revoke',{cookie:teacher,method:'POST',body:{email:'admin@gmail.com'}})).status,403);
  assert.equal((await call(env,'admin/admins/revoke',{cookie:teacher,method:'POST',body:{email:'teacher@gmail.com'}})).status,409);
@@ -116,4 +116,38 @@ test('public announcements require admin, explicit publication and optimistic ve
  assert.equal((await post({...draft,title:'',enabled:true,version:2})).status,400);
  assert.equal((await post({...draft,body:'x'.repeat(3001),version:2})).status,400);
  assert.equal((await post({...draft,version:2})).status,200);assert.equal((await json(await call(env,'portal/announcement'))).announcement,null);
+});
+
+test('admins retain own class and category duties; own views remain scoped and obey teacher locks',async()=>{
+ const {env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com'),delegated=await addLogin('delegated@gmail.com');
+ const post=(route,body,cookie=admin)=>call(env,route,{cookie,method:'POST',body});
+ assert.equal((await call(env,'teacher/class',{cookie:admin})).status,403);
+ assert.equal((await call(env,'work/overview?scope=mine',{cookie:admin})).status,403);
+ assert.equal((await post('admin/assign',{email:'admin@gmail.com',classId:'1-amber'})).status,200);
+ assert.equal((await post('admin/category-assignments',{email:'admin@gmail.com',categoryIds:['uasa','plan']})).status,200);
+ let me=(await json(await call(env,'me',{cookie:admin}))).user;assert.equal(me.role,'admin');assert.equal(me.classId,'1-amber');assert.deepEqual(me.categoryIds,['plan','uasa']);
+ let own=await json(await call(env,'teacher/class',{cookie:admin}));assert.equal(own.class.id,'1-amber');assert.equal(own.categories.length,5);
+ const ns=['Murid Ujian Satu','Murid Ujian Dua','Murid Ujian Tiga','Murid Ujian Empat','Murid Ujian Lima'];
+ assert.equal((await post('teacher/save',{classId:'2-crystal',categoryId:'pbd',names:ns,version:0})).status,200);
+ assert.deepEqual((await json(await call(env,'teacher/class?classId=2-crystal',{cookie:admin}))).drafts.pbd.names,ns);
+ assert.equal((await post('teacher/save',{categoryId:'uasa',names:['Murid Ujian'],version:0})).status,403);
+ assert.equal((await post('teacher/submit',{})).status,200);
+ assert.equal((await post('teacher/save',{categoryId:'pbd',names:ns,version:1})).status,423);
+ assert.equal((await call(env,'admin/overview',{cookie:admin})).status,200);
+ own=await json(await call(env,'work/overview?scope=mine',{cookie:admin}));assert.deepEqual(own.categories.map(c=>c.id),['uasa','plan']);
+ assert.equal((await call(env,'work/class?classId=1-amber&categoryId=delima&scope=mine',{cookie:admin})).status,403);
+ assert.equal((await post('work/save?scope=mine',{classId:'1-amber',categoryId:'delima',names:['Murid Ujian'],version:0})).status,403);
+ assert.equal((await post('work/save?scope=mine',{classId:'1-amber',categoryId:'uasa',names:['Murid Ujian'],version:0})).status,200);
+ assert.equal((await call(env,'work/overview',{cookie:admin})).status,200);assert.equal((await json(await call(env,'work/overview',{cookie:admin}))).categories.length,11);
+ assert.equal((await post('admin/admins',{email:'delegated@gmail.com'})).status,200);
+ assert.equal((await post('admin/assign',{email:'delegated@gmail.com',classId:'2-crystal'})).status,200);
+ assert.equal((await post('admin/category-assignments',{email:'delegated@gmail.com',categoryIds:['plan']})).status,200);
+ assert.equal((await call(env,'teacher/class',{cookie:delegated})).status,200);
+ assert.equal((await post('admin/admins/revoke',{email:'delegated@gmail.com'})).status,200);
+ me=(await json(await call(env,'me',{cookie:delegated}))).user;assert.equal(me.role,'teacher');assert.equal(me.classId,'2-crystal');assert.deepEqual(me.categoryIds,['plan']);
+ assert.equal((await call(env,'admin/overview',{cookie:delegated})).status,403);
+ assert.equal((await post('admin/unassign',{email:'admin@gmail.com'})).status,200);assert.equal((await call(env,'teacher/class',{cookie:admin})).status,403);
+ assert.equal((await post('admin/category-assignments/revoke',{email:'admin@gmail.com',categoryId:'plan'})).status,200);
+ assert.equal((await call(env,'work/class?classId=1-amber&categoryId=plan&scope=mine',{cookie:admin})).status,403);
+ assert.equal((await call(env,'work/class?classId=1-amber&categoryId=plan',{cookie:admin})).status,200);
 });

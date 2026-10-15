@@ -83,3 +83,6 @@ Senarai yang sudah diterbitkan dikunci daripada suntingan. Admin menarik balik p
 
 ### Pengumuman halaman log masuk
 Admin: menu **Pengumuman portal** → sunting tajuk/mesej → semak pratonton → tandakan paparan awam → Simpan. Nyah tanda dan simpan untuk menyembunyikan. Teks dipaparkan sebagai teks biasa, bukan HTML. Versi simpanan mengelakkan perubahan admin lain tertindih. Pengumuman awam tidak mengandungi data murid; senarai penerima masih memerlukan log masuk.
+
+### Admin yang juga guru kelas atau guru kategori
+Gunakan e-mel Google admin yang sama dalam **Akses guru** untuk menetapkan kelas, dan **Tugasan kategori** untuk menetapkan anugerah khas. Sidebar memaparkan **Mod Admin**, **Kelas Saya** (5 pengisian kelas sendiri) dan **Tugasan Saya** (kategori yang ditugaskan sahaja). Pertukaran ruang tidak memerlukan log keluar. Kuasa admin dikekalkan; kelas sendiri tetap tertakluk kepada kuota, penghantaran dan kunci pengeditan. Tugasan Saya menggunakan skop `mine` pada API; Pemilihan & pengisian dalam Mod Admin kekal merentas semua kategori. Tiada kelas atau kategori ditetapkan secara automatik.
