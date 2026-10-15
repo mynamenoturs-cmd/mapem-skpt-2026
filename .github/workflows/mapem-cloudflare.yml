@@ -58,7 +58,7 @@ jobs:
 
       - name: Pasang Wrangler
         if: steps.ready.outputs.enabled == 'true'
-        run: npm install --no-save --no-package-lock wrangler@4
+        run: npm install --no-save --no-package-lock wrangler@4 sharp@0.34.4
 
       - name: Sediakan konfigurasi D1 sementara
         if: steps.ready.outputs.enabled == 'true'
@@ -99,6 +99,10 @@ jobs:
       - name: Konfigurasi Google Login dan APP_ORIGIN secara automatik
         if: steps.ready.outputs.enabled == 'true'
         run: node .github/scripts/configure-google-oauth.mjs
+
+      - name: Jana banner MaPeM, logo piala dan ikon aplikasi PNG
+        if: steps.ready.outputs.enabled == 'true'
+        run: node scripts/build-brand.mjs
 
       - name: Terbit ke Cloudflare Pages sedia ada
         if: steps.ready.outputs.enabled == 'true'
