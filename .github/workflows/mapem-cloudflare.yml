@@ -42,12 +42,11 @@ jobs:
         shell: bash
         run: |
           if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" || -z "$MAPEM_D1_DATABASE_ID" ]]; then
-            echo "Belum dikonfigurasi: GitHub Actions perlu CLOUDFLARE_API_TOKEN (secret), CLOUDFLARE_ACCOUNT_ID dan MAPEM_D1_DATABASE_ID (variables)."
-            echo "Tiada migrasi atau deploy dilaksanakan; ujian kod tetap dijalankan."
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "::error::Konfigurasi Cloudflare belum lengkap. Semak CLOUDFLARE_API_TOKEN (secret), CLOUDFLARE_ACCOUNT_ID dan MAPEM_D1_DATABASE_ID (variables) pada repository Actions."
+            exit 1
           fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "Kredensial Cloudflare tersedia (nilai rahsia tidak dipaparkan)."
 
       - uses: actions/setup-node@v4
         if: steps.ready.outputs.enabled == 'true'
