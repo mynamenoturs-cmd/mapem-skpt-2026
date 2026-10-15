@@ -64,7 +64,12 @@ function adminTeacherEmail(v){const value=String(v||'').trim().toLowerCase();if(
 export async function onRequest({request,env}){
  const url=new URL(request.url),path=url.pathname.replace(/^\/api\/?/,'').replace(/\/$/,'');
  try{
-  if(path==='health'&&request.method==='GET')return JSON_RESPONSE({ok:true,configured:getConfig(env)});
+  if(path==='health'&&request.method==='GET'){
+   const databaseBound=!!env.DB;
+   let databaseConnected=false;
+   if(databaseBound){try{databaseConnected=!!(await env.DB.prepare('SELECT COUNT(*) AS n FROM classes').first());}catch{databaseConnected=false;}}
+   return JSON_RESPONSE({ok:true,configured:getConfig(env),databaseBound,databaseConnected});
+  }
   if(!env.DB)return fail('D1 belum disambungkan menggunakan binding DB.',503);
   if(!getConfig(env))return fail('Konfigurasi Google Login/APP_ORIGIN/ADMIN_EMAILS belum lengkap.',503);
   if(path==='auth/google/start'&&request.method==='GET'){
