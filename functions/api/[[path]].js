@@ -90,7 +90,16 @@ async function overview(env){const [classes,drafts,assignments,publications]=awa
  const pub=new Map((publications.results||[]).map(x=>[x.class_id,x.published_at]));
  return {classes:(classes.results||[]).map(x=>({...x,total:counts[x.id]||0,publishedAt:pub.get(x.id)||null})),assignments:assignments.results||[],categories:CATEGORIES,quota};}
 function csvEscape(v){let s=String(v??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
-async function exportCSV(env){const [cls,rows]=await Promise.all([env.DB.prepare('SELECT id,year,name,status FROM classes').all(),env.DB.prepare('SELECT class_id,category_id,names_json FROM drafts').all()]);const lookup=new Map((cls.results||[]).map(c=>[c.id,c])),cat=new Map(CATEGORIES.map(c=>[c.id,c.name]));const body=[['Tahun','Kelas','Kategori','Bil','Nama Penuh Murid','Status']];for(const r of rows.results||[]){const c=lookup.get(r.class_id),definition=CATEGORIES.find(x=>x.id===r.category_id);if(c&&(!definition?.years||definition.years.includes(c.year)))JSON.parse(r.names_json).forEach((name,i)=>body.push([c.year,`${c.year} ${c.name}`,cat.get(r.category_id)||r.category_id,i+1,name,c.status]));}
+async function exportReportData(env,url){
+ const source=url.searchParams.get('source')||'working',year=Number(url.searchParams.get('year')||0);if(!['working','published'].includes(source)||![0,1,2,3].includes(year))safeError('Pilihan laporan tidak sah.');
+ const classes=(await env.DB.prepare('SELECT id,year,name,status FROM classes').all()).results||[],lookup=new Map(classes.map(c=>[c.id,c])),published=(await env.DB.prepare('SELECT class_id,snapshot_json FROM publications').all()).results||[],publishedIds=new Set(published.map(p=>p.class_id));
+ const raw=source==='published'?published.flatMap(p=>Object.entries(JSON.parse(p.snapshot_json)).map(([category_id,names])=>({class_id:p.class_id,category_id,names_json:JSON.stringify(names)}))):(await env.DB.prepare('SELECT class_id,category_id,names_json FROM drafts').all()).results||[];
+ const order=new Map(CATEGORIES.map((c,i)=>[c.id,i])),rows=[];
+ for(const item of raw){const cls=lookup.get(item.class_id),cat=CATEGORIES.find(c=>c.id===item.category_id);if(!cls||!cat||(year&&cls.year!==year)||(cat.years&&!cat.years.includes(cls.year)))continue;for(const name of JSON.parse(item.names_json))rows.push({categoryId:cat.id,year:cls.year,classId:cls.id,className:cls.year+' '+cls.name,name,status:cls.status==='submitted'?'Dihantar':'Draf',publication:publishedIds.has(cls.id)?'Diterbitkan':'Belum diterbitkan'});}
+ rows.sort((a,b)=>order.get(a.categoryId)-order.get(b.categoryId)||a.year-b.year||a.className.localeCompare(b.className,'ms')||a.name.localeCompare(b.name,'ms'));
+ return {source,year,generatedAt:new Date().toISOString(),categories:CATEGORIES.map(c=>({id:c.id,name:c.name,years:c.years||[1,2,3]})),rows};
+}
+function exportCSV(data){const lookup=new Map(data.categories.map(c=>[c.id,c.name])),body=[['Kategori Anugerah','Bil','Tahun','Kelas','Nama Penuh Murid','Status Pengisian','Penerbitan']];let last='',n=0;for(const r of data.rows){if(last!==r.categoryId){last=r.categoryId;n=0;}body.push([lookup.get(r.categoryId),++n,r.year,r.className,r.name,r.status,r.publication]);}
  return new Response('\uFEFF'+body.map(a=>a.map(csvEscape).join(',')).join('\r\n'),{headers:{'content-type':'text/csv;charset=utf-8','content-disposition':'attachment; filename=mapem-skpt-2026.csv','cache-control':'no-store','x-content-type-options':'nosniff'}});}
 function validateClassId(v){if(typeof v!=='string'||!/^[123]-(amber|crystal|diamond|emerald|jade|pearl|ruby|sapphire|topaz)$/.test(v)||v==='3-amber')safeError('Kelas tidak sah.');return v;}
 function adminTeacherEmail(v){const value=String(v||'').trim().toLowerCase();if(value.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))safeError('Alamat e-mel tidak sah.');return value;}
@@ -285,7 +294,7 @@ export async function onRequest({request,env}){
    requireRole(user,'admin');const b=await reqBody(request),id=validateClassId(b.classId);
    await env.DB.prepare('DELETE FROM publications WHERE class_id=?').bind(id).run();return JSON_RESPONSE({ok:true});
   }
-  if(path==='admin/export'&&request.method==='GET'){requireRole(user,'admin');return exportCSV(env);}
+  if(path==='admin/export'&&request.method==='GET'){requireRole(user,'admin');const format=url.searchParams.get('format')||'csv';if(!['csv','json'].includes(format))return fail('Format laporan tidak sah.');const data=await exportReportData(env,url);return format==='json'?JSON_RESPONSE(data):exportCSV(data);}
   return fail('Laluan API tidak wujud.',404);
  }catch(err){if(err.status)return fail(err.message,err.status);console.error('MaPeM API failure:',err);if(/no such table|D1_ERROR/i.test(err.message||''))return fail('Database belum lengkap. Jalankan semua migrasi aplikasi terkini.',503);return fail('Ralat pelayan. Cuba lagi atau hubungi urus setia.',500);}
 }

@@ -4,5 +4,5 @@
  "type":"module",
  "version":"2.0.0",
  "description":"PWA MaPeM 2026: Google OAuth login, Cloudflare Pages + D1 role-based access",
- "scripts":{"test":"node --test tests/security.test.mjs","check":"node --check public/app.js && node --check functions/api/[[path]].js"}
+ "scripts":{"test":"node --test tests/*.test.mjs","check":"node --check public/app.js && node --check public/export-report.js && node --check functions/api/[[path]].js"}
 }
