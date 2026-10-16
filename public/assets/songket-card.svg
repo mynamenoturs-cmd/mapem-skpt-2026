@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
+ <defs>
+  <linearGradient id="silk" x2="1" y2="1"><stop stop-color="#38091c"/><stop offset=".48" stop-color="#771c36"/><stop offset="1" stop-color="#3d091e"/></linearGradient>
+  <pattern id="weave" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 1h6M1 0v6" stroke="#ffe9b0" stroke-opacity=".075" stroke-width=".6"/></pattern>
+  <pattern id="bunga" width="100" height="100" patternUnits="userSpaceOnUse">
+   <g fill="none" stroke="#d6b26a" stroke-width="1" opacity=".38"><path d="M50 10 90 50 50 90 10 50Z"/><path d="M50 20 80 50 50 80 20 50Z" stroke-dasharray="2 3"/>
+    <path d="M50 34v8h8v8h8v8h-8v8h-8v-8h-8v-8h-8v-8h8v-8Z"/>
+    <path d="M50 0v6M50 94v6M0 50h6M94 50h6"/></g>
+   <g fill="#e6c480" opacity=".46"><path d="m50 45 5 5-5 5-5-5Z"/><path d="m0 0 6 6-6 6ZM100 0l-6 6 6 6ZM0 100l6-6-6-6ZM100 100l-6-6 6-6Z"/></g>
+  </pattern>
+  <pattern id="rebung" width="40" height="48" patternUnits="userSpaceOnUse"><g fill="none" stroke="#e1bb72" stroke-width="1.3"><path d="M0 46 20 4 40 46ZM8 46l12-26 12 26ZM15 46l5-11 5 11Z"/><path d="M20 8v37" stroke-dasharray="2 3"/></g></pattern>
+ </defs>
+ <path fill="url(#silk)" d="M0 0h600v900H0z"/><path fill="url(#weave)" d="M0 0h600v900H0z"/><path fill="url(#bunga)" d="M0 0h600v900H0z"/>
+ <path fill="url(#rebung)" opacity=".65" d="M0 0h600v48H0z"/><path fill="url(#rebung)" opacity=".65" transform="translate(600 900) rotate(180)" d="M0 0h600v48H0z"/>
+ <g fill="none" stroke="#d5ad63" opacity=".55"><path d="M12 0v900M588 0v900"/><path d="M17 0v900M583 0v900" stroke-dasharray="2 4"/></g>
+</svg>
