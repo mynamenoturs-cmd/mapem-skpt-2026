@@ -4,10 +4,10 @@ export const CATEGORIES = [
  {id:'pbd',name:'Anugerah Pencapaian PBD Terbaik',scope:'year',quota:{1:45,2:45,3:40},teacher:true,classLimit:5,owner:'Guru kelas',note:'1 kelas 5 orang sahaja. Isi tepat 5 nama sebelum menghantar.'},
  {id:'uasa',name:'Anugerah 10 Pencapaian Terbaik (UASA)',scope:'year',quota:{1:10,2:10,3:10},teacher:false,owner:'Cikgu Fitri'},
  {id:'matapelajaran',name:'Anugerah Pencapaian Mata Pelajaran Terbaik',scope:'year',quota:{1:30,2:30,3:30},teacher:false,owner:'Cikgu Fitri'},
- {id:'cemara',name:'Anugerah Ikon Cemara Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,owner:'GK calonkan; penyelaras pilih',note:'Pencalonan sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir seluruh Tahap 1, bukan setiap kelas.'},
- {id:'kurikulum',name:'Anugerah Khas Kurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,owner:'GK calonkan; penyelaras pilih',note:'Pencalonan sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir seluruh Tahap 1, bukan setiap kelas.'},
- {id:'kokurikulum',name:'Harapan Kokurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,owner:'GK calonkan; penyelaras pilih',note:'Pencalonan sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir seluruh Tahap 1, bukan setiap kelas.'},
- {id:'hem',name:'Harapan HEM (L/P)',scope:'total',quota:2,teacher:true,nomination:true,owner:'GK calonkan; penyelaras pilih',note:'Pencalonan sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir seluruh Tahap 1, bukan setiap kelas.'},
+ {id:'cemara',name:'Anugerah Ikon Cemara Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
+ {id:'kurikulum',name:'Anugerah Khas Kurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
+ {id:'kokurikulum',name:'Harapan Kokurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
+ {id:'hem',name:'Harapan HEM (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
  {id:'ains',name:'AINS NILAM — Hamper Individu',scope:'year',quota:{1:18,2:18,3:16},teacher:false,owner:'Guru PSS',note:'Kuota Tahap 1: 18 / 18 / 16. Nota sumber: hamper individu (50 kelas × 2 orang = 100 orang) dan sijil penghargaan 100 helai. Gunakan lajur Tahun 1–3 untuk portal ini.'},
  {id:'ains-tokoh',name:'Tokoh AINS NILAM 2026 — Tahap 1',scope:'total',quota:3,teacher:false,owner:'Guru PSS',note:'3 piala Tahap 1. Nota 3 piala Tokoh AINS Tahap 2 di luar skop portal Tahap 1 ini.'},
  {id:'delima',name:'Ikon Navigator DELIMa',scope:'year',quota:{1:null,2:null,3:null},teacher:false,owner:'Teacher Abby'},
@@ -61,7 +61,7 @@ async function workData(env,cls,cat){
  const review=await env.DB.prepare('SELECT version FROM final_reviews WHERE class_id=? AND category_id=?').bind(cls.id,cat.id).first();
  const pub=await env.DB.prepare('SELECT class_id FROM publications WHERE class_id=?').bind(cls.id).first();
  const all=cat.nomination?(await env.DB.prepare('SELECT n.class_id,n.names_json,c.year,c.name FROM nominations n JOIN classes c ON c.id=n.class_id WHERE n.category_id=? ORDER BY c.year,c.name').bind(cat.id).all()).results||[]:[];
- return {class:cls,category:cat,draft:final,confirmedLP:review?.version===final.version,published:!!pub,nominees:all.map(n=>({classId:n.class_id,label:n.year+' '+n.name,names:JSON.parse(n.names_json)}))};
+ return {class:cls,category:cat,draft:final,confirmedLP:review?.version===final.version,published:!!pub,nominees:all.filter(n=>!cat.years||cat.years.includes(n.year)).map(n=>({classId:n.class_id,label:n.year+' '+n.name,names:JSON.parse(n.names_json)}))};
 }
 async function saveFinal(env,user,b,assignedOnly=false){
  const id=validateClassId(b.classId),cls=await env.DB.prepare('SELECT id,year,name,status FROM classes WHERE id=?').bind(id).first();
@@ -76,7 +76,7 @@ async function saveFinal(env,user,b,assignedOnly=false){
   if(list.some(n=>!allowed.has(n.toLocaleLowerCase('ms'))))safeError('Pilih nama daripada pencalonan guru kelas.');
  }
  const limit=cat.scope==='year'?cat.quota?.[cls.year]:cat.quota;
- const r=await saveDraft(env,id,cat.id,Number(b.version),list,'drafts',limit??null,cat.scope==='year'?cls.year:0);
+ const r=await saveDraft(env,id,cat.id,Number(b.version),list,'drafts',limit??null,(cat.scope==='year'||cat.years?.length===1)?cls.year:0);
  if(cat.nomination||cat.id==='mawar')await env.DB.prepare("INSERT INTO final_reviews(class_id,category_id,version,confirmed_by) VALUES(?,?,?,?) ON CONFLICT(class_id,category_id) DO UPDATE SET version=excluded.version,confirmed_by=excluded.confirmed_by,confirmed_at=datetime('now')").bind(id,cat.id,r.version,user.email).run();
  return r;
 }
@@ -86,11 +86,11 @@ async function overview(env){const [classes,drafts,assignments,publications]=awa
  env.DB.prepare('SELECT class_id,category_id,names_json,version FROM drafts').all(),
  env.DB.prepare('SELECT email,class_id FROM teacher_assignments ORDER BY class_id').all(),
  env.DB.prepare('SELECT class_id,published_at FROM publications').all()]);
- const counts={};const quota={};for(const row of drafts.results||[]){const n=JSON.parse(row.names_json).length;counts[row.class_id]=(counts[row.class_id]||0)+n;const year=+row.class_id[0];quota[row.category_id]??={};quota[row.category_id][year]=(quota[row.category_id][year]||0)+n;}
+ const counts={};const quota={};for(const row of drafts.results||[]){const cat=CATEGORIES.find(c=>c.id===row.category_id);if(cat?.years&&!cat.years.includes(+row.class_id[0]))continue;const n=JSON.parse(row.names_json).length;counts[row.class_id]=(counts[row.class_id]||0)+n;const year=+row.class_id[0];quota[row.category_id]??={};quota[row.category_id][year]=(quota[row.category_id][year]||0)+n;}
  const pub=new Map((publications.results||[]).map(x=>[x.class_id,x.published_at]));
  return {classes:(classes.results||[]).map(x=>({...x,total:counts[x.id]||0,publishedAt:pub.get(x.id)||null})),assignments:assignments.results||[],categories:CATEGORIES,quota};}
 function csvEscape(v){let s=String(v??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
-async function exportCSV(env){const [cls,rows]=await Promise.all([env.DB.prepare('SELECT id,year,name,status FROM classes').all(),env.DB.prepare('SELECT class_id,category_id,names_json FROM drafts').all()]);const lookup=new Map((cls.results||[]).map(c=>[c.id,c])),cat=new Map(CATEGORIES.map(c=>[c.id,c.name]));const body=[['Tahun','Kelas','Kategori','Bil','Nama Penuh Murid','Status']];for(const r of rows.results||[]){const c=lookup.get(r.class_id);if(c)JSON.parse(r.names_json).forEach((name,i)=>body.push([c.year,`${c.year} ${c.name}`,cat.get(r.category_id)||r.category_id,i+1,name,c.status]));}
+async function exportCSV(env){const [cls,rows]=await Promise.all([env.DB.prepare('SELECT id,year,name,status FROM classes').all(),env.DB.prepare('SELECT class_id,category_id,names_json FROM drafts').all()]);const lookup=new Map((cls.results||[]).map(c=>[c.id,c])),cat=new Map(CATEGORIES.map(c=>[c.id,c.name]));const body=[['Tahun','Kelas','Kategori','Bil','Nama Penuh Murid','Status']];for(const r of rows.results||[]){const c=lookup.get(r.class_id),definition=CATEGORIES.find(x=>x.id===r.category_id);if(c&&(!definition?.years||definition.years.includes(c.year)))JSON.parse(r.names_json).forEach((name,i)=>body.push([c.year,`${c.year} ${c.name}`,cat.get(r.category_id)||r.category_id,i+1,name,c.status]));}
  return new Response('\uFEFF'+body.map(a=>a.map(csvEscape).join(',')).join('\r\n'),{headers:{'content-type':'text/csv;charset=utf-8','content-disposition':'attachment; filename=mapem-skpt-2026.csv','cache-control':'no-store','x-content-type-options':'nosniff'}});}
 function validateClassId(v){if(typeof v!=='string'||!/^[123]-(amber|crystal|diamond|emerald|jade|pearl|ruby|sapphire|topaz)$/.test(v)||v==='3-amber')safeError('Kelas tidak sah.');return v;}
 function adminTeacherEmail(v){const value=String(v||'').trim().toLowerCase();if(value.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))safeError('Alamat e-mel tidak sah.');return value;}
@@ -152,13 +152,13 @@ export async function onRequest({request,env}){
   if(!user)return fail('Sila log masuk menggunakan Google.',401);
   if(path==='published'&&request.method==='GET'){
    const r=await env.DB.prepare('SELECT p.class_id,p.snapshot_json,p.published_at,c.year,c.name AS class_name FROM publications p JOIN classes c ON c.id=p.class_id ORDER BY c.year,c.name').all();
-   return JSON_RESPONSE({categories:CATEGORIES,classes:(r.results||[]).map(x=>({classId:x.class_id,year:x.year,className:x.class_name,publishedAt:x.published_at,awards:JSON.parse(x.snapshot_json)}))});
+   return JSON_RESPONSE({categories:CATEGORIES,classes:(r.results||[]).map(x=>({classId:x.class_id,year:x.year,className:x.class_name,publishedAt:x.published_at,awards:Object.fromEntries(Object.entries(JSON.parse(x.snapshot_json)).filter(([id])=>{const cat=CATEGORIES.find(c=>c.id===id);return cat&&(!cat.years||cat.years.includes(x.year));}))}))});
   }
   if(path==='teacher/class'&&request.method==='GET'){
    requireRole(user,'teacher');const cls=await env.DB.prepare('SELECT id,year,name,status,updated_at,submitted_at FROM classes WHERE id=?').bind(user.classId).first();
    const d=await env.DB.prepare('SELECT category_id,names_json,version FROM drafts WHERE class_id=? AND category_id=?').bind(user.classId,'pbd').all();
    const n=await env.DB.prepare('SELECT category_id,names_json,version FROM nominations WHERE class_id=?').bind(user.classId).all();
-   const categories=CATEGORIES.filter(c=>c.teacher),allowed=new Set(categories.map(c=>c.id));
+   const categories=CATEGORIES.filter(c=>c.teacher&&(!c.years||c.years.includes(cls.year))),allowed=new Set(categories.map(c=>c.id));
    return JSON_RESPONSE({class:cls,categories,drafts:Object.fromEntries([...(d.results||[]),...(n.results||[])].filter(x=>allowed.has(x.category_id)).map(x=>[x.category_id,{names:JSON.parse(x.names_json),version:x.version}]))});
   }
 
@@ -250,12 +250,11 @@ export async function onRequest({request,env}){
    const cls=await env.DB.prepare('SELECT id,year,status FROM classes WHERE id=?').bind(id).first();if(!cls)return fail('Kelas tidak ditemui.',404);
    if(cls.status!=='submitted')return fail('Guru perlu menghantar senarai akhir sebelum penerbitan.',409);
    const d=await env.DB.prepare('SELECT category_id,names_json,version FROM drafts WHERE class_id=?').bind(id).all();const snapshot={};
-   for(const item of d.results||[]){const cat=CATEGORIES.find(x=>x.id===item.category_id);if(!cat)continue;const n=JSON.parse(item.names_json);if(!n.length)continue;
+   for(const item of d.results||[]){const cat=CATEGORIES.find(x=>x.id===item.category_id);if(!cat||(cat.years&&!cat.years.includes(cls.year)))continue;const n=JSON.parse(item.names_json);if(!n.length)continue;
     if(cat.id==='pbd'&&n.length!==5)return fail('PBD mesti mempunyai tepat 5 penerima sebelum diterbitkan.',409);
     if(cat.nomination||cat.id==='mawar'){const review=await env.DB.prepare('SELECT version FROM final_reviews WHERE class_id=? AND category_id=?').bind(id,cat.id).first();if(review?.version!==item.version)return fail('Semak dan sahkan L/P bagi '+cat.name+' melalui Pemilihan & pengisian dahulu.',409);}
-    if(cat.years&&!cat.years.includes(cls.year))return fail('Kategori di luar tahun yang dibenarkan.',409);
     const limit=cat.scope==='year'?cat.quota?.[cls.year]:cat.quota;
-    if(limit!=null){const all=await env.DB.prepare('SELECT class_id,names_json FROM drafts WHERE category_id=?').bind(cat.id).all();const count=(all.results||[]).filter(r=>cat.scope!=='year'||+r.class_id[0]===cls.year).reduce((s,r)=>s+JSON.parse(r.names_json).length,0);if(count>limit)return fail('Kuota keseluruhan '+cat.name+' melebihi '+limit+' penerima.',409);}
+    if(limit!=null){const all=await env.DB.prepare('SELECT class_id,names_json FROM drafts WHERE category_id=?').bind(cat.id).all();const count=(all.results||[]).filter(r=>(!cat.years||cat.years.includes(+r.class_id[0]))&&(cat.scope!=='year'||+r.class_id[0]===cls.year)).reduce((s,r)=>s+JSON.parse(r.names_json).length,0);if(count>limit)return fail('Kuota keseluruhan '+cat.name+' melebihi '+limit+' penerima.',409);}
     snapshot[item.category_id]=n;
    }
    if(!Object.keys(snapshot).length)return fail('Tiada nama penerima untuk diterbitkan.');

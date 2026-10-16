@@ -9,7 +9,7 @@
 | Peranan | Diperoleh dengan | Hak akses |
 |---|---|---|
 | Pentadbir / urus setia | E-mel dalam `ADMIN_EMAILS` atau ditambah oleh admin | Semua kelas, tugasan guru, kategori khas, semak, eksport, terbit/tarik balik |
-| Guru kelas | E-mel Google ditugaskan oleh admin kepada satu kelas | 5 pengisian kelas sendiri: PBD dan 4 pencalonan; melihat paparan diterbitkan |
+| Guru kelas | E-mel Google ditugaskan oleh admin kepada satu kelas | Tahun 1–2: PBD sahaja; Tahun 3: PBD dan 4 pencalonan; melihat paparan diterbitkan |
 | Guru bertugas / penyelaras | E-mel ditugaskan kepada kategori oleh admin | Pengisian / pemilihan kategori sendiri bagi kelas yang berkaitan; boleh juga memegang tugasan kelas |
 | Paparan sahaja (guru lain/ibu bapa) | Akaun Google sah yang tidak mempunyai tugasan | Hanya melihat **nama penerima anugerah yang telah diterbitkan** |
 
@@ -66,12 +66,13 @@ Banner dan ikon baharu berada dalam `public/assets/mapem-banner-v2.webp` dan `pu
 
 | Pengisi | Tugasan |
 | --- | --- |
-| Guru kelas (5 pengisian) | PBD (tepat 5 murid setiap kelas), pencalonan Ikon Cemara, Khas Kurikulum, Harapan Kokurikulum dan Harapan HEM |
+| Guru kelas Tahun 1 dan 2 | PBD sahaja (tepat 5 murid setiap kelas) |
+| Guru kelas Tahun 3 (5 pengisian) | PBD (tepat 5 murid setiap kelas), pencalonan Ikon Cemara, Khas Kurikulum, Harapan Kokurikulum dan Harapan HEM |
 | Cikgu Fitri | UASA dan Mata Pelajaran Terbaik |
 | Guru PSS | AINS NILAM hamper individu dan Tokoh AINS Tahap 1 |
 | Teacher Abby | Ikon Navigator DELIMa |
 | Cikgu Wyn / Cikgu Zura | Anugerah Khas PLAN dan Tokoh Murid Mawar (Tahun 3 sahaja) |
-| Penyelaras / keputusan undian guru-guru | Pilih penerima akhir bagi empat kategori pencalonan; kuota 2 bagi setiap kategori untuk seluruh Tahap 1 |
+| Penyelaras / keputusan undian guru-guru | Pilih penerima akhir bagi empat kategori pencalonan; kuota 2 bagi setiap kategori untuk Tahun 3 |
 
 Admin membuka **Tugasan kategori**, mendaftarkan e-mel Google sebenar dan memilih profil panduan atau kategori satu persatu. Nama dalam senarai sumber tidak ditukarkan kepada e-mel secara automatik. Seorang guru boleh memegang tugasan kelas dan kategori serentak. Guru kategori hanya mempunyai akses kepada kategori yang diberikan, bukan akses admin.
 
@@ -85,4 +86,6 @@ Senarai yang sudah diterbitkan dikunci daripada suntingan. Admin menarik balik p
 Admin: menu **Pengumuman portal** → sunting tajuk/mesej → semak pratonton → tandakan paparan awam → Simpan. Nyah tanda dan simpan untuk menyembunyikan. Teks dipaparkan sebagai teks biasa, bukan HTML. Versi simpanan mengelakkan perubahan admin lain tertindih. Pengumuman awam tidak mengandungi data murid; senarai penerima masih memerlukan log masuk.
 
 ### Admin yang juga guru kelas atau guru kategori
-Gunakan e-mel Google admin yang sama dalam **Akses guru** untuk menetapkan kelas, dan **Tugasan kategori** untuk menetapkan anugerah khas. Sidebar memaparkan **Mod Admin**, **Kelas Saya** (5 pengisian kelas sendiri) dan **Tugasan Saya** (kategori yang ditugaskan sahaja). Pertukaran ruang tidak memerlukan log keluar. Kuasa admin dikekalkan; kelas sendiri tetap tertakluk kepada kuota, penghantaran dan kunci pengeditan. Tugasan Saya menggunakan skop `mine` pada API; Pemilihan & pengisian dalam Mod Admin kekal merentas semua kategori. Tiada kelas atau kategori ditetapkan secara automatik.
+Gunakan e-mel Google admin yang sama dalam **Akses guru** untuk menetapkan kelas, dan **Tugasan kategori** untuk menetapkan anugerah khas. Sidebar memaparkan **Mod Admin**, **Kelas Saya** (Tahun 1–2: PBD sahaja; Tahun 3: 5 pengisian) dan **Tugasan Saya** (kategori yang ditugaskan sahaja). Pertukaran ruang tidak memerlukan log keluar. Kuasa admin dikekalkan; kelas sendiri tetap tertakluk kepada kuota, penghantaran dan kunci pengeditan. Tugasan Saya menggunakan skop `mine` pada API; Pemilihan & pengisian dalam Mod Admin kekal merentas semua kategori. Tiada kelas atau kategori ditetapkan secara automatik.
+
+**Ketetapan terkini:** GK Tahun 1 dan 2 hanya mengisi PBD. Empat pencalonan (Cemara, Khas Kurikulum, Harapan Kokurikulum, Harapan HEM) hanya untuk Tahun 3. Pemilihan kategori berkenaan juga terhad kepada Tahun 3. Rekod lama Tahun 1–2 dikekalkan dalam database tetapi tidak digunakan dalam pemilihan, penerbitan dan eksport semasa.
