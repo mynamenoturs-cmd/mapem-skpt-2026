@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {onRequest,CATEGORIES} from '../functions/api/[[path]].js';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
-function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));db.exec(file('../migrations/0005_portal_announcement.sql'));
+function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));db.exec(file('../migrations/0005_portal_announcement.sql'));db.exec(file('../migrations/0006_family_hub.sql'));
 const adapter={prepare(sql){return {bind(...params){const statement=db.prepare(sql);return {first(){return statement.get(...params)||null},all(){return {results:statement.all(...params)}},run(){let result=statement.run(...params);return {meta:{changes:result.changes}}}};},all(){return {results:db.prepare(sql).all()}},first(){return db.prepare(sql).get()||null}}}};
 const env={DB:adapter,GOOGLE_CLIENT_ID:'fake.client',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
 async function addLogin(email,name=email){const sub=email;db.prepare('INSERT INTO users(sub,email,name) VALUES(?,?,?)').run(sub,email,name);const sid=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode('fixture:'+email))).toString('hex');const digest=await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(sid));const hash=Buffer.from(digest).toString('hex');db.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').run(hash,sub,Math.floor(Date.now()/1000)+3600);return `${'__Host-mapem_session'}=${sid}`;}
@@ -172,4 +172,19 @@ test('every GK year gets the correct inputs; old Year 1/2 nominations are preser
  assert.equal(db.prepare('SELECT version FROM drafts WHERE class_id=? AND category_id=?').get('1-crystal','cemara').version,1);
  db.prepare('INSERT INTO publications(class_id,snapshot_json,published_by) VALUES(?,?,?)').run('1-crystal','{"cemara":["Rekod Lama Satu"]}','admin@gmail.com');
  assert(!JSON.stringify(await json(await call(env,'published',{cookie:admin}))).includes('Rekod Lama Satu'));
+});
+
+test('event info is admin-edited, explicitly published, versioned, and contains no recipient records',async()=>{
+ const {env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com'),viewer=await addLogin('parent@gmail.com');
+ assert.deepEqual(await json(await call(env,'portal/event')),{event:null});assert.equal((await call(env,'admin/event')).status,401);assert.equal((await call(env,'admin/event',{cookie:viewer})).status,403);
+ const event={title:'Majlis Ujian <b>literal</b>',date:'2026-11-07',time:'07:00',venue:'Dewan Ujian',dresscode:'Songket',schedule:'07:00 | Pendaftaran\n08:00 | Majlis',guidance:'Panduan umum'};
+ const save=(body,cookie=admin,origin=ORIGIN)=>call(env,'admin/event',{cookie,origin,method:'POST',body});
+ assert.equal((await save({event,enabled:true,version:0},viewer)).status,403);assert.equal((await save({event,enabled:true,version:0},admin,'https://evil.example')).status,403);
+ assert.equal((await save({event,enabled:false,version:0})).status,200);assert.equal((await json(await call(env,'portal/event'))).event,null);
+ assert.equal((await save({event,enabled:true,version:0})).status,409);assert.equal((await save({event:{...event,date:'2026-02-30'},enabled:true,version:1})).status,400);
+ assert.equal((await save({event:{...event,time:'25:00'},enabled:true,version:1})).status,400);assert.equal((await save({event:{...event,venue:''},enabled:true,version:1})).status,400);
+ assert.equal((await save({event:{...event,schedule:'x'.repeat(6001)},enabled:true,version:1})).status,400);
+ assert.equal((await save({event,enabled:true,version:1})).status,200);assert.deepEqual((await json(await call(env,'portal/event'))).event,event);
+ assert.equal((await call(env,'published')).status,401);assert.deepEqual((await json(await call(env,'published',{cookie:viewer}))).classes,[]);
+ assert.equal((await save({event,enabled:false,version:2})).status,200);assert.equal((await json(await call(env,'portal/event'))).event,null);
 });

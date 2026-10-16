@@ -130,6 +130,26 @@ export async function onRequest({request,env}){
   // Only same-origin JSON writes may mutate personal data.
   if(!['GET','HEAD'].includes(request.method)){const reqOrigin=request.headers.get('Origin');if(!reqOrigin||reqOrigin!==url.origin)return fail('Origin permintaan tidak sah.',403);}
   const user=await userFor(request,env);
+  if(path==='portal/event'&&request.method==='GET'){
+   const row=await env.DB.prepare('SELECT content_json,enabled,version FROM portal_event WHERE id=1').first();
+   return JSON_RESPONSE({event:row?.enabled?JSON.parse(row.content_json):null});
+  }
+  if(path==='admin/event'&&request.method==='GET'){
+   requireRole(user,'admin');const row=await env.DB.prepare('SELECT content_json,enabled,version FROM portal_event WHERE id=1').first();
+   return JSON_RESPONSE({event:JSON.parse(row.content_json),enabled:!!row.enabled,version:row.version});
+  }
+  if(path==='admin/event'&&request.method==='POST'){
+   requireRole(user,'admin');const b=await reqBody(request),v=b.event;
+   if(!v||typeof v!=='object'||typeof b.enabled!=='boolean'||!Number.isSafeInteger(b.version)||b.version<0)return fail('Format maklumat majlis tidak sah.');
+   const limits={title:120,date:10,time:5,venue:250,dresscode:200,schedule:6000,guidance:3000},data={};
+   for(const [key,max] of Object.entries(limits)){if(typeof v[key]!=='string'||v[key].length>max)return fail('Medan '+key+' tidak sah atau terlalu panjang.');data[key]=v[key].trim();}
+   if(data.date&&(!/^\d{4}-\d{2}-\d{2}$/.test(data.date)||!Number.isFinite(Date.parse(data.date+'T00:00:00Z'))||new Date(data.date+'T00:00:00Z').toISOString().slice(0,10)!==data.date))return fail('Tarikh majlis tidak sah.');
+   if(data.time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(data.time))return fail('Masa majlis tidak sah.');
+   if(b.enabled&&(!data.title||!data.date||!data.time||!data.venue))return fail('Isi tajuk, tarikh, masa dan tempat sebelum menerbitkan.');
+   const saved=await env.DB.prepare('UPDATE portal_event SET content_json=?,enabled=?,version=version+1 WHERE id=1 AND version=?').bind(JSON.stringify(data),b.enabled?1:0,b.version).run();
+   if(!saved.meta.changes)return fail('Maklumat majlis telah diubah oleh admin lain. Muat semula dahulu.',409);
+   return JSON_RESPONSE({ok:true,version:b.version+1});
+  }
   if(path==='portal/announcement'&&request.method==='GET'){
    const row=await env.DB.prepare('SELECT title,body,enabled,version,updated_at FROM portal_announcement WHERE id=1').first();
    return JSON_RESPONSE({announcement:row?.enabled?{title:row.title,body:row.body,updatedAt:row.updated_at}:null});
