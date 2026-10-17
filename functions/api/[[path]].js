@@ -248,7 +248,7 @@ export async function onRequest({request,env}){
   if(path==='admin/overview'&&request.method==='GET'){requireRole(user,'admin');return JSON_RESPONSE(await overview(env));}
   if(path==='admin/class'&&request.method==='GET'){
    requireRole(user,'admin');const id=validateClassId(url.searchParams.get('id'));
-   const [cls,drafts]=await Promise.all([env.DB.prepare('SELECT id,year,name,status FROM classes WHERE id=?').bind(id).first(),env.DB.prepare('SELECT category_id,names_json,version FROM drafts WHERE class_id=?').bind(id).all()]);
+   const [cls,drafts]=await Promise.all([env.DB.prepare('SELECT c.id,c.year,c.name,c.status,p.published_at FROM classes c LEFT JOIN publications p ON p.class_id=c.id WHERE c.id=?').bind(id).first(),env.DB.prepare('SELECT category_id,names_json,version FROM drafts WHERE class_id=?').bind(id).all()]);
    if(!cls)return fail('Kelas tidak ditemui.',404);
    return JSON_RESPONSE({class:cls,categories:CATEGORIES.filter(c=>!c.years||c.years.includes(cls.year)),drafts:Object.fromEntries((drafts.results||[]).map(x=>[x.category_id,{names:JSON.parse(x.names_json),version:x.version}]))});
   }
@@ -298,3 +298,4 @@ export async function onRequest({request,env}){
   return fail('Laluan API tidak wujud.',404);
  }catch(err){if(err.status)return fail(err.message,err.status);console.error('MaPeM API failure:',err);if(/no such table|D1_ERROR/i.test(err.message||''))return fail('Database belum lengkap. Jalankan semua migrasi aplikasi terkini.',503);return fail('Ralat pelayan. Cuba lagi atau hubungi urus setia.',500);}
 }
+

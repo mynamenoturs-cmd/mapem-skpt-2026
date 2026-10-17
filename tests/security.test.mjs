@@ -24,13 +24,17 @@ assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',origin
 let saved=await json(await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'pbd',names:['Murid Contoh Satu'],version:0}}));assert.equal(saved.version,1);
 assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'pbd',names:['Murid Contoh Dua'],version:0}})).status,409);
 assert.deepEqual((await json(await call(env,'published',{cookie:viewer}))).classes,[]);
+assert.equal((await call(env,'admin/class?id=1-amber',{cookie:viewer})).status,403);
+assert.equal((await json(await call(env,'admin/class?id=1-amber',{cookie:admin}))).class.published_at,null);
 assert.equal((await call(env,'admin/publish',{cookie:admin,method:'POST',body:{classId:'1-amber'}})).status,409);
 assert.equal((await call(env,'teacher/submit',{cookie:teacher,method:'POST',body:{}})).status,400);assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'pbd',version:1,names:['Murid Contoh Satu','Murid Dua','Murid Tiga','Murid Empat','Murid Lima']}})).status,200);assert.equal((await call(env,'teacher/submit',{cookie:teacher,method:'POST',body:{}})).status,200);
 assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'pbd',names:['Murid Tiga'],version:1}})).status,423);
 assert.equal((await call(env,'admin/publish',{cookie:admin,method:'POST',body:{classId:'1-amber'}})).status,200);
+assert.equal(typeof (await json(await call(env,'admin/class?id=1-amber',{cookie:admin}))).class.published_at,'string');
 const pub=await json(await call(env,'published',{cookie:viewer}));assert.equal(pub.classes.length,1);assert.equal(pub.classes[0].awards.pbd.length,5);assert.equal(pub.classes[0].awards.pbd[0],'Murid Contoh Satu');
 assert.equal((await call(env,'admin/class/status',{cookie:admin,method:'POST',body:{classId:'1-amber',status:'draft'}})).status,200);
 assert.equal((await json(await call(env,'published',{cookie:viewer}))).classes.length,0);
+assert.equal((await json(await call(env,'admin/class?id=1-amber',{cookie:admin}))).class.published_at,null);
 assert.equal((await call(env,'admin/special/save',{cookie:admin,method:'POST',body:{classId:'1-amber',categoryId:'plan',names:['Ikon Contoh'],version:0}})).status,200);
 assert.equal((await call(env,'admin/unassign',{cookie:admin,method:'POST',body:{email:'teacher@gmail.com'}})).status,200);
 assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'viewer');
@@ -199,3 +203,4 @@ test('export is admin-only, category-sorted, year-filtered and uses actual publi
  assert.equal((await get('&source=published&year=1')).rows.length,0);assert.equal((await call(env,'admin/export?format=json&year=4',{cookie:admin})).status,400);assert.equal((await call(env,'admin/export?source=other',{cookie:admin})).status,400);
  const csv=await (await call(env,'admin/export',{cookie:admin})).text();assert.match(csv,/Kategori Anugerah/);assert(csv.indexOf('PBD Ujian')<csv.indexOf('Aina Ujian'));assert(csv.indexOf('Aina Ujian')<csv.indexOf('Zula Ujian'));
 });
+
