@@ -93,3 +93,25 @@ footer{background:#38091b;border-top-color:#bf94534a}.footer{color:#d2b39b}.hero
 .tahap-switch button:hover:not(.active){background:#fffaf3;color:#5f1433}
 .viewer-tahap{margin:0 0 19px}
 @media(max-width:600px){.tahap-switch{gap:5px;padding:5px}.tahap-switch button{padding:11px 7px;font-size:12px}.tahap-switch button small{font-size:9px}}
+
+
+/* Supervised correction and immutable activity trail */
+.audit-feed{display:grid;gap:14px;margin-top:18px}
+.audit-entry{background:linear-gradient(145deg,#fffcf7,#fff);border:1px solid #e9d9c7;border-left:4px solid #c69649;border-radius:15px;padding:18px;box-shadow:0 5px 17px rgba(66,23,39,.04);overflow-wrap:anywhere}
+.audit-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:7px}
+.audit-heading strong{color:#651b34;font-size:15px}
+.audit-heading time{color:#85766e;font-size:11px;white-space:nowrap}
+.audit-entry p{font-size:12px;margin:7px 0;line-height:1.65}
+.audit-add{color:#146447;font-weight:650}
+.audit-remove{color:#a33340;font-weight:650}
+.audit-entry details{margin-top:9px;border-top:1px solid #e9e2dc;padding-top:10px}
+.audit-entry summary{font-size:12px;color:#75435b;cursor:pointer;font-weight:700}
+.audit-diff{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:12px}
+.audit-diff>div{padding:12px;border-radius:11px;border:1px solid #efe5d9;background:#fffcf8;min-width:0}
+.audit-diff b{font-size:12px;color:#631f3b}
+.audit-diff ol{padding-left:18px;font-size:12px;line-height:1.8;margin:6px 0;overflow-wrap:anywhere}
+.correction-list{display:grid;gap:7px;max-height:270px;overflow:auto;margin:12px 0}
+.correction-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 11px;border:1px solid #e9d9cc;border-radius:10px;background:#fffaf5;font-size:12px}
+.correction-row span{overflow-wrap:anywhere;flex:1}
+.correction-row b{color:#9f6a28;margin-right:5px}
+@media(max-width:600px){.audit-entry{padding:13px}.audit-heading{align-items:start;flex-direction:column;gap:4px}.audit-diff{grid-template-columns:1fr}.correction-row{gap:8px}.correction-row .btn{flex:none}}
