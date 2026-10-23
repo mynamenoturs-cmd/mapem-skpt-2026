@@ -142,7 +142,7 @@ test('admins retain own class and category duties; own views remain scoped and o
  assert.equal((await call(env,'work/class?classId=1-amber&categoryId=delima&scope=mine',{cookie:admin})).status,403);
  assert.equal((await post('work/save?scope=mine',{classId:'1-amber',categoryId:'delima',names:['Murid Ujian'],version:0})).status,403);
  assert.equal((await post('work/save?scope=mine',{classId:'1-amber',categoryId:'uasa',names:['Murid Ujian'],version:0})).status,200);
- assert.equal((await call(env,'work/overview',{cookie:admin})).status,200);assert.equal((await json(await call(env,'work/overview',{cookie:admin}))).categories.length,11);
+ assert.equal((await call(env,'work/overview',{cookie:admin})).status,200);assert.equal((await json(await call(env,'work/overview',{cookie:admin}))).categories.length,19);
  assert.equal((await post('admin/admins',{email:'delegated@gmail.com'})).status,200);
  assert.equal((await post('admin/assign',{email:'delegated@gmail.com',classId:'2-crystal'})).status,200);
  assert.equal((await post('admin/category-assignments',{email:'delegated@gmail.com',categoryIds:['plan']})).status,200);
@@ -198,9 +198,9 @@ test('export is admin-only, category-sorted, year-filtered and uses actual publi
  assert.equal((await call(env,'admin/export?format=json')).status,401);assert.equal((await call(env,'admin/export?format=json',{cookie:viewer})).status,403);
  for(const [cls,cat,ns] of [['2-crystal','uasa',['Zula Ujian','Aina Ujian']],['1-amber','pbd',['PBD Ujian']],['1-amber','cemara',['Lama Tidak Layak']]])db.prepare('INSERT INTO drafts(class_id,category_id,names_json) VALUES(?,?,?)').run(cls,cat,JSON.stringify(ns));
  db.prepare('INSERT INTO nominations(class_id,category_id,names_json) VALUES(?,?,?)').run('3-crystal','cemara','["Calon Belum Dipilih"]');db.prepare('INSERT INTO publications(class_id,snapshot_json,published_by) VALUES(?,?,?)').run('2-crystal','{"uasa":["Nama Rasmi"]}','admin@gmail.com');
- const get=async q=>json(await call(env,'admin/export?format=json'+q,{cookie:admin}));let d=await get('');assert.deepEqual(d.rows.map(r=>r.name),['PBD Ujian','Aina Ujian','Zula Ujian']);assert(!JSON.stringify(d).includes('Calon Belum Dipilih'));assert.equal(d.categories.length,12);
+ const get=async q=>json(await call(env,'admin/export?format=json'+q,{cookie:admin}));let d=await get('');assert.deepEqual(d.rows.map(r=>r.name),['PBD Ujian','Aina Ujian','Zula Ujian']);assert(!JSON.stringify(d).includes('Calon Belum Dipilih'));assert.equal(d.categories.length,20);
  d=await get('&year=2');assert.equal(d.rows.length,2);d=await get('&source=published');assert.deepEqual(d.rows.map(r=>r.name),['Nama Rasmi']);assert.equal(d.rows[0].publication,'Diterbitkan');
- assert.equal((await get('&source=published&year=1')).rows.length,0);assert.equal((await call(env,'admin/export?format=json&year=4',{cookie:admin})).status,400);assert.equal((await call(env,'admin/export?source=other',{cookie:admin})).status,400);
+ assert.equal((await get('&source=published&year=1')).rows.length,0);assert.equal((await call(env,'admin/export?format=json&year=7',{cookie:admin})).status,400);assert.equal((await call(env,'admin/export?source=other',{cookie:admin})).status,400);
  const csv=await (await call(env,'admin/export',{cookie:admin})).text();assert.match(csv,/Kategori Anugerah/);assert(csv.indexOf('PBD Ujian')<csv.indexOf('Aina Ujian'));assert(csv.indexOf('Aina Ujian')<csv.indexOf('Zula Ujian'));
 });
 
