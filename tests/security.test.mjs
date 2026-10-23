@@ -394,7 +394,7 @@ test('assigning Cerdas PLaN grants and revokes both subgroup categories together
 test('migration preserves pre-existing Cerdas PLaN specialist access across subgroups',()=>{
  const {db}=fixture();
  db.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?)").run('existing-pic@gmail.com','plan','admin@gmail.com',2);
- db.exec(file('../migrations/0012_cerdas_plan_subgroups.sql'));db.exec(file('../migrations/0013_subject_awards_quota.sql'));
+ db.exec(file('../migrations/0012_cerdas_plan_subgroups.sql'));
  const grant=db.prepare("SELECT category_id,tahap FROM category_assignments WHERE email=? ORDER BY category_id").all('existing-pic@gmail.com');
  assert.deepEqual(grant.map(x=>x.category_id),['plan','plan-pemulihan']);assert(grant.every(x=>x.tahap===0));
 });
