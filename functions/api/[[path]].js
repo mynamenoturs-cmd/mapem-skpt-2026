@@ -237,7 +237,7 @@ export async function onRequest({request,env}){
    const tahap=b.tahap===undefined?0:Number(b.tahap);if(![0,1,2].includes(tahap))return fail('Tahap tugasan tidak sah.');const ids=b.categoryIds;if(!Array.isArray(ids)||!ids.length||ids.length>CATEGORIES.length-1||new Set(ids).size!==ids.length||ids.some(id=>!CATEGORIES.some(c=>c.id===id&&c.id!=='pbd')))return fail('Pilih tugasan kategori yang sah.');
    // One school award: assigning either group always grants both groups of Cerdas PLaN.
    const assignIds=ids.some(id=>id==='plan'||id==='plan-pemulihan')?[...new Set([...ids,'plan','plan-pemulihan'])]:ids;
-   for(const id of assignIds)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,tahap=excluded.tahap,updated_at=datetime('now')").bind(email,id,user.email,tahap).run();
+   for(const id of assignIds)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,tahap=excluded.tahap,updated_at=datetime('now')").bind(email,id,user.email,['plan','plan-pemulihan'].includes(id)?0:tahap).run();
    return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/category-assignments/revoke'&&request.method==='POST'){
