@@ -268,6 +268,40 @@ export async function onRequest({request,env}){
    const result=await env.DB.prepare('DELETE FROM admin_grants WHERE email=?').bind(email).run();
    return result.meta?.changes?JSON_RESPONSE({ok:true}):fail('Pentadbir tidak ditemui.',404);
   }
+  if(path==='admin/activity'&&request.method==='GET'){
+   requireRole(user,'admin');
+   const limitRaw=Number(url.searchParams.get('limit')||50),offsetRaw=Number(url.searchParams.get('offset')||0);
+   if(!Number.isSafeInteger(limitRaw)||limitRaw<1||limitRaw>100||!Number.isSafeInteger(offsetRaw)||offsetRaw<0||offsetRaw>100000)safeError('Parameter log tidak sah.');
+   const actor=String(url.searchParams.get('actor')||'').trim().toLowerCase(),classId=String(url.searchParams.get('classId')||'').trim(),categoryId=String(url.searchParams.get('categoryId')||'').trim();
+   if(actor.length>254||(classId&&validateClassId(classId)===null)||categoryId.length>120)safeError('Penapis log tidak sah.');
+   const logs=await env.DB.prepare("SELECT id,actor_email,actor_role,action,class_id,category_id,details_json,before_json,after_json,created_at FROM activity_logs WHERE (?='' OR actor_email LIKE ?) AND (?='' OR class_id=?) AND (?='' OR category_id=?) ORDER BY id DESC LIMIT ? OFFSET ?")
+    .bind(actor,'%'+actor+'%',classId,classId,categoryId,categoryId,limitRaw+1,offsetRaw).all();
+   const rows=(logs.results||[]);return JSON_RESPONSE({logs:rows.slice(0,limitRaw).map(x=>({...x,details:JSON.parse(x.details_json||'{}'),before:x.before_json==null?null:JSON.parse(x.before_json),after:x.after_json==null?null:JSON.parse(x.after_json),details_json:undefined,before_json:undefined,after_json:undefined})),hasMore:rows.length>limitRaw,offset:offsetRaw,limit:limitRaw});
+  }
+  if(path==='admin/record/correct'&&request.method==='POST'){
+   requireRole(user,'admin');
+   const b=await reqBody(request),id=validateClassId(b.classId),cls=await env.DB.prepare('SELECT id,year,status FROM classes WHERE id=?').bind(id).first();
+   if(!cls)return fail('Kelas tidak ditemui.',404);
+   const cat=CATEGORIES.find(c=>c.id===b.categoryId&&(!c.years||c.years.includes(cls.year)));
+   if(!cat)return fail('Kategori tidak sah untuk kelas ini.',400);
+   const reason=String(b.reason||'').trim().replace(/\s+/g,' ');
+   if(reason.length<5||reason.length>300)safeError('Nyatakan sebab pembetulan (5–300 aksara).');
+   if(await env.DB.prepare('SELECT class_id FROM publications WHERE class_id=?').bind(id).first())return fail('Tarik balik penerbitan kelas sebelum membetulkan nama.',423);
+   const list=names(b.names);
+   if(cat.classLimit&&list.length>cat.classLimit)return fail('PBD maksimum 5 penerima setiap kelas.');
+   if((cat.nomination||cat.id==='mawar')&&list.length&&b.confirmedLP!==true)return fail('Sahkan semakan L/P sebelum membetulkan senarai akhir.',400);
+   const limit=cat.scope==='year'?cat.quota?.[cls.year]:cat.quota;
+   const result=await saveDraft(env,id,cat.id,Number(b.version),list,'drafts',limit??null,(cat.scope==='year'||cat.years?.length===1)?cls.year:0,user,reason,'admin.correct');
+   if(cat.nomination||cat.id==='mawar'){
+    await env.DB.prepare("DELETE FROM final_reviews WHERE class_id=? AND category_id=?").bind(id,cat.id).run();
+    if(list.length)await env.DB.prepare("INSERT INTO final_reviews(class_id,category_id,version,confirmed_by) VALUES(?,?,?,?)").bind(id,cat.id,result.version,user.email).run();
+   }
+   if(cat.id==='pbd'&&list.length!==5&&cls.status==='submitted'){
+    await env.DB.prepare("UPDATE classes SET status='draft',submitted_at=NULL,updated_at=datetime('now') WHERE id=?").bind(id).run();
+    await auditActivity(env,user,'class.reopen.incomplete-pbd',id,'pbd',{status:'submitted'},{status:'draft'},{reason:'PBD perlu lengkap semula (5 nama)'});
+   }
+   return JSON_RESPONSE(result);
+  }
   if(path==='admin/overview'&&request.method==='GET'){requireRole(user,'admin');return JSON_RESPONSE(await overview(env));}
   if(path==='admin/class'&&request.method==='GET'){
    requireRole(user,'admin');const id=validateClassId(url.searchParams.get('id'));
