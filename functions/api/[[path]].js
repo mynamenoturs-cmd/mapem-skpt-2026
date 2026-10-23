@@ -273,10 +273,10 @@ export async function onRequest({request,env}){
    requireRole(user,'admin');
    const limitRaw=Number(url.searchParams.get('limit')||50),offsetRaw=Number(url.searchParams.get('offset')||0);
    if(!Number.isSafeInteger(limitRaw)||limitRaw<1||limitRaw>100||!Number.isSafeInteger(offsetRaw)||offsetRaw<0||offsetRaw>100000)safeError('Parameter log tidak sah.');
-   const actor=String(url.searchParams.get('actor')||'').trim().toLowerCase(),classId=String(url.searchParams.get('classId')||'').trim(),categoryId=String(url.searchParams.get('categoryId')||'').trim();
-   if(actor.length>254||(classId&&validateClassId(classId)===null)||categoryId.length>120)safeError('Penapis log tidak sah.');
-   const logs=await env.DB.prepare("SELECT id,actor_email,actor_role,action,class_id,category_id,details_json,before_json,after_json,created_at FROM activity_logs WHERE (?='' OR actor_email LIKE ?) AND (?='' OR class_id=?) AND (?='' OR category_id=?) ORDER BY id DESC LIMIT ? OFFSET ?")
-    .bind(actor,'%'+actor+'%',classId,classId,categoryId,categoryId,limitRaw+1,offsetRaw).all();
+   const actor=String(url.searchParams.get('actor')||'').trim().toLowerCase(),classId=String(url.searchParams.get('classId')||'').trim(),categoryId=String(url.searchParams.get('categoryId')||'').trim(),tahap=Number(url.searchParams.get('tahap')||0);
+   if(actor.length>254||(classId&&validateClassId(classId)===null)||categoryId.length>120||![0,1,2].includes(tahap))safeError('Penapis log tidak sah.');
+   const logs=await env.DB.prepare("SELECT id,actor_email,actor_role,action,class_id,category_id,details_json,before_json,after_json,created_at FROM activity_logs WHERE (?='' OR actor_email LIKE ?) AND (?='' OR class_id=?) AND (?='' OR category_id=?) AND (?=0 OR class_id IS NULL OR EXISTS (SELECT 1 FROM classes c WHERE c.id=activity_logs.class_id AND ((?=1 AND c.year BETWEEN 1 AND 3) OR (?=2 AND c.year BETWEEN 4 AND 5)))) ORDER BY id DESC LIMIT ? OFFSET ?")
+    .bind(actor,'%'+actor+'%',classId,classId,categoryId,categoryId,tahap,tahap,tahap,limitRaw+1,offsetRaw).all();
    const rows=(logs.results||[]);return JSON_RESPONSE({logs:rows.slice(0,limitRaw).map(x=>({...x,details:JSON.parse(x.details_json||'{}'),before:x.before_json==null?null:JSON.parse(x.before_json),after:x.after_json==null?null:JSON.parse(x.after_json),details_json:undefined,before_json:undefined,after_json:undefined})),hasMore:rows.length>limitRaw,offset:offsetRaw,limit:limitRaw});
   }
   if(path==='admin/record/correct'&&request.method==='POST'){
