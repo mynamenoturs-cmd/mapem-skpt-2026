@@ -81,7 +81,7 @@ jobs:
           EOF
           echo "Konfigurasi D1 sementara disediakan. Tiada kunci rahsia ditulis ke kod sumber."
 
-      - name: Migrasi database production (tanpa DROP/DELETE)
+      - name: Migrasi database production (pelihara rekod asal)
         if: steps.ready.outputs.enabled == 'true'
         run: npx wrangler d1 migrations apply DB --remote --config .wrangler-ci.toml
 
