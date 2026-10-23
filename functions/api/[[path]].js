@@ -55,15 +55,26 @@ async function userFor(request,env){const sid=cookies(request)[SESSION_COOKIE];i
  return {sub:user.sub,email,name:user.name,categoryIds:tasks.map(t=>t.category_id),role:isAdmin?'admin':assignment?'teacher':tasks.length?'specialist':'viewer',classId:assignment?.class_id||null,className:assignment?`${assignment.year} ${assignment.class_name}`:null};}
 function requireRole(user,role){if(!user)safeError('Sila log masuk dengan akaun Google.',401);if(role==='admin'&&user.role!=='admin')safeError('Akses pentadbir sahaja.',403);if(role==='teacher'&&!user.classId)safeError('Akses guru kelas sahaja.',403);}
 function categoryOf(id,year,teacher){return year>=1&&year<=5?CATEGORIES.find(c=>c.id===id&&(teacher?c.teacher:c.id!=='pbd')&&(!c.years||c.years.includes(year))):undefined;}
-async function saveDraft(env,classId,categoryId,version,list,table='drafts',limit=null,year=0){
+async function auditActivity(env,user,action,classId=null,categoryId=null,before=null,after=null,details={}){
+ if(!user?.email)throw Error('Audit memerlukan identiti pengguna sah.');
+ await env.DB.prepare('INSERT INTO activity_logs(actor_email,actor_role,action,class_id,category_id,details_json,before_json,after_json) VALUES(?,?,?,?,?,?,?,?)')
+ .bind(user.email,user.role||'unknown',action,classId,categoryId,JSON.stringify(details),before==null?null:JSON.stringify(before),after==null?null:JSON.stringify(after)).run();
+}
+async function saveDraft(env,classId,categoryId,version,list,table='drafts',limit=null,year=0,actor=null,reason='',action='award.save'){
  if(!['drafts','nominations'].includes(table))safeError('Jadual simpanan tidak sah.');
  if(!Number.isSafeInteger(version)||version<0)safeError('Versi simpanan tidak sah.');
- const current=await env.DB.prepare(`SELECT version FROM ${table} WHERE class_id=? AND category_id=?`).bind(classId,categoryId).first();
+ const current=await env.DB.prepare(`SELECT version,names_json FROM ${table} WHERE class_id=? AND category_id=?`).bind(classId,categoryId).first();
  if((current?.version??0)!==version)safeError('Data telah diubah di peranti lain. Muat semula sebelum menyimpan.',409);
+ const before=JSON.parse(current?.names_json||'[]');
  const sql=`INSERT INTO ${table}(class_id,category_id,names_json,version,updated_at) SELECT ?,?,?,1,datetime('now') WHERE (? IS NULL OR (SELECT COALESCE(SUM(json_array_length(names_json)),0) FROM ${table} WHERE category_id=? AND class_id!=? AND (?=0 OR substr(class_id,1,1)=?))+?<=?) ON CONFLICT(class_id,category_id) DO UPDATE SET names_json=excluded.names_json,version=${table}.version+1,updated_at=datetime('now') WHERE ${table}.version=?`;
  const r=await env.DB.prepare(sql).bind(classId,categoryId,JSON.stringify(list),limit,categoryId,classId,year,String(year),list.length,limit,version).run();
  if(r.meta?.changes!==1)safeError(limit!=null?'Kuota keseluruhan kategori akan melebihi '+limit+' penerima. Semak kelas lain atau muat semula.':'Versi simpanan berubah. Muat semula sebelum menyimpan.',409);
  await env.DB.prepare("UPDATE classes SET updated_at=datetime('now') WHERE id=?").bind(classId).run();
+ if(actor&&JSON.stringify(before)!==JSON.stringify(list)){
+  const oldNames=new Set(before.map(n=>n.toLocaleLowerCase('ms'))),newNames=new Set(list.map(n=>n.toLocaleLowerCase('ms')));
+  const detail={reason:reason||null,table,added:list.filter(n=>!oldNames.has(n.toLocaleLowerCase('ms'))),removed:before.filter(n=>!newNames.has(n.toLocaleLowerCase('ms'))),fromVersion:version,toVersion:version+1};
+  await auditActivity(env,actor,list.length===0?action+'.clear':action,classId,categoryId,before,list,detail);
+ }
  return {ok:true,version:version+1,total:list.length};
 }
 function canWork(user,id,assignedOnly=false){return (!assignedOnly&&user?.role==='admin')||user?.categoryIds?.includes(id);}
@@ -88,7 +99,7 @@ async function saveFinal(env,user,b,assignedOnly=false){
   if(list.some(n=>!allowed.has(n.toLocaleLowerCase('ms'))))safeError('Pilih nama daripada pencalonan guru kelas.');
  }
  const limit=cat.scope==='year'?cat.quota?.[cls.year]:cat.quota;
- const r=await saveDraft(env,id,cat.id,Number(b.version),list,'drafts',limit??null,(cat.scope==='year'||cat.years?.length===1)?cls.year:0);
+ const r=await saveDraft(env,id,cat.id,Number(b.version),list,'drafts',limit??null,(cat.scope==='year'||cat.years?.length===1)?cls.year:0,user,'','specialist.save');
  if(cat.nomination||cat.id==='mawar')await env.DB.prepare("INSERT INTO final_reviews(class_id,category_id,version,confirmed_by) VALUES(?,?,?,?) ON CONFLICT(class_id,category_id) DO UPDATE SET version=excluded.version,confirmed_by=excluded.confirmed_by,confirmed_at=datetime('now')").bind(id,cat.id,r.version,user.email).run();
  return r;
 }
@@ -208,7 +219,7 @@ export async function onRequest({request,env}){
    if(cls?.status!=='draft')return fail('Senarai telah dihantar. Minta urus setia membuka semula.',423);
    const cat=categoryOf(input.categoryId,cls.year,true);if(!cat)return fail('Kategori tidak dibenarkan.',403);const list=names(input.names);
    if(cat.classLimit&&list.length>cat.classLimit)return fail('PBD: maksimum 5 murid setiap kelas.');
-   return JSON_RESPONSE(await saveDraft(env,user.classId,input.categoryId,Number(input.version),list,cat.nomination?'nominations':'drafts'));
+   return JSON_RESPONSE(await saveDraft(env,user.classId,input.categoryId,Number(input.version),list,cat.nomination?'nominations':'drafts',null,0,user,'',cat.nomination?'nomination.save':'pbd.save'));
   }
   if(path==='teacher/submit'&&request.method==='POST'){
    requireRole(user,'teacher');await reqBody(request);const row=await env.DB.prepare('SELECT names_json FROM drafts WHERE class_id=? AND category_id=?').bind(user.classId,'pbd').first();
