@@ -398,3 +398,75 @@ test('migration preserves pre-existing Cerdas PLaN specialist access across subg
  const grant=db.prepare("SELECT category_id,tahap FROM category_assignments WHERE email=? ORDER BY category_id").all('existing-pic@gmail.com');
  assert.deepEqual(grant.map(x=>x.category_id),['plan','plan-pemulihan']);assert(grant.every(x=>x.tahap===0));
 });
+
+test('UASA is exactly 10 per year 3, 4, 5, with no Year 1 or 2 awards',async()=>{
+ const {env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com');
+ const send=(classId,list)=>call(env,'admin/special/save',{cookie:admin,method:'POST',body:{classId,categoryId:'uasa',names:list,version:0}});
+ const list=y=>Array.from({length:10},(_,i)=>'UASA Murid '+y+' '+(i+1));
+ for(const y of [3,4,5]){
+  assert.equal((await send(y+'-crystal',list(y))).status,200);
+  assert.equal((await send(y+'-diamond',['UASA Murid Tambahan '+y])).status,409);
+ }
+ assert.equal((await send('1-crystal',['Tidak Layak'])).status,403);
+ assert.equal((await send('2-crystal',['Tidak Layak'])).status,403);
+ const year4=await json(await call(env,'admin/export?format=json&year=4',{cookie:admin}));
+ const year5=await json(await call(env,'admin/export?format=json&year=5',{cookie:admin}));
+ assert.equal(year4.rows.filter(r=>r.categoryId==='uasa').length,10);
+ assert.equal(year5.rows.filter(r=>r.categoryId==='uasa').length,10);
+});
+test('each subject has its own annual quota: 5/year in Tahap 1 and 1/year in Tahap 2, including Sejarah only Tahap 2',async()=>{
+ const {env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com');
+ const send=(classId,categoryId,list)=>call(env,'admin/special/save',{cookie:admin,method:'POST',body:{classId,categoryId,names:list,version:0}});
+ const subjects=['bm','bi','mt','sn','pai','pm'];
+ for(const code of subjects){
+  const categoryId='subjek-'+code;
+  for(const year of [1,2,3]){
+   const five=Array.from({length:5},(_,i)=>'Murid '+code+' '+year+' '+(i+1));
+   assert.equal((await send(year+'-crystal',categoryId,five)).status,200);
+   assert.equal((await send(year+'-diamond',categoryId,['Murid Tambahan '+code+' '+year])).status,409);
+  }
+  for(const year of [4,5]){
+   assert.equal((await send(year+'-crystal',categoryId,['Penerima '+code+' '+year])).status,200);
+   assert.equal((await send(year+'-diamond',categoryId,['Penerima Tambahan '+code+' '+year])).status,409);
+  }
+ }
+ for(const year of [4,5]){
+  assert.equal((await send(year+'-crystal','subjek-sej',['Sejarah Penerima '+year])).status,200);
+  assert.equal((await send(year+'-diamond','subjek-sej',['Sejarah Tambahan '+year])).status,409);
+ }
+ assert.equal((await send('3-crystal','subjek-sej',['Tidak Layak'])).status,403);
+ assert.equal((await send('4-crystal','matapelajaran',['Tidak Berlabel'])).status,403);
+ const d=await json(await call(env,'admin/overview',{cookie:admin}));
+ for(const year of [1,2,3]){
+  let total=0;
+  for(const code of subjects){const q=d.quota['subjek-'+code];assert.equal(q[year],5);total+=q[year];}
+  assert.equal(total,30);
+ }
+ for(const year of [4,5]){
+  let total=0;
+  for(const code of [...subjects,'sej']){const q=d.quota['subjek-'+code];assert.equal(q[year],1);total+=q[year];}
+  assert.equal(total,7);
+ }
+ const all=await json(await call(env,'admin/export?format=json&tahap=0',{cookie:admin}));
+ assert.equal(all.rows.filter(r=>r.categoryId.startsWith('subjek-')&&r.year<=3).length,90);
+ assert.equal(all.rows.filter(r=>r.categoryId.startsWith('subjek-')&&r.year>=4).length,14);
+});
+test('existing generic Mata Pelajaran assignments are copied to active subject categories without granting Sejarah in Tahap 1',()=>{
+ const {db}=fixture();
+ db.prepare('INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?)').run('sirfitri@example.com','matapelajaran','admin@example.com',1);
+ db.prepare('INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?)').run('fenny@example.com','matapelajaran','admin@example.com',2);
+ // Re-evaluate migration in a separate local database transaction after removing sentinel.
+ db.prepare('DELETE FROM subject_restructure_verified').run();
+ db.exec(file('../migrations/0013_subject_awards_quota.sql'));
+ const fetch=email=>db.prepare("SELECT category_id,tahap FROM category_assignments WHERE email=? AND category_id LIKE 'subjek-%' ORDER BY category_id").all(email);
+ const fitri=fetch('sirfitri@example.com'),fenny=fetch('fenny@example.com');
+ assert.equal(fitri.length,6);assert(fitri.every(x=>x.category_id!=='subjek-sej'&&x.tahap===1));
+ assert.equal(fenny.length,7);assert(fenny.every(x=>x.tahap===2));
+});
+test('subject restructuring migration aborts if legacy generic student names appear',()=>{
+ const {db}=fixture();
+ db.prepare('INSERT INTO drafts(class_id,category_id,names_json,version) VALUES(?,?,?,?)').run('4-crystal','matapelajaran','["Murid Belum Diklasifikasikan"]',1);
+ db.prepare('DELETE FROM subject_restructure_verified').run();
+ assert.throws(()=>db.exec(file('../migrations/0013_subject_awards_quota.sql')),/CHECK constraint failed|constraint failed/i);
+ assert.equal(db.prepare("SELECT names_json FROM drafts WHERE class_id='4-crystal' AND category_id='matapelajaran'").get().names_json,'["Murid Belum Diklasifikasikan"]');
+});
