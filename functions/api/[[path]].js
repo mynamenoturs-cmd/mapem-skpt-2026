@@ -11,7 +11,8 @@ export const CATEGORIES = [
  {id:'ains',name:'AINS NILAM — Hamper Individu',scope:'year',quota:{1:18,2:18,3:16},years:[1,2,3],teacher:false,owner:'Guru PSS',note:'Kuota Tahap 1: 18 / 18 / 16. Nota sumber: hamper individu (50 kelas × 2 orang = 100 orang) dan sijil penghargaan 100 helai. Gunakan lajur Tahun 1–3 untuk portal ini.'},
  {id:'ains-tokoh',name:'Tokoh AINS NILAM 2026 — Tahap 1',scope:'total',quota:3,years:[1,2,3],teacher:false,owner:'Guru PSS',note:'3 piala Tahap 1. Nota 3 piala Tokoh AINS Tahap 2 di luar skop portal Tahap 1 ini.'},
  {id:'delima',name:'Ikon Navigator DELIMa — Tahap 1',scope:'total',quota:3,years:[1,2,3],teacher:false,owner:'Teacher Abby',note:'3 penerima Tahap 1 keseluruhan. Calon telah dikenal pasti menurut makluman PK1.'},
- {id:'plan',name:'Anugerah Cerdas PLaN',scope:'total',quota:6,years:[1,2,3,4,5],sharedAcrossStages:true,teacher:false,owner:'Cikgu Puja',note:'6 penerima gabungan Tahap 1 dan Tahap 2: 3 murid PLaN dan 3 murid Pemulihan Khas. Kuota dikongsi, bukan 6 setiap tahap.'},
+ {id:'plan',name:'Anugerah Cerdas PLaN — Murid PLaN',scope:'total',quota:3,years:[1,2,3,4,5],sharedAcrossStages:true,awardGroup:'plan',teacher:false,owner:'Cikgu Puja',note:'Maksimum 3 penerima Murid PLaN daripada Tahun 1–5 secara gabungan; bukan 3 setiap tahap.'},
+ {id:'plan-pemulihan',name:'Anugerah Cerdas PLaN — Murid Pemulihan Khas',scope:'total',quota:3,years:[1,2,3,4,5],sharedAcrossStages:true,awardGroup:'plan',teacher:false,owner:'Cikgu Puja',note:'Maksimum 3 penerima Murid Pemulihan Khas daripada Tahun 1–5 secara gabungan; bukan 3 setiap tahap.'},
  {id:'mawar',name:'Anugerah Tokoh Murid Mawar (L/P)',scope:'year',quota:{3:2},years:[3],teacher:false,owner:'Cikgu Marwyn',note:'2 penerima Tahun 3 sahaja. Semak ketetapan L/P sebelum pengesahan.'},
  {id:'ains-t2',name:'Ikon AINS NILAM — Tahap 2 (2 murid setiap kelas)',scope:'year',quota:{4:16,5:16},years:[4,5],teacher:false,owner:'Nadiah Mohd Naim / Laila'},
  {id:'commonwealth-t2',name:'The Queen’s Commonwealth Writing Competition 2026 — Tahap 2',scope:'total',quota:20,years:[4,5],teacher:false,owner:'Urus Setia',note:'20 penerima keseluruhan, tahun tidak diperincikan dalam dokumen.'},
@@ -234,12 +235,14 @@ export async function onRequest({request,env}){
   if(path==='admin/category-assignments'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
    const tahap=b.tahap===undefined?0:Number(b.tahap);if(![0,1,2].includes(tahap))return fail('Tahap tugasan tidak sah.');const ids=b.categoryIds;if(!Array.isArray(ids)||!ids.length||ids.length>CATEGORIES.length-1||new Set(ids).size!==ids.length||ids.some(id=>!CATEGORIES.some(c=>c.id===id&&c.id!=='pbd')))return fail('Pilih tugasan kategori yang sah.');
-   for(const id of ids)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,tahap=excluded.tahap,updated_at=datetime('now')").bind(email,id,user.email,tahap).run();
+   // One school award: assigning either group always grants both groups of Cerdas PLaN.
+   const assignIds=ids.some(id=>id==='plan'||id==='plan-pemulihan')?[...new Set([...ids,'plan','plan-pemulihan'])]:ids;
+   for(const id of assignIds)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,tahap=excluded.tahap,updated_at=datetime('now')").bind(email,id,user.email,['plan','plan-pemulihan'].includes(id)?0:tahap).run();
    return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/category-assignments/revoke'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
-   if(typeof b.categoryId!=='string')return fail('Kategori tidak sah.');await env.DB.prepare('DELETE FROM category_assignments WHERE email=? AND category_id=?').bind(email,b.categoryId).run();return JSON_RESPONSE({ok:true});
+   if(typeof b.categoryId!=='string'||!CATEGORIES.some(c=>c.id===b.categoryId&&c.id!=='pbd'))return fail('Kategori tidak sah.');const removeIds=['plan','plan-pemulihan'].includes(b.categoryId)?['plan','plan-pemulihan']:[b.categoryId];for(const id of removeIds)await env.DB.prepare('DELETE FROM category_assignments WHERE email=? AND category_id=?').bind(email,id).run();return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/admins'&&request.method==='GET'){
    requireRole(user,'admin');const grants=await env.DB.prepare('SELECT email,granted_by,created_at FROM admin_grants ORDER BY email').all();

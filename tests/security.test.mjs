@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {onRequest,CATEGORIES} from '../functions/api/[[path]].js';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
-function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));db.exec(file('../migrations/0005_portal_announcement.sql'));db.exec(file('../migrations/0006_family_hub.sql'));db.exec(file('../migrations/0007_tahap2_classes.sql'));db.exec(file('../migrations/0008_exclude_year6.sql'));db.exec(file('../migrations/0009_activity_logs.sql'));db.exec(file('../migrations/0010_preserve_delima_t2.sql'));
+function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));db.exec(file('../migrations/0005_portal_announcement.sql'));db.exec(file('../migrations/0006_family_hub.sql'));db.exec(file('../migrations/0007_tahap2_classes.sql'));db.exec(file('../migrations/0008_exclude_year6.sql'));db.exec(file('../migrations/0009_activity_logs.sql'));db.exec(file('../migrations/0010_preserve_delima_t2.sql'));db.exec(file('../migrations/0012_cerdas_plan_subgroups.sql'));
 const adapter={prepare(sql){return {bind(...params){const statement=db.prepare(sql);return {first(){return statement.get(...params)||null},all(){return {results:statement.all(...params)}},run(){let result=statement.run(...params);return {meta:{changes:result.changes}}}};},all(){return {results:db.prepare(sql).all()}},first(){return db.prepare(sql).get()||null}}}};
 const env={DB:adapter,GOOGLE_CLIENT_ID:'fake.client',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
 async function addLogin(email,name=email){const sub=email;db.prepare('INSERT INTO users(sub,email,name) VALUES(?,?,?)').run(sub,email,name);const sid=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode('fixture:'+email))).toString('hex');const digest=await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(sid));const hash=Buffer.from(digest).toString('hex');db.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').run(hash,sub,Math.floor(Date.now()/1000)+3600);return `${'__Host-mapem_session'}=${sid}`;}
@@ -14,7 +14,7 @@ return {db,env,addLogin};}
 const request=(route,opts={})=>new Request(ORIGIN+'/api/'+route,{method:opts.method||'GET',headers:{...(opts.cookie?{Cookie:opts.cookie}:{}),...(opts.body!==undefined?{'Content-Type':'application/json',Origin:opts.origin||ORIGIN}:{}),...(opts.headers||{})},body:opts.body!==undefined?JSON.stringify(opts.body):undefined});
 const call=(env,route,opts)=>onRequest({request:request(route,opts),env});
 const json=async r=>r.json();
-test('schema 42 active classes (26+16), 21 award categories and PWA files',()=>{const {db}=fixture();assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,42);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=3').get().n,8);assert.equal(CATEGORIES.length,21);assert.equal(CATEGORIES.filter(c=>c.teacher).length,5);assert.equal(CATEGORIES.filter(c=>!c.teacher).length,16);assert.match(file('../public/manifest.webmanifest'),/"display":"standalone"/);assert.doesNotMatch(file('../public/sw.js'),/caches\.match\('\/api/);});
+test('schema 42 active classes (26+16), 22 award categories and PWA files',()=>{const {db}=fixture();assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,42);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=3').get().n,8);assert.equal(CATEGORIES.length,22);assert.equal(CATEGORIES.filter(c=>c.teacher).length,5);assert.equal(CATEGORIES.filter(c=>!c.teacher).length,17);assert.match(file('../public/manifest.webmanifest'),/"display":"standalone"/);assert.doesNotMatch(file('../public/sw.js'),/caches\.match\('\/api/);});
 test('auth, class isolation, drafts, publication and revocation',async()=>{const {db,env,addLogin}=fixture();const admin=await addLogin('admin@gmail.com'),teacher=await addLogin('teacher@gmail.com'),viewer=await addLogin('parent@gmail.com');db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('teacher@gmail.com','1-amber');
 assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'teacher');assert.equal((await json(await call(env,'me',{cookie:viewer}))).user.role,'viewer');assert.equal((await json(await call(env,'me',{cookie:admin}))).user.role,'admin');
 assert.equal((await call(env,'admin/overview',{cookie:viewer})).status,403);assert.equal((await call(env,'teacher/class',{cookie:viewer})).status,403);
@@ -129,7 +129,7 @@ test('admins retain own class and category duties; own views remain scoped and o
  assert.equal((await call(env,'work/overview?scope=mine',{cookie:admin})).status,403);
  assert.equal((await post('admin/assign',{email:'admin@gmail.com',classId:'1-amber'})).status,200);
  assert.equal((await post('admin/category-assignments',{email:'admin@gmail.com',categoryIds:['uasa','plan']})).status,200);
- let me=(await json(await call(env,'me',{cookie:admin}))).user;assert.equal(me.role,'admin');assert.equal(me.classId,'1-amber');assert.deepEqual(me.categoryIds,['plan','uasa']);
+ let me=(await json(await call(env,'me',{cookie:admin}))).user;assert.equal(me.role,'admin');assert.equal(me.classId,'1-amber');assert.deepEqual(me.categoryIds,['plan','plan-pemulihan','uasa']);
  let own=await json(await call(env,'teacher/class',{cookie:admin}));assert.equal(own.class.id,'1-amber');assert.equal(own.categories.length,1);
  const ns=['Murid Ujian Satu','Murid Ujian Dua','Murid Ujian Tiga','Murid Ujian Empat','Murid Ujian Lima'];
  assert.equal((await post('teacher/save',{classId:'2-crystal',categoryId:'pbd',names:ns,version:0})).status,200);
@@ -138,17 +138,17 @@ test('admins retain own class and category duties; own views remain scoped and o
  assert.equal((await post('teacher/submit',{})).status,200);
  assert.equal((await post('teacher/save',{categoryId:'pbd',names:ns,version:1})).status,423);
  assert.equal((await call(env,'admin/overview',{cookie:admin})).status,200);
- own=await json(await call(env,'work/overview?scope=mine',{cookie:admin}));assert.deepEqual(own.categories.map(c=>c.id),['uasa','plan']);
+ own=await json(await call(env,'work/overview?scope=mine',{cookie:admin}));assert.deepEqual(own.categories.map(c=>c.id),['uasa','plan','plan-pemulihan']);
  assert.equal((await call(env,'work/class?classId=1-amber&categoryId=delima&scope=mine',{cookie:admin})).status,403);
  assert.equal((await post('work/save?scope=mine',{classId:'1-amber',categoryId:'delima',names:['Murid Ujian'],version:0})).status,403);
  assert.equal((await post('work/save?scope=mine',{classId:'1-amber',categoryId:'uasa',names:['Murid Ujian'],version:0})).status,200);
- assert.equal((await call(env,'work/overview',{cookie:admin})).status,200);assert.equal((await json(await call(env,'work/overview',{cookie:admin}))).categories.length,20);
+ assert.equal((await call(env,'work/overview',{cookie:admin})).status,200);assert.equal((await json(await call(env,'work/overview',{cookie:admin}))).categories.length,21);
  assert.equal((await post('admin/admins',{email:'delegated@gmail.com'})).status,200);
  assert.equal((await post('admin/assign',{email:'delegated@gmail.com',classId:'2-crystal'})).status,200);
  assert.equal((await post('admin/category-assignments',{email:'delegated@gmail.com',categoryIds:['plan']})).status,200);
  assert.equal((await call(env,'teacher/class',{cookie:delegated})).status,200);
  assert.equal((await post('admin/admins/revoke',{email:'delegated@gmail.com'})).status,200);
- me=(await json(await call(env,'me',{cookie:delegated}))).user;assert.equal(me.role,'teacher');assert.equal(me.classId,'2-crystal');assert.deepEqual(me.categoryIds,['plan']);
+ me=(await json(await call(env,'me',{cookie:delegated}))).user;assert.equal(me.role,'teacher');assert.equal(me.classId,'2-crystal');assert.deepEqual(me.categoryIds,['plan','plan-pemulihan']);
  assert.equal((await call(env,'admin/overview',{cookie:delegated})).status,403);
  assert.equal((await post('admin/unassign',{email:'admin@gmail.com'})).status,200);assert.equal((await call(env,'teacher/class',{cookie:admin})).status,403);
  assert.equal((await post('admin/category-assignments/revoke',{email:'admin@gmail.com',categoryId:'plan'})).status,200);
@@ -198,7 +198,7 @@ test('export is admin-only, category-sorted, year-filtered and uses actual publi
  assert.equal((await call(env,'admin/export?format=json')).status,401);assert.equal((await call(env,'admin/export?format=json',{cookie:viewer})).status,403);
  for(const [cls,cat,ns] of [['2-crystal','uasa',['Zula Ujian','Aina Ujian']],['1-amber','pbd',['PBD Ujian']],['1-amber','cemara',['Lama Tidak Layak']]])db.prepare('INSERT INTO drafts(class_id,category_id,names_json) VALUES(?,?,?)').run(cls,cat,JSON.stringify(ns));
  db.prepare('INSERT INTO nominations(class_id,category_id,names_json) VALUES(?,?,?)').run('3-crystal','cemara','["Calon Belum Dipilih"]');db.prepare('INSERT INTO publications(class_id,snapshot_json,published_by) VALUES(?,?,?)').run('2-crystal','{"uasa":["Nama Rasmi"]}','admin@gmail.com');
- const get=async q=>json(await call(env,'admin/export?format=json'+q,{cookie:admin}));let d=await get('');assert.deepEqual(d.rows.map(r=>r.name),['PBD Ujian','Aina Ujian','Zula Ujian']);assert(!JSON.stringify(d).includes('Calon Belum Dipilih'));assert.equal(d.categories.length,21);
+ const get=async q=>json(await call(env,'admin/export?format=json'+q,{cookie:admin}));let d=await get('');assert.deepEqual(d.rows.map(r=>r.name),['PBD Ujian','Aina Ujian','Zula Ujian']);assert(!JSON.stringify(d).includes('Calon Belum Dipilih'));assert.equal(d.categories.length,22);
  d=await get('&year=2');assert.equal(d.rows.length,2);d=await get('&source=published');assert.deepEqual(d.rows.map(r=>r.name),['Nama Rasmi']);assert.equal(d.rows[0].publication,'Diterbitkan');
  assert.equal((await get('&source=published&year=1')).rows.length,0);assert.equal((await call(env,'admin/export?format=json&year=7',{cookie:admin})).status,400);assert.equal((await call(env,'admin/export?source=other',{cookie:admin})).status,400);
  const csv=await (await call(env,'admin/export',{cookie:admin})).text();assert.match(csv,/Kategori Anugerah/);assert(csv.indexOf('PBD Ujian')<csv.indexOf('Aina Ujian'));assert(csv.indexOf('Aina Ujian')<csv.indexOf('Zula Ujian'));
@@ -272,7 +272,7 @@ test('migration preserved original classroom data, assignments, nomination and p
 });
 
 test('new school award quotas and owners do not merge MAWAR and Navigator records',()=>{
- assert.equal(CATEGORIES.length,21);
+ assert.equal(CATEGORIES.length,22);
  const of=id=>CATEGORIES.find(c=>c.id===id);
  assert.deepEqual(of('mawar-lonjakan').quota,{2:10,3:14,4:2,5:4});
  assert.equal(of('mawar-lonjakan').owner,'Cikgu Norbaizura');
@@ -281,8 +281,10 @@ test('new school award quotas and owners do not merge MAWAR and Navigator record
  assert.deepEqual(of('delima').years,[1,2,3]);
  assert.equal(of('delima-tokoh-t2').quota,3);
  assert.deepEqual(of('delima-tokoh-t2').years,[4,5]);
- assert.equal(of('plan').quota,6);
+ assert.equal(of('plan').quota,3);
  assert.equal(of('plan').sharedAcrossStages,true);
+ assert.equal(of('plan-pemulihan').quota,3);assert.equal(of('plan-pemulihan').sharedAcrossStages,true);
+ assert.deepEqual(of('plan-pemulihan').years,[1,2,3,4,5]);assert.equal(of('plan-pemulihan').owner,'Cikgu Puja');
  assert.equal(of('plan').owner,'Cikgu Puja');
  assert.equal(of('ains-tokoh-t2').quota,3);
 });
@@ -352,4 +354,47 @@ test('MAWAR reassignment refuses to clear PLaN if 30 recipients and year quotas 
  assert.throws(()=>db.exec(file('../migrations/0011_move_plan_to_mawar.sql')),/CHECK constraint failed|constraint failed/i);
  assert.equal(db.prepare('SELECT names_json FROM drafts WHERE class_id=? AND category_id=?').get('2-crystal','plan').names_json,'["Nama Ujian"]');
  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM drafts WHERE category_id='mawar-lonjakan'").get().n,0);
+});
+
+
+test('Cerdas PLaN has TWO independent all-stage quotas of three, not stage-specific quotas',async()=>{
+ const {env,db,addLogin}=fixture(),admin=await addLogin('admin@gmail.com');
+ const post=(classId,categoryId,names,version=0)=>call(env,'admin/special/save',{cookie:admin,method:'POST',body:{classId,categoryId,names,version}});
+ const first=await post('1-amber','plan',['PLaN Satu','PLaN Dua']);assert.equal(first.status,200);
+ const second=await post('4-crystal','plan',['PLaN Tiga']);assert.equal(second.status,200);
+ const over=await post('5-crystal','plan',['PLaN Empat']);assert.equal(over.status,409);
+ const recovery=await post('4-crystal','plan-pemulihan',['Pemulihan Satu','Pemulihan Dua']);assert.equal(recovery.status,200);
+ const mixed=await post('2-crystal','plan-pemulihan',['Pemulihan Tiga']);assert.equal(mixed.status,200);
+ const overflow=await post('5-crystal','plan-pemulihan',['Pemulihan Empat']);assert.equal(overflow.status,409);
+ const q=await json(await call(env,'admin/overview',{cookie:admin}));
+ const total=id=>Object.values(q.quota[id]||{}).reduce((a,b)=>a+b,0);
+ assert.equal(total('plan'),3);assert.equal(total('plan-pemulihan'),3);
+ const stageOne=await json(await call(env,'admin/export?format=json&tahap=1',{cookie:admin}));
+ const stageTwo=await json(await call(env,'admin/export?format=json&tahap=2',{cookie:admin}));
+ assert.equal(stageOne.rows.filter(r=>r.categoryId==='plan').length,2);
+ assert.equal(stageTwo.rows.filter(r=>r.categoryId==='plan').length,1);
+ assert.equal(stageOne.rows.filter(r=>r.categoryId==='plan-pemulihan').length,1);
+ assert.equal(stageTwo.rows.filter(r=>r.categoryId==='plan-pemulihan').length,2);
+ // 30 migrated names in M.A.W.A.R remain unrelated to either Cerdas PLaN group.
+ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM drafts WHERE category_id='mawar-lonjakan'").get().n,0);
+});
+test('assigning Cerdas PLaN grants and revokes both subgroup categories together',async()=>{
+ const {env,addLogin,db}=fixture(),admin=await addLogin('admin@gmail.com'),puja=await addLogin('puja@gmail.com');
+ const post=(route,body)=>call(env,route,{cookie:admin,method:'POST',body});
+ // Even if the current admin view is Tahap 1, Cerdas PLaN covers both stages.
+ assert.equal((await post('admin/category-assignments',{email:'puja@gmail.com',categoryIds:['plan'],tahap:1})).status,200);
+ assert.deepEqual((await json(await call(env,'me',{cookie:puja}))).user.categoryIds,['plan','plan-pemulihan']);
+ assert(db.prepare("SELECT tahap FROM category_assignments WHERE email=? AND category_id='plan-pemulihan'").get('puja@gmail.com').tahap===0);
+ assert.equal((await call(env,'work/class?classId=4-crystal&categoryId=plan-pemulihan&scope=mine',{cookie:puja})).status,200);
+ assert.equal((await call(env,'work/class?classId=2-crystal&categoryId=plan&scope=mine',{cookie:puja})).status,200);
+ assert.equal((await post('admin/category-assignments/revoke',{email:'puja@gmail.com',categoryId:'plan-pemulihan'})).status,200);
+ assert.equal((await call(env,'work/class?classId=4-crystal&categoryId=plan-pemulihan&scope=mine',{cookie:puja})).status,403);
+ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM category_assignments WHERE email='puja@gmail.com'").get().n,0);
+});
+test('migration preserves pre-existing Cerdas PLaN specialist access across subgroups',()=>{
+ const {db}=fixture();
+ db.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?)").run('existing-pic@gmail.com','plan','admin@gmail.com',2);
+ db.exec(file('../migrations/0012_cerdas_plan_subgroups.sql'));
+ const grant=db.prepare("SELECT category_id,tahap FROM category_assignments WHERE email=? ORDER BY category_id").all('existing-pic@gmail.com');
+ assert.deepEqual(grant.map(x=>x.category_id),['plan','plan-pemulihan']);assert(grant.every(x=>x.tahap===0));
 });
