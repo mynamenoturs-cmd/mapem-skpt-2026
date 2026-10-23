@@ -2,7 +2,7 @@ name: MaPeM - Ujian, Migrasi D1 dan Deploy Pages
 
 on:
   push:
-    branches: [main, feat/tahap2-20261023]
+    branches: [main, feat/tahap2-20261023, feat/uasa-subject-awards-20261023]
   workflow_dispatch:
 
 permissions:
