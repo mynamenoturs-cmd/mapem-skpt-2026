@@ -93,3 +93,17 @@ footer{background:#38091b;border-top-color:#bf94534a}.footer{color:#d2b39b}.hero
 .tahap-switch button:hover:not(.active){background:#fffaf3;color:#5f1433}
 .viewer-tahap{margin:0 0 19px}
 @media(max-width:600px){.tahap-switch{gap:5px;padding:5px}.tahap-switch button{padding:11px 7px;font-size:12px}.tahap-switch button small{font-size:9px}}
+
+
+/* Audit timeline and protected admin corrections */
+.audit-entry{padding:16px 18px;margin:12px 0;border:1px solid rgba(192,164,128,.38);background:#fffcf8;border-radius:15px;box-shadow:0 6px 15px rgba(84,37,47,.045)}
+.audit-entry-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:9px;color:#621b32}
+.audit-info{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:#74616a;margin:9px 0}
+.audit-info span{overflow-wrap:anywhere}.audit-entry details{border-top:1px solid #eee0d1;margin-top:13px;padding-top:12px}
+.audit-entry summary{font-weight:750;color:#6e2940;cursor:pointer;font-size:12px}
+.audit-diff{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px;font-size:12px}
+.audit-diff>div{padding:13px;background:#fff7ec;border-radius:11px;min-width:0}
+.audit-diff li{overflow-wrap:anywhere;margin:6px 0}.audit-entry .notice{margin:9px 0}
+#correct-record-dialog .dialog-actions{flex-wrap:wrap}#correct-names{min-height:170px;white-space:pre-wrap}
+[data-correct-id]{margin:10px 0 3px 15px}#audit-results>.empty{padding:30px}
+@media(max-width:600px){.audit-diff{grid-template-columns:1fr}.audit-entry{padding:14px}.audit-entry-top .status{font-size:10px}#correct-record-dialog .dialog-actions{display:flex;gap:7px;justify-content:flex-end}#correct-record-dialog .dialog-actions .btn{font-size:11px}}
