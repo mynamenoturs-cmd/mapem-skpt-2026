@@ -2,25 +2,26 @@
 // Teacher edits are scoped to the class assigned to their verified Google email.
 export const CATEGORIES = [
  {id:'pbd',name:'Anugerah Pencapaian PBD Terbaik',scope:'year',quota:{1:45,2:45,3:40,4:40,5:40},teacher:true,classLimit:5,owner:'Guru kelas',note:'1 kelas 5 orang sahaja. Isi tepat 5 nama sebelum menghantar.'},
- {id:'uasa',name:'Anugerah 10 Pencapaian Terbaik (UASA)',scope:'year',quota:{1:10,2:10,3:10,4:10,5:10},teacher:false,owner:'Cikgu Fitri'},
- {id:'matapelajaran',name:'Anugerah Pencapaian Mata Pelajaran Terbaik',scope:'year',quota:{1:30,2:30,3:30,4:7,5:7},teacher:false,owner:'Cikgu Fitri'},
+ {id:'uasa',name:'Anugerah 10 Pencapaian Terbaik (UASA)',scope:'year',quota:{1:10,2:10,3:10,4:10,5:10},teacher:false,owner:'Tahap 1: Cikgu Fitri · Tahap 2: Fenny Fiona'},
+ {id:'matapelajaran',name:'Anugerah Pencapaian Mata Pelajaran Terbaik',scope:'year',quota:{1:30,2:30,3:30,4:7,5:7},teacher:false,owner:'Tahap 1: Cikgu Fitri · Tahap 2: Fenny Fiona'},
  {id:'cemara',name:'Anugerah Ikon Cemara Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
  {id:'kurikulum',name:'Anugerah Khas Kurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
  {id:'kokurikulum',name:'Harapan Kokurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
  {id:'hem',name:'Harapan HEM (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
  {id:'ains',name:'AINS NILAM — Hamper Individu',scope:'year',quota:{1:18,2:18,3:16},years:[1,2,3],teacher:false,owner:'Guru PSS',note:'Kuota Tahap 1: 18 / 18 / 16. Nota sumber: hamper individu (50 kelas × 2 orang = 100 orang) dan sijil penghargaan 100 helai. Gunakan lajur Tahun 1–3 untuk portal ini.'},
  {id:'ains-tokoh',name:'Tokoh AINS NILAM 2026 — Tahap 1',scope:'total',quota:3,years:[1,2,3],teacher:false,owner:'Guru PSS',note:'3 piala Tahap 1. Nota 3 piala Tokoh AINS Tahap 2 di luar skop portal Tahap 1 ini.'},
- {id:'delima',name:'Ikon Navigator DELIMa',scope:'year',quota:{1:null,2:null,3:null,4:2,5:2},teacher:false,owner:'Teacher Abby'},
- {id:'plan',name:'Anugerah Khas PLAN',scope:'year',quota:{1:null,2:null,3:null,4:null,5:null},teacher:false,owner:'Cikgu Wyn / Cikgu Zura'},
- {id:'mawar',name:'Anugerah Tokoh Murid Mawar (L/P)',scope:'year',quota:{3:2},years:[3],teacher:false,owner:'Cikgu Wyn / Cikgu Zura',note:'2 penerima Tahun 3 sahaja. Semak ketetapan L/P sebelum pengesahan.'},
- {id:'ains-t2',name:'Ikon AINS NILAM — Tahap 2 (2 murid setiap kelas)',scope:'year',quota:{4:16,5:16},years:[4,5],teacher:false,owner:'Guru PSS'},
+ {id:'delima',name:'Ikon Navigator DELIMa — Tahap 1',scope:'total',quota:3,years:[1,2,3],teacher:false,owner:'Teacher Abby',note:'3 penerima Tahap 1 keseluruhan. Calon telah dikenal pasti menurut makluman PK1.'},
+ {id:'plan',name:'Anugerah Cerdas PLaN',scope:'total',quota:6,years:[1,2,3,4,5],sharedAcrossStages:true,teacher:false,owner:'Cikgu Puja',note:'6 penerima gabungan Tahap 1 dan Tahap 2: 3 murid PLaN dan 3 murid Pemulihan Khas. Kuota dikongsi, bukan 6 setiap tahap.'},
+ {id:'mawar',name:'Anugerah Tokoh Murid Mawar (L/P)',scope:'year',quota:{3:2},years:[3],teacher:false,owner:'Cikgu Marwyn',note:'2 penerima Tahun 3 sahaja. Semak ketetapan L/P sebelum pengesahan.'},
+ {id:'ains-t2',name:'Ikon AINS NILAM — Tahap 2 (2 murid setiap kelas)',scope:'year',quota:{4:16,5:16},years:[4,5],teacher:false,owner:'Nadiah Mohd Naim / Laila'},
  {id:'commonwealth-t2',name:'The Queen’s Commonwealth Writing Competition 2026 — Tahap 2',scope:'total',quota:20,years:[4,5],teacher:false,owner:'Urus Setia',note:'20 penerima keseluruhan, tahun tidak diperincikan dalam dokumen.'},
- {id:'ains-tokoh-t2',name:'Tokoh AINS NILAM — Tahap 2 (L/P)',scope:'year',quota:{4:1,5:1},years:[4,5],teacher:false,owner:'Guru PSS',note:'Tahap 2 hanya Tahun 4 dan 5.'},
- {id:'delima-tokoh-t2',name:'Tokoh Navigator DELIMa — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5],teacher:false,owner:'Urus Setia'},
+ {id:'ains-tokoh-t2',name:'Tokoh AINS NILAM — Tahap 2 (L/P)',scope:'year',quota:{4:1,5:1},years:[4,5],teacher:false,owner:'Nadiah Mohd Naim / Laila',note:'Tahap 2 hanya Tahun 4 dan 5.'},
+ {id:'delima-tokoh-t2',name:'Ikon Navigator DELIMa — Tahap 2',scope:'total',quota:3,years:[4,5],teacher:false,owner:'Cikgu Fandi Ajam',note:'3 penerima Tahap 2 keseluruhan bagi Tahun 4 dan 5. PK1 memaklumkan calon sudah ada.'},
  {id:'hem-t2',name:'Tokoh Harapan HEM — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5],teacher:false,owner:'Urus Setia'},
  {id:'kokurikulum-t2',name:'Tokoh Harapan Kokurikulum — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5],teacher:false,owner:'Urus Setia'},
  {id:'kurikulum-t2',name:'Tokoh Harapan Kurikulum — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5],teacher:false,owner:'Urus Setia'},
- {id:'cemara-t2',name:'Anugerah Ikon Cemara — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5],teacher:false,owner:'Urus Setia'}
+ {id:'cemara-t2',name:'Anugerah Ikon Cemara — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5],teacher:false,owner:'Urus Setia'},
+ {id:'mawar-lonjakan',name:'Anugerah Pencapaian Lonjakan Akademik M.A.W.A.R',scope:'year',quota:{2:10,3:14,4:2,5:4},years:[2,3,4,5],teacher:false,owner:'Cikgu Norbaizura',note:'30 penerima: Tahun 2 = 10, Tahun 3 = 14, Tahun 4 = 2, Tahun 5 = 4. Berbeza daripada Anugerah Tokoh Murid Mawar.'}
 ];
 
 const HEAD={'content-type':'application/json;charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer','x-robots-tag':'noindex,nofollow'};
