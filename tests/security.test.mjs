@@ -317,3 +317,39 @@ test('stage-specific specialist permissions cannot cross from Tahap 2 into Tahap
  const allowed=await call(env,'work/save?scope=mine',{cookie:specialist,method:'POST',body:{classId:'4-crystal',categoryId:'uasa',names:['Contoh Murid'],version:0}});
  assert.equal(allowed.status,200);
 });
+
+test('verified one-time migration moves exactly 30 PLaN names to Lonjakan M.A.W.A.R without mixing years or losing audit',()=>{
+ const {db}=fixture();
+ const groups=[
+  ['2-crystal',5],['2-diamond',5],
+  ['3-crystal',7],['3-diamond',7],
+  ['4-crystal',2],['5-crystal',4]
+ ];
+ for(const [id,count] of groups){
+  const names=Array.from({length:count},(_,i)=>'Murid '+id+' '+(i+1));
+  db.prepare('INSERT INTO drafts(class_id,category_id,names_json,version,updated_by,editor_role) VALUES(?,?,?,?,?,?)').run(id,'plan',JSON.stringify(names),2,'guruasal@example.com','specialist');
+ }
+ const script=file('../migrations/0011_move_plan_to_mawar.sql');
+ db.exec(script);
+ const sum=(category,year)=>db.prepare('SELECT COALESCE(SUM(json_array_length(d.names_json)),0) AS n FROM drafts d JOIN classes c ON c.id=d.class_id WHERE d.category_id=? AND c.year=?').get(category,year).n;
+ for(const [year,count] of [[2,10],[3,14],[4,2],[5,4]]){
+   assert.equal(sum('plan',year),0);
+   assert.equal(sum('mawar-lonjakan',year),count);
+ }
+ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM award_reassignment_archive").get().n,6);
+ assert.equal(db.prepare("SELECT COALESCE(SUM(json_array_length(names_json)),0) AS n FROM award_reassignment_archive").get().n,30);
+ for(const [classId,count] of groups){
+   const archived=db.prepare('SELECT names_json FROM award_reassignment_archive WHERE class_id=?').get(classId);
+   const moved=db.prepare("SELECT names_json FROM drafts WHERE category_id='mawar-lonjakan' AND class_id=?").get(classId);
+   assert.deepEqual(JSON.parse(moved.names_json),JSON.parse(archived.names_json));
+   assert.equal(JSON.parse(moved.names_json).length,count);
+ }
+ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM activity_logs WHERE actor_email='system/approved-migration'").get().n,12);
+});
+test('MAWAR reassignment refuses to clear PLaN if 30 recipients and year quotas do not match',()=>{
+ const {db}=fixture();
+ db.prepare('INSERT INTO drafts(class_id,category_id,names_json,version) VALUES(?,?,?,?)').run('2-crystal','plan','["Nama Ujian"]',1);
+ assert.throws(()=>db.exec(file('../migrations/0011_move_plan_to_mawar.sql')),/CHECK constraint failed|constraint failed/i);
+ assert.equal(db.prepare('SELECT names_json FROM drafts WHERE class_id=? AND category_id=?').get('2-crystal','plan').names_json,'["Nama Ujian"]');
+ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM drafts WHERE category_id='mawar-lonjakan'").get().n,0);
+});
