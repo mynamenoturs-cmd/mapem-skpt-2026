@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {onRequest,CATEGORIES} from '../functions/api/[[path]].js';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
-function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));db.exec(file('../migrations/0005_portal_announcement.sql'));db.exec(file('../migrations/0006_family_hub.sql'));db.exec(file('../migrations/0007_tahap2_classes.sql'));
+function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));db.exec(file('../migrations/0005_portal_announcement.sql'));db.exec(file('../migrations/0006_family_hub.sql'));db.exec(file('../migrations/0007_tahap2_classes.sql'));db.exec(file('../migrations/0008_exclude_year6.sql'));
 const adapter={prepare(sql){return {bind(...params){const statement=db.prepare(sql);return {first(){return statement.get(...params)||null},all(){return {results:statement.all(...params)}},run(){let result=statement.run(...params);return {meta:{changes:result.changes}}}};},all(){return {results:db.prepare(sql).all()}},first(){return db.prepare(sql).get()||null}}}};
 const env={DB:adapter,GOOGLE_CLIENT_ID:'fake.client',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
 async function addLogin(email,name=email){const sub=email;db.prepare('INSERT INTO users(sub,email,name) VALUES(?,?,?)').run(sub,email,name);const sid=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode('fixture:'+email))).toString('hex');const digest=await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(sid));const hash=Buffer.from(digest).toString('hex');db.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').run(hash,sub,Math.floor(Date.now()/1000)+3600);return `${'__Host-mapem_session'}=${sid}`;}
@@ -14,7 +14,7 @@ return {db,env,addLogin};}
 const request=(route,opts={})=>new Request(ORIGIN+'/api/'+route,{method:opts.method||'GET',headers:{...(opts.cookie?{Cookie:opts.cookie}:{}),...(opts.body!==undefined?{'Content-Type':'application/json',Origin:opts.origin||ORIGIN}:{}),...(opts.headers||{})},body:opts.body!==undefined?JSON.stringify(opts.body):undefined});
 const call=(env,route,opts)=>onRequest({request:request(route,opts),env});
 const json=async r=>r.json();
-test('schema 50 classes, 20 award categories and PWA files',()=>{const {db}=fixture();assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,50);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=3').get().n,8);assert.equal(CATEGORIES.length,20);assert.equal(CATEGORIES.filter(c=>c.teacher).length,5);assert.equal(CATEGORIES.filter(c=>!c.teacher).length,15);assert.match(file('../public/manifest.webmanifest'),/"display":"standalone"/);assert.doesNotMatch(file('../public/sw.js'),/caches\.match\('\/api/);});
+test('schema 42 active classes (26+16), 20 award categories and PWA files',()=>{const {db}=fixture();assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,42);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=3').get().n,8);assert.equal(CATEGORIES.length,20);assert.equal(CATEGORIES.filter(c=>c.teacher).length,5);assert.equal(CATEGORIES.filter(c=>!c.teacher).length,15);assert.match(file('../public/manifest.webmanifest'),/"display":"standalone"/);assert.doesNotMatch(file('../public/sw.js'),/caches\.match\('\/api/);});
 test('auth, class isolation, drafts, publication and revocation',async()=>{const {db,env,addLogin}=fixture();const admin=await addLogin('admin@gmail.com'),teacher=await addLogin('teacher@gmail.com'),viewer=await addLogin('parent@gmail.com');db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('teacher@gmail.com','1-amber');
 assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'teacher');assert.equal((await json(await call(env,'me',{cookie:viewer}))).user.role,'viewer');assert.equal((await json(await call(env,'me',{cookie:admin}))).user.role,'admin');
 assert.equal((await call(env,'admin/overview',{cookie:viewer})).status,403);assert.equal((await call(env,'teacher/class',{cookie:viewer})).status,403);
@@ -60,7 +60,7 @@ test('only admins can delegate; grants apply to live sessions and revocation is 
  assert.equal((await json(await call(env,'me',{cookie:teacher}))).user.role,'teacher');
  assert.equal((await call(env,'admin/admins',{cookie:teacher})).status,403);
  assert.equal((await call(env,'admin/admins/revoke',{cookie:teacher,method:'POST',body:{email:'other@gmail.com'}})).status,403);
- assert.equal(db.prepare('SELECT count(*) AS n FROM classes').get().n,50);
+ assert.equal(db.prepare('SELECT count(*) AS n FROM classes').get().n,42);
 });
 
 test('responsibilities: five Year 3 GK inputs and legacy specialist records retained but hidden',async()=>{
@@ -205,16 +205,17 @@ test('export is admin-only, category-sorted, year-filtered and uses actual publi
 });
 
 
-test('Tahap 2 has exactly 24 classes without Amber and PBD is owned by the class teacher',async()=>{
+test('Tahap 2 has exactly 16 classes (Year 4 and 5 only), with PBD entered by class teacher',async()=>{
  const {db,env,addLogin}=fixture(),teacher=await addLogin('guru.tahap2@gmail.com'),admin=await addLogin('admin@gmail.com');
- assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year BETWEEN 4 AND 6').get().n,24);
- for(const year of [4,5,6]){
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year IN (4,5)').get().n,16);
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=6').get().n,0);
+ for(const year of [4,5]){
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=?').get(year).n,8);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=? AND name=?').get(year,'Amber').n,0);
  }
- db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('guru.tahap2@gmail.com','6-crystal');
+ db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('guru.tahap2@gmail.com','5-crystal');
  const data=await json(await call(env,'teacher/class',{cookie:teacher}));
- assert.equal(data.class.year,6);
+ assert.equal(data.class.year,5);
  assert.deepEqual(data.categories.map(x=>x.id),['pbd']);
  assert.equal((await call(env,'teacher/save',{cookie:teacher,method:'POST',body:{categoryId:'uasa',version:0,names:['Murid Satu']}})).status,403);
  const names=Array.from({length:5},(_,i)=>'Nama Murid '+(i+1));
@@ -224,8 +225,31 @@ test('Tahap 2 has exactly 24 classes without Amber and PBD is owned by the class
  const tahap2=await json(await call(env,'admin/export?format=json&tahap=2',{cookie:admin}));
  const all=await json(await call(env,'admin/export?format=json&tahap=0',{cookie:admin}));
  assert.equal(tahap1.rows.length,0);assert.equal(tahap2.rows.length,5);assert.equal(all.rows.length,5);
- assert(tahap2.rows.every(r=>r.year>=4));
+ assert(tahap2.rows.every(r=>r.year===4||r.year===5));
  assert.equal((await call(env,'admin/export?format=json&tahap=1&year=6',{cookie:admin})).status,400);
+ assert.equal((await call(env,'admin/export?format=json&tahap=2&year=6',{cookie:admin})).status,400);
+ assert.equal((await call(env,'admin/class?id=6-crystal',{cookie:admin})).status,400);
+ const overview=await json(await call(env,'admin/overview',{cookie:admin}));
+ assert.equal(overview.classes.length,42);
+ assert(overview.classes.every(c=>c.year<=5));
+});
+test('Year 6 historical records are retained but excluded from active portal and exports',async()=>{
+ const {db,env,addLogin}=fixture();
+ db.exec("INSERT INTO classes(id,year,name) VALUES('6-crystal',6,'Crystal')");
+ db.prepare('INSERT INTO drafts(class_id,category_id,names_json,version) VALUES(?,?,?,?)').run('6-crystal','pbd','["Arkib Murid"]',1);
+ db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('arkib@example.com','6-crystal');
+ db.prepare('INSERT INTO publications(class_id,snapshot_json,published_by) VALUES(?,?,?)').run('6-crystal','{"pbd":["Arkib Murid"]}','admin@example.com');
+ db.exec(file('../migrations/0008_exclude_year6.sql'));
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes WHERE year=6').get().n,1);
+ assert.equal(db.prepare('SELECT names_json FROM drafts WHERE class_id=?').get('6-crystal').names_json,'["Arkib Murid"]');
+ const admin=await addLogin('admin@gmail.com'),archive=await addLogin('arkib@example.com');
+ assert.equal((await json(await call(env,'me',{cookie:archive}))).user.role,'viewer');
+ const overview=await json(await call(env,'admin/overview',{cookie:admin}));
+ assert.equal(overview.classes.length,42);
+ const exported=await json(await call(env,'admin/export?format=json&tahap=0',{cookie:admin}));
+ assert(!exported.rows.some(x=>x.year===6));
+ const published=await json(await call(env,'published',{cookie:admin}));
+ assert(!published.classes.some(x=>x.year===6));
 });
 test('migration preserved original classroom data, assignments, nomination and published snapshots',()=>{
  const db=new DatabaseSync(':memory:');
@@ -237,7 +261,7 @@ test('migration preserved original classroom data, assignments, nomination and p
  db.prepare('INSERT INTO final_reviews(class_id,category_id,version,confirmed_by) VALUES(?,?,?,?)').run('3-crystal','cemara',2,'admin@example.com');
  db.prepare('INSERT INTO publications(class_id,snapshot_json,published_by) VALUES(?,?,?)').run('1-amber','{"pbd":["Murid Asal"]}','admin@example.com');
  db.exec(file('../migrations/0007_tahap2_classes.sql'));
- assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,50);
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,42);
  assert.equal(db.prepare('SELECT version FROM drafts WHERE class_id=?').get('1-amber').version,5);
  assert.equal(db.prepare('SELECT class_id FROM teacher_assignments WHERE email=?').get('guruasal@example.com').class_id,'1-amber');
  assert.equal(db.prepare('SELECT names_json FROM nominations WHERE class_id=?').get('3-crystal').names_json,'["Calon Asal"]');
