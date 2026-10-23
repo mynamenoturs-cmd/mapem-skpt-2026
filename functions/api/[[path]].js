@@ -1,18 +1,26 @@
 // MaPeM 2026: same-origin Google OAuth, server-side sessions, explicit RBAC.
 // Teacher edits are scoped to the class assigned to their verified Google email.
 export const CATEGORIES = [
- {id:'pbd',name:'Anugerah Pencapaian PBD Terbaik',scope:'year',quota:{1:45,2:45,3:40},teacher:true,classLimit:5,owner:'Guru kelas',note:'1 kelas 5 orang sahaja. Isi tepat 5 nama sebelum menghantar.'},
- {id:'uasa',name:'Anugerah 10 Pencapaian Terbaik (UASA)',scope:'year',quota:{1:10,2:10,3:10},teacher:false,owner:'Cikgu Fitri'},
- {id:'matapelajaran',name:'Anugerah Pencapaian Mata Pelajaran Terbaik',scope:'year',quota:{1:30,2:30,3:30},teacher:false,owner:'Cikgu Fitri'},
+ {id:'pbd',name:'Anugerah Pencapaian PBD Terbaik',scope:'year',quota:{1:45,2:45,3:40,4:40,5:40,6:40},teacher:true,classLimit:5,owner:'Guru kelas',note:'1 kelas 5 orang sahaja. Isi tepat 5 nama sebelum menghantar.'},
+ {id:'uasa',name:'Anugerah 10 Pencapaian Terbaik (UASA)',scope:'year',quota:{1:10,2:10,3:10,4:10,5:10,6:null},teacher:false,owner:'Cikgu Fitri'},
+ {id:'matapelajaran',name:'Anugerah Pencapaian Mata Pelajaran Terbaik',scope:'year',quota:{1:30,2:30,3:30,4:7,5:7,6:null},teacher:false,owner:'Cikgu Fitri'},
  {id:'cemara',name:'Anugerah Ikon Cemara Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
  {id:'kurikulum',name:'Anugerah Khas Kurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
  {id:'kokurikulum',name:'Harapan Kokurikulum Tahap 1 (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
  {id:'hem',name:'Harapan HEM (L/P)',scope:'total',quota:2,teacher:true,nomination:true,years:[3],owner:'GK calonkan; penyelaras pilih',note:'Pencalonan Tahun 3 sahaja. Jika lebih daripada 2 calon, penyelaras tentukan atau melalui undian guru-guru. Kuota 2 ialah penerima akhir daripada Tahun 3, bukan setiap kelas.'},
- {id:'ains',name:'AINS NILAM — Hamper Individu',scope:'year',quota:{1:18,2:18,3:16},teacher:false,owner:'Guru PSS',note:'Kuota Tahap 1: 18 / 18 / 16. Nota sumber: hamper individu (50 kelas × 2 orang = 100 orang) dan sijil penghargaan 100 helai. Gunakan lajur Tahun 1–3 untuk portal ini.'},
- {id:'ains-tokoh',name:'Tokoh AINS NILAM 2026 — Tahap 1',scope:'total',quota:3,teacher:false,owner:'Guru PSS',note:'3 piala Tahap 1. Nota 3 piala Tokoh AINS Tahap 2 di luar skop portal Tahap 1 ini.'},
- {id:'delima',name:'Ikon Navigator DELIMa',scope:'year',quota:{1:null,2:null,3:null},teacher:false,owner:'Teacher Abby'},
- {id:'plan',name:'Anugerah Khas PLAN',scope:'year',quota:{1:null,2:null,3:null},teacher:false,owner:'Cikgu Wyn / Cikgu Zura'},
- {id:'mawar',name:'Anugerah Tokoh Murid Mawar (L/P)',scope:'year',quota:{3:2},years:[3],teacher:false,owner:'Cikgu Wyn / Cikgu Zura',note:'2 penerima Tahun 3 sahaja. Semak ketetapan L/P sebelum pengesahan.'}
+ {id:'ains',name:'AINS NILAM — Hamper Individu',scope:'year',quota:{1:18,2:18,3:16},years:[1,2,3],teacher:false,owner:'Guru PSS',note:'Kuota Tahap 1: 18 / 18 / 16. Nota sumber: hamper individu (50 kelas × 2 orang = 100 orang) dan sijil penghargaan 100 helai. Gunakan lajur Tahun 1–3 untuk portal ini.'},
+ {id:'ains-tokoh',name:'Tokoh AINS NILAM 2026 — Tahap 1',scope:'total',quota:3,years:[1,2,3],teacher:false,owner:'Guru PSS',note:'3 piala Tahap 1. Nota 3 piala Tokoh AINS Tahap 2 di luar skop portal Tahap 1 ini.'},
+ {id:'delima',name:'Ikon Navigator DELIMa',scope:'year',quota:{1:null,2:null,3:null,4:2,5:2,6:null},teacher:false,owner:'Teacher Abby'},
+ {id:'plan',name:'Anugerah Khas PLAN',scope:'year',quota:{1:null,2:null,3:null,4:null,5:null,6:null},teacher:false,owner:'Cikgu Wyn / Cikgu Zura'},
+ {id:'mawar',name:'Anugerah Tokoh Murid Mawar (L/P)',scope:'year',quota:{3:2},years:[3],teacher:false,owner:'Cikgu Wyn / Cikgu Zura',note:'2 penerima Tahun 3 sahaja. Semak ketetapan L/P sebelum pengesahan.'},
+ {id:'ains-t2',name:'Ikon AINS NILAM — Tahap 2 (2 murid setiap kelas)',scope:'year',quota:{4:16,5:16,6:16},years:[4,5,6],teacher:false,owner:'Guru PSS'},
+ {id:'commonwealth-t2',name:'The Queen’s Commonwealth Writing Competition 2026 — Tahap 2',scope:'total',quota:20,years:[4,5,6],teacher:false,owner:'Urus Setia',note:'20 penerima keseluruhan, tahun tidak diperincikan dalam dokumen.'},
+ {id:'ains-tokoh-t2',name:'Tokoh AINS NILAM — Tahap 2 (L/P)',scope:'year',quota:{4:1,5:1,6:null},years:[4,5,6],teacher:false,owner:'Guru PSS',note:'Kuota Tahun 6 belum dinyatakan dalam dokumen.'},
+ {id:'delima-tokoh-t2',name:'Tokoh Navigator DELIMa — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5,6],teacher:false,owner:'Urus Setia'},
+ {id:'hem-t2',name:'Tokoh Harapan HEM — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5,6],teacher:false,owner:'Urus Setia'},
+ {id:'kokurikulum-t2',name:'Tokoh Harapan Kokurikulum — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5,6],teacher:false,owner:'Urus Setia'},
+ {id:'kurikulum-t2',name:'Tokoh Harapan Kurikulum — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5,6],teacher:false,owner:'Urus Setia'},
+ {id:'cemara-t2',name:'Anugerah Ikon Cemara — Tahap 2 (L/P)',scope:'total',quota:2,years:[4,5,6],teacher:false,owner:'Urus Setia'}
 ];
 
 const HEAD={'content-type':'application/json;charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer','x-robots-tag':'noindex,nofollow'};
@@ -91,17 +99,17 @@ async function overview(env){const [classes,drafts,assignments,publications]=awa
  return {classes:(classes.results||[]).map(x=>({...x,total:counts[x.id]||0,publishedAt:pub.get(x.id)||null})),assignments:assignments.results||[],categories:CATEGORIES,quota};}
 function csvEscape(v){let s=String(v??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
 async function exportReportData(env,url){
- const source=url.searchParams.get('source')||'working',year=Number(url.searchParams.get('year')||0);if(!['working','published'].includes(source)||![0,1,2,3].includes(year))safeError('Pilihan laporan tidak sah.');
+ const source=url.searchParams.get('source')||'working',year=Number(url.searchParams.get('year')||0),tahap=Number(url.searchParams.get('tahap')||0);if(!['working','published'].includes(source)||![0,1,2,3,4,5,6].includes(year)||![0,1,2].includes(tahap)||(tahap===1&&year>3)||(tahap===2&&year>0&&year<4))safeError('Pilihan laporan tidak sah.');
  const classes=(await env.DB.prepare('SELECT id,year,name,status FROM classes').all()).results||[],lookup=new Map(classes.map(c=>[c.id,c])),published=(await env.DB.prepare('SELECT class_id,snapshot_json FROM publications').all()).results||[],publishedIds=new Set(published.map(p=>p.class_id));
  const raw=source==='published'?published.flatMap(p=>Object.entries(JSON.parse(p.snapshot_json)).map(([category_id,names])=>({class_id:p.class_id,category_id,names_json:JSON.stringify(names)}))):(await env.DB.prepare('SELECT class_id,category_id,names_json FROM drafts').all()).results||[];
  const order=new Map(CATEGORIES.map((c,i)=>[c.id,i])),rows=[];
- for(const item of raw){const cls=lookup.get(item.class_id),cat=CATEGORIES.find(c=>c.id===item.category_id);if(!cls||!cat||(year&&cls.year!==year)||(cat.years&&!cat.years.includes(cls.year)))continue;for(const name of JSON.parse(item.names_json))rows.push({categoryId:cat.id,year:cls.year,classId:cls.id,className:cls.year+' '+cls.name,name,status:cls.status==='submitted'?'Dihantar':'Draf',publication:publishedIds.has(cls.id)?'Diterbitkan':'Belum diterbitkan'});}
+ for(const item of raw){const cls=lookup.get(item.class_id),cat=CATEGORIES.find(c=>c.id===item.category_id);if(!cls||!cat||(year&&cls.year!==year)||(tahap===1&&cls.year>3)||(tahap===2&&cls.year<4)||(cat.years&&!cat.years.includes(cls.year)))continue;for(const name of JSON.parse(item.names_json))rows.push({categoryId:cat.id,year:cls.year,classId:cls.id,className:cls.year+' '+cls.name,name,status:cls.status==='submitted'?'Dihantar':'Draf',publication:publishedIds.has(cls.id)?'Diterbitkan':'Belum diterbitkan'});}
  rows.sort((a,b)=>order.get(a.categoryId)-order.get(b.categoryId)||a.year-b.year||a.className.localeCompare(b.className,'ms')||a.name.localeCompare(b.name,'ms'));
- return {source,year,generatedAt:new Date().toISOString(),categories:CATEGORIES.map(c=>({id:c.id,name:c.name,years:c.years||[1,2,3]})),rows};
+ return {source,year,tahap,generatedAt:new Date().toISOString(),categories:CATEGORIES.map(c=>({id:c.id,name:c.name,years:c.years||[1,2,3,4,5,6]})),rows};
 }
-function exportCSV(data){const lookup=new Map(data.categories.map(c=>[c.id,c.name])),body=[['Kategori Anugerah','Bil','Tahun','Kelas','Nama Penuh Murid','Status Pengisian','Penerbitan']];let last='',n=0;for(const r of data.rows){if(last!==r.categoryId){last=r.categoryId;n=0;}body.push([lookup.get(r.categoryId),++n,r.year,r.className,r.name,r.status,r.publication]);}
+function exportCSV(data){const lookup=new Map(data.categories.map(c=>[c.id,c.name])),body=[['Tahap','Kategori Anugerah','Bil','Tahun','Kelas','Nama Penuh Murid','Status Pengisian','Penerbitan']];let last='',n=0;for(const r of data.rows){if(last!==r.categoryId){last=r.categoryId;n=0;}body.push([r.year<=3?'Tahap 1':'Tahap 2',lookup.get(r.categoryId),++n,r.year,r.className,r.name,r.status,r.publication]);}
  return new Response('\uFEFF'+body.map(a=>a.map(csvEscape).join(',')).join('\r\n'),{headers:{'content-type':'text/csv;charset=utf-8','content-disposition':'attachment; filename=mapem-skpt-2026.csv','cache-control':'no-store','x-content-type-options':'nosniff'}});}
-function validateClassId(v){if(typeof v!=='string'||!/^[123]-(amber|crystal|diamond|emerald|jade|pearl|ruby|sapphire|topaz)$/.test(v)||v==='3-amber')safeError('Kelas tidak sah.');return v;}
+function validateClassId(v){if(typeof v!=='string'||!/^[1-6]-(amber|crystal|diamond|emerald|jade|pearl|ruby|sapphire|topaz)$/.test(v)||(+v[0]>=3&&v.endsWith('-amber')))safeError('Kelas tidak sah.');return v;}
 function adminTeacherEmail(v){const value=String(v||'').trim().toLowerCase();if(value.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))safeError('Alamat e-mel tidak sah.');return value;}
 export async function onRequest({request,env}){
  const url=new URL(request.url),path=url.pathname.replace(/^\/api\/?/,'').replace(/\/$/,'');
@@ -220,7 +228,7 @@ export async function onRequest({request,env}){
   }
   if(path==='admin/category-assignments'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
-   const ids=b.categoryIds;if(!Array.isArray(ids)||!ids.length||ids.length>11||new Set(ids).size!==ids.length||ids.some(id=>!CATEGORIES.some(c=>c.id===id&&c.id!=='pbd')))return fail('Pilih tugasan kategori yang sah.');
+   const ids=b.categoryIds;if(!Array.isArray(ids)||!ids.length||ids.length>CATEGORIES.length-1||new Set(ids).size!==ids.length||ids.some(id=>!CATEGORIES.some(c=>c.id===id&&c.id!=='pbd')))return fail('Pilih tugasan kategori yang sah.');
    for(const id of ids)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by) VALUES(?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,updated_at=datetime('now')").bind(email,id,user.email).run();
    return JSON_RESPONSE({ok:true});
   }
