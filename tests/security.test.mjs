@@ -414,7 +414,7 @@ test('UASA is exactly 10 per year 3, 4, 5, with no Year 1 or 2 awards',async()=>
  assert.equal(year4.rows.filter(r=>r.categoryId==='uasa').length,10);
  assert.equal(year5.rows.filter(r=>r.categoryId==='uasa').length,10);
 });
-test('each subject has its own annual quota: 5/year in Tahap 1 and 1/year in Tahap 2, including Sejarah only Tahap 2',async()=>{
+test('each subject has its own annual quota: five per year across Tahap 1 and Tahap 2, including Sejarah only Tahap 2',async()=>{
  const {env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com');
  const send=(classId,categoryId,list)=>call(env,'admin/special/save',{cookie:admin,method:'POST',body:{classId,categoryId,names:list,version:0}});
  const subjects=['bm','bi','mt','sn','pai','pm'];
@@ -426,12 +426,12 @@ test('each subject has its own annual quota: 5/year in Tahap 1 and 1/year in Tah
    assert.equal((await send(year+'-diamond',categoryId,['Murid Tambahan '+code+' '+year])).status,409);
   }
   for(const year of [4,5]){
-   assert.equal((await send(year+'-crystal',categoryId,['Penerima '+code+' '+year])).status,200);
+   assert.equal((await send(year+'-crystal',categoryId,Array.from({length:5},(_,i)=>'Penerima '+code+' '+year+' '+(i+1)))).status,200);
    assert.equal((await send(year+'-diamond',categoryId,['Penerima Tambahan '+code+' '+year])).status,409);
   }
  }
  for(const year of [4,5]){
-  assert.equal((await send(year+'-crystal','subjek-sej',['Sejarah Penerima '+year])).status,200);
+  assert.equal((await send(year+'-crystal','subjek-sej',Array.from({length:5},(_,i)=>'Sejarah Penerima '+year+' '+(i+1)))).status,200);
   assert.equal((await send(year+'-diamond','subjek-sej',['Sejarah Tambahan '+year])).status,409);
  }
  assert.equal((await send('3-crystal','subjek-sej',['Tidak Layak'])).status,403);
@@ -444,12 +444,12 @@ test('each subject has its own annual quota: 5/year in Tahap 1 and 1/year in Tah
  }
  for(const year of [4,5]){
   let total=0;
-  for(const code of [...subjects,'sej']){const q=d.quota['subjek-'+code];assert.equal(q[year],1);total+=q[year];}
-  assert.equal(total,7);
+  for(const code of [...subjects,'sej']){const q=d.quota['subjek-'+code];assert.equal(q[year],5);total+=q[year];}
+  assert.equal(total,35);
  }
  const all=await json(await call(env,'admin/export?format=json&tahap=0',{cookie:admin}));
  assert.equal(all.rows.filter(r=>r.categoryId.startsWith('subjek-')&&r.year<=3).length,90);
- assert.equal(all.rows.filter(r=>r.categoryId.startsWith('subjek-')&&r.year>=4).length,14);
+ assert.equal(all.rows.filter(r=>r.categoryId.startsWith('subjek-')&&r.year>=4).length,70);
 });
 test('existing generic Mata Pelajaran assignments are copied to active subject categories without granting Sejarah in Tahap 1',()=>{
  const {db}=fixture();
