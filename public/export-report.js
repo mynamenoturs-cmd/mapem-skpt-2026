@@ -12,7 +12,7 @@ export function buildReport(data,template){
  if(!Array.isArray(data.rows)||!Array.isArray(data.categories)||![0,1,2].includes(data.tahap||0))throw Error('Data laporan tidak lengkap.');
  const files={...template.files},summary=template.sheets[0],detail=template.sheets[1];
  const stages=data.tahap===1?[1]:data.tahap===2?[2]:[1,2];
- const years=t=>t===1?[1,2,3]:[4,5,6];
+ const years=t=>t===1?[1,2,3]:[4,5];
  const cats=stages.flatMap(t=>data.categories.filter(c=>c.years.some(y=>years(t).includes(y))).map(c=>({t,cat:c})));
  const names=['Ringkasan',...stages.map(t=>'Tahap '+t),...cats.map(({t,cat},i)=>'T'+t+' '+String(i+1).padStart(2,'0')+' '+cat.name.replace(/[^a-zA-ZÀ-ÿ0-9 ]/g,' ').slice(0,19).trim())];
  const endRows=[],date=new Date(data.generatedAt).toLocaleString('ms-MY',{timeZone:'Asia/Kuching'});
@@ -23,7 +23,7 @@ export function buildReport(data,template){
    files['xl/worksheets/sheet'+index+'.xml']=s.prefix+'<x:sheetData>'+body.join('')+'</x:sheetData>'+(opts.filter?'<x:autoFilter ref="A5:F'+Math.max(5,last-1)+'"/>':'')+'<x:mergeCells count="'+merges.length+'">'+merges.map(ref=>'<x:mergeCell ref="'+ref+'"/>').join('')+'</x:mergeCells><x:pageMargins left="0.25" right="0.25" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><x:pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></x:worksheet>';
    endRows.push(last);
  };
- const inStage=(r,t)=>t===1?r.year<=3:r.year>=4;
+ const inStage=(r,t)=>t===1?r.year<=3:r.year===4||r.year===5;
  const totalBy=t=>data.rows.filter(r=>inStage(r,t)).length;
  const sum=head(summary,'Ringkasan Tahap 1 dan Tahap 2');
  sum.push(row(5,['Bil','Kategori anugerah','Tahap 1','Tahap 2','Jumlah','Maklumat'],format(summary,5),30));
@@ -37,7 +37,7 @@ export function buildReport(data,template){
  addSheet(1,summary,sum,foot);
  let idx=2;
  for(const t of stages){
-   const group=data.rows.filter(r=>inStage(r,t));const body=head(detail,'Tahap '+t+' · '+(t===1?'Tahun 1–3':'Tahun 4–6'));
+   const group=data.rows.filter(r=>inStage(r,t));const body=head(detail,'Tahap '+t+' · '+(t===1?'Tahun 1–3':'Tahun 4–5'));
    body.push(row(5,['Bil','Tahun','Kelas','Nama penuh murid','Kategori anugerah','Status'],format(detail,5),31));
    if(!group.length)body.push(row(6,[null,null,null,'Tiada data penerima lagi.',null,null],format(detail,6),34));
    group.forEach((r,i)=>body.push(row(i+6,[i+1,r.year,r.className,r.name,data.categories.find(c=>c.id===r.categoryId)?.name||r.categoryId,r.publication],format(detail,i%2?7:6),34)));
