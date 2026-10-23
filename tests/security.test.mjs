@@ -229,6 +229,7 @@ test('Tahap 2 has exactly 24 classes without Amber and PBD is owned by the class
 });
 test('migration preserved original classroom data, assignments, nomination and published snapshots',()=>{
  const db=new DatabaseSync(':memory:');
+ db.exec('PRAGMA foreign_keys=ON');
  for(const name of ['0001_init','0002_google_pwa','0003_admin_roles','0004_award_responsibilities','0005_portal_announcement','0006_family_hub'])db.exec(file('../migrations/'+name+'.sql'));
  db.prepare('INSERT INTO drafts(class_id,category_id,names_json,version) VALUES(?,?,?,?)').run('1-amber','pbd','["Murid Asal"]',5);
  db.prepare('INSERT INTO teacher_assignments(email,class_id) VALUES(?,?)').run('guruasal@example.com','1-amber');
@@ -242,4 +243,5 @@ test('migration preserved original classroom data, assignments, nomination and p
  assert.equal(db.prepare('SELECT names_json FROM nominations WHERE class_id=?').get('3-crystal').names_json,'["Calon Asal"]');
  assert.equal(db.prepare('SELECT version FROM final_reviews WHERE class_id=?').get('3-crystal').version,2);
  assert.equal(db.prepare('SELECT snapshot_json FROM publications WHERE class_id=?').get('1-amber').snapshot_json,'{"pbd":["Murid Asal"]}');
+ assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
 });
