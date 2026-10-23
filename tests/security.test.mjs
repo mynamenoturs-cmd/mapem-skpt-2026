@@ -381,8 +381,10 @@ test('Cerdas PLaN has TWO independent all-stage quotas of three, not stage-speci
 test('assigning Cerdas PLaN grants and revokes both subgroup categories together',async()=>{
  const {env,addLogin,db}=fixture(),admin=await addLogin('admin@gmail.com'),puja=await addLogin('puja@gmail.com');
  const post=(route,body)=>call(env,route,{cookie:admin,method:'POST',body});
- assert.equal((await post('admin/category-assignments',{email:'puja@gmail.com',categoryIds:['plan'],tahap:0})).status,200);
+ // Even if the current admin view is Tahap 1, Cerdas PLaN covers both stages.
+ assert.equal((await post('admin/category-assignments',{email:'puja@gmail.com',categoryIds:['plan'],tahap:1})).status,200);
  assert.deepEqual((await json(await call(env,'me',{cookie:puja}))).user.categoryIds,['plan','plan-pemulihan']);
+ assert(db.prepare("SELECT tahap FROM category_assignments WHERE email=? AND category_id='plan-pemulihan'").get('puja@gmail.com').tahap===0);
  assert.equal((await call(env,'work/class?classId=4-crystal&categoryId=plan-pemulihan&scope=mine',{cookie:puja})).status,200);
  assert.equal((await call(env,'work/class?classId=2-crystal&categoryId=plan&scope=mine',{cookie:puja})).status,200);
  assert.equal((await post('admin/category-assignments/revoke',{email:'puja@gmail.com',categoryId:'plan-pemulihan'})).status,200);
@@ -391,7 +393,7 @@ test('assigning Cerdas PLaN grants and revokes both subgroup categories together
 });
 test('migration preserves pre-existing Cerdas PLaN specialist access across subgroups',()=>{
  const {db}=fixture();
- db.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?)").run('existing-pic@gmail.com','plan','admin@gmail.com',0);
+ db.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?)").run('existing-pic@gmail.com','plan','admin@gmail.com',2);
  db.exec(file('../migrations/0012_cerdas_plan_subgroups.sql'));
  const grant=db.prepare("SELECT category_id,tahap FROM category_assignments WHERE email=? ORDER BY category_id").all('existing-pic@gmail.com');
  assert.deepEqual(grant.map(x=>x.category_id),['plan','plan-pemulihan']);assert(grant.every(x=>x.tahap===0));
