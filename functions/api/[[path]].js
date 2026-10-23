@@ -225,6 +225,7 @@ export async function onRequest({request,env}){
    requireRole(user,'teacher');await reqBody(request);const row=await env.DB.prepare('SELECT names_json FROM drafts WHERE class_id=? AND category_id=?').bind(user.classId,'pbd').first();
    if(JSON.parse(row?.names_json||'[]').length!==5)return fail('PBD: isi tepat 5 nama murid sebelum menghantar senarai akhir.');
    const r=await env.DB.prepare("UPDATE classes SET status='submitted',submitted_at=datetime('now'),updated_at=datetime('now') WHERE id=? AND status='draft'").bind(user.classId).run();
+   if(r.meta?.changes)await auditActivity(env,user,'class.submit',user.classId,null,{status:'draft'},{status:'submitted'});
    return r.meta?.changes?JSON_RESPONSE({ok:true}):fail('Senarai sudah dihantar.',409);
   }
   if(path==='work/overview'&&request.method==='GET'){
@@ -245,11 +246,11 @@ export async function onRequest({request,env}){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
    const ids=b.categoryIds;if(!Array.isArray(ids)||!ids.length||ids.length>CATEGORIES.length-1||new Set(ids).size!==ids.length||ids.some(id=>!CATEGORIES.some(c=>c.id===id&&c.id!=='pbd')))return fail('Pilih tugasan kategori yang sah.');
    for(const id of ids)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by) VALUES(?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,updated_at=datetime('now')").bind(email,id,user.email).run();
-   return JSON_RESPONSE({ok:true});
+   await auditActivity(env,user,'category.assign',null,null,null,{email,categoryIds:ids});return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/category-assignments/revoke'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
-   if(typeof b.categoryId!=='string')return fail('Kategori tidak sah.');await env.DB.prepare('DELETE FROM category_assignments WHERE email=? AND category_id=?').bind(email,b.categoryId).run();return JSON_RESPONSE({ok:true});
+   if(typeof b.categoryId!=='string')return fail('Kategori tidak sah.');await env.DB.prepare('DELETE FROM category_assignments WHERE email=? AND category_id=?').bind(email,b.categoryId).run();await auditActivity(env,user,'category.unassign',null,b.categoryId,{email},null);return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/admins'&&request.method==='GET'){
    requireRole(user,'admin');const grants=await env.DB.prepare('SELECT email,granted_by,created_at FROM admin_grants ORDER BY email').all();
@@ -259,14 +260,14 @@ export async function onRequest({request,env}){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
    if(await isAdminEmail(env,email))return fail('Akaun ini sudah menjadi pentadbir.',409);
    const result=await env.DB.prepare('INSERT OR IGNORE INTO admin_grants(email,granted_by) VALUES(?,?)').bind(email,user.email).run();
-   return result.meta?.changes?JSON_RESPONSE({ok:true}):fail('Akaun ini sudah menjadi pentadbir.',409);
+   if(result.meta?.changes)await auditActivity(env,user,'admin.grant',null,null,null,{email});return result.meta?.changes?JSON_RESPONSE({ok:true}):fail('Akaun ini sudah menjadi pentadbir.',409);
   }
   if(path==='admin/admins/revoke'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
    if(adminEmails(env).has(email))return fail('Pentadbir utama dilindungi. Ubah konfigurasi Cloudflare untuk menguruskannya.',403);
    if(email===user.email)return fail('Anda tidak boleh membatalkan akses sendiri.',409);
    const result=await env.DB.prepare('DELETE FROM admin_grants WHERE email=?').bind(email).run();
-   return result.meta?.changes?JSON_RESPONSE({ok:true}):fail('Pentadbir tidak ditemui.',404);
+   if(result.meta?.changes)await auditActivity(env,user,'admin.revoke',null,null,{email},null);return result.meta?.changes?JSON_RESPONSE({ok:true}):fail('Pentadbir tidak ditemui.',404);
   }
   if(path==='admin/activity'&&request.method==='GET'){
    requireRole(user,'admin');
@@ -312,20 +313,20 @@ export async function onRequest({request,env}){
   if(path==='admin/assign'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email),id=validateClassId(b.classId);
    const cls=await env.DB.prepare('SELECT id FROM classes WHERE id=?').bind(id).first();if(!cls)return fail('Kelas tidak ditemui.',404);
-   await env.DB.prepare('INSERT INTO teacher_assignments(email,class_id,updated_at) VALUES(?,?,datetime(\'now\')) ON CONFLICT(email) DO UPDATE SET class_id=excluded.class_id,updated_at=datetime(\'now\')').bind(email,id).run();
-   return JSON_RESPONSE({ok:true});
+   const old=await env.DB.prepare('SELECT class_id FROM teacher_assignments WHERE email=?').bind(email).first();await env.DB.prepare('INSERT INTO teacher_assignments(email,class_id,updated_at) VALUES(?,?,datetime(\'now\')) ON CONFLICT(email) DO UPDATE SET class_id=excluded.class_id,updated_at=datetime(\'now\')').bind(email,id).run();await auditActivity(env,user,'teacher.assign',id,null,old?.class_id||null,id,{teacherEmail:email});return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/unassign'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
-   await env.DB.prepare('DELETE FROM teacher_assignments WHERE email=?').bind(email).run();return JSON_RESPONSE({ok:true});
+   const old=await env.DB.prepare('SELECT class_id FROM teacher_assignments WHERE email=?').bind(email).first();await env.DB.prepare('DELETE FROM teacher_assignments WHERE email=?').bind(email).run();if(old)await auditActivity(env,user,'teacher.unassign',old.class_id,null,{teacherEmail:email},null);return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/class/status'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),id=validateClassId(b.classId);
    if(!['draft','submitted'].includes(b.status))return fail('Status tidak sah.');
    // Reopening a class automatically retracts any published snapshot.
+   const oldState=await env.DB.prepare('SELECT status FROM classes WHERE id=?').bind(id).first();const oldPub=await env.DB.prepare('SELECT snapshot_json FROM publications WHERE class_id=?').bind(id).first();
    if(b.status==='draft')await env.DB.prepare('DELETE FROM publications WHERE class_id=?').bind(id).run();
    const r=await env.DB.prepare("UPDATE classes SET status=?,submitted_at=CASE WHEN ?='submitted' THEN datetime('now') ELSE NULL END,updated_at=datetime('now') WHERE id=?").bind(b.status,b.status,id).run();
-   return r.meta?.changes?JSON_RESPONSE({ok:true}):fail('Kelas tidak ditemui.',404);
+   if(r.meta?.changes)await auditActivity(env,user,'class.status',id,null,{status:oldState?.status,published:!!oldPub},{status:b.status,published:b.status==='draft'?false:!!oldPub});return r.meta?.changes?JSON_RESPONSE({ok:true}):fail('Kelas tidak ditemui.',404);
   }
   if(path==='admin/special/save'&&request.method==='POST'){
    requireRole(user,'admin');return JSON_RESPONSE(await saveFinal(env,user,await reqBody(request)));
@@ -344,12 +345,13 @@ export async function onRequest({request,env}){
     snapshot[item.category_id]=n;
    }
    if(!Object.keys(snapshot).length)return fail('Tiada nama penerima untuk diterbitkan.');
+   const oldSnapshot=await env.DB.prepare('SELECT snapshot_json FROM publications WHERE class_id=?').bind(id).first();
    await env.DB.prepare('INSERT INTO publications(class_id,snapshot_json,published_at,published_by) VALUES(?,?,datetime(\'now\'),?) ON CONFLICT(class_id) DO UPDATE SET snapshot_json=excluded.snapshot_json,published_at=datetime(\'now\'),published_by=excluded.published_by').bind(id,JSON.stringify(snapshot),user.email).run();
-   return JSON_RESPONSE({ok:true});
+   await auditActivity(env,user,oldSnapshot?'class.republish':'class.publish',id,null,oldSnapshot?JSON.parse(oldSnapshot.snapshot_json):null,snapshot);return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/unpublish'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),id=validateClassId(b.classId);
-   await env.DB.prepare('DELETE FROM publications WHERE class_id=?').bind(id).run();return JSON_RESPONSE({ok:true});
+   const oldSnapshot=await env.DB.prepare('SELECT snapshot_json FROM publications WHERE class_id=?').bind(id).first();await env.DB.prepare('DELETE FROM publications WHERE class_id=?').bind(id).run();if(oldSnapshot)await auditActivity(env,user,'class.unpublish',id,null,JSON.parse(oldSnapshot.snapshot_json),null);return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/export'&&request.method==='GET'){requireRole(user,'admin');const format=url.searchParams.get('format')||'csv';if(!['csv','json'].includes(format))return fail('Format laporan tidak sah.');const data=await exportReportData(env,url);return format==='json'?JSON_RESPONSE(data):exportCSV(data);}
   return fail('Laluan API tidak wujud.',404);
