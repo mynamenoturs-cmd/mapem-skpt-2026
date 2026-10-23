@@ -82,3 +82,14 @@ footer{background:#38091b;border-top-color:#bf94534a}.footer{color:#d2b39b}.hero
 
 
 .detail-state{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:3px 0 16px}.detail-state>span:last-child{font-size:11px;color:#8a6e55}.detail-awards{margin-top:18px}.detail-awards details{border-top:1px solid #dac49c;padding:7px 0}.detail-awards summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-size:13px;font-weight:700;color:#63233a;padding:12px 0;list-style:none}.detail-awards summary:before{content:'▸';color:#a17a3c}.detail-awards details[open]>summary:before{content:'▾'}.detail-awards summary>span{flex:1;line-height:1.6}.detail-awards summary>b{min-width:25px;padding:4px 8px;border-radius:20px;background:#e8c98c55;text-align:center;font-size:11px}.detail-awards .name-list{font-size:12px;line-height:1.9;padding-left:25px}.detail-actions{align-items:center;gap:10px}.detail-actions>div{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}.detail-actions .btn{font-size:11px}.class-review-dialog #detail-action-status:empty{display:none}@media(max-width:600px){.detail-actions{padding:14px}.detail-actions .btn{padding:11px 12px;font-size:10px}.detail-awards summary{font-size:12px}.detail-awards .name-list{font-size:11px}.class-review-dialog .notice{font-size:11px;line-height:1.8}.detail-state>span:last-child{font-size:10px}}
+
+
+/* Tahap 1 / Tahap 2 — independent workspaces */
+.tahap-switch{display:flex;align-items:stretch;gap:9px;padding:7px;margin:12px 0 20px;border-radius:17px;background:linear-gradient(110deg,#fbf2e7,#f8e9db);border:1px solid #ead2bc;box-shadow:0 5px 16px rgba(78,22,45,.06)}
+.tahap-switch button{display:flex;flex:1;flex-direction:column;justify-content:center;gap:4px;min-width:0;padding:13px 18px;background:transparent;border:1px solid transparent;border-radius:12px;color:#704356;font-weight:850;text-align:center;cursor:pointer;transition:.2s}
+.tahap-switch button small{font-size:10px;font-weight:600;color:#947c77;letter-spacing:.1px}
+.tahap-switch button.active{color:#fff;background:linear-gradient(135deg,#741735,#461023);box-shadow:0 8px 17px rgba(86,22,47,.19);border-color:#9e5a59}
+.tahap-switch button.active small{color:#f1d3a7}
+.tahap-switch button:hover:not(.active){background:#fffaf3;color:#5f1433}
+.viewer-tahap{margin:0 0 19px}
+@media(max-width:600px){.tahap-switch{gap:5px;padding:5px}.tahap-switch button{padding:11px 7px;font-size:12px}.tahap-switch button small{font-size:9px}}
