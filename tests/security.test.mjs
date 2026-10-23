@@ -299,7 +299,6 @@ test('audit captures teacher edits and admin correction with exact name differen
  assert.equal((await call(env,'admin/audit',{cookie:teacher})).status,403);
  assert.equal((await call(env,'admin/correct',{cookie:viewer,method:'POST',body:{classId:'4-crystal',categoryId:'pbd',names:names.slice(0,4),version:1,reason:'Tersalah nama'}})).status,403);
  assert.equal((await call(env,'admin/correct',{cookie:admin,method:'POST',body:{classId:'4-crystal',categoryId:'pbd',names:names.slice(0,4),version:1,reason:'Tersalah nama murid kelima'}})).status,200);
- const changed=db.prepare('SELECT actor_email,actor_role,action,edit_note FROM drafts WHERE class_id=? AND category_id=?').get?.('4-crystal','pbd');
  const audit=await json(await call(env,'admin/audit?tahap=2',{cookie:admin}));
  const latest=audit.logs[0];assert.equal(latest.actor_email,'admin@gmail.com');assert.equal(latest.action,'padam_nama');
  assert.deepEqual(JSON.parse(latest.before_json),names);assert.deepEqual(JSON.parse(latest.after_json),names.slice(0,4));
