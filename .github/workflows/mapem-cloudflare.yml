@@ -85,12 +85,14 @@ jobs:
         if: steps.ready.outputs.enabled == 'true'
         run: npx wrangler d1 migrations apply DB --remote --config .wrangler-ci.toml
 
-      - name: Sahkan 50 kelas (26 Tahap 1 + 24 Tahap 2)
+      - name: Sahkan 42 kelas aktif (26 Tahap 1 + 16 Tahap 2)
         if: steps.ready.outputs.enabled == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          npx wrangler d1 execute DB --remote --config .wrangler-ci.toml --command "SELECT COUNT(*) AS bilangan FROM classes; SELECT year, COUNT(*) AS kelas FROM classes GROUP BY year ORDER BY year;"
+          npx wrangler d1 execute DB --remote --config .wrangler-ci.toml --command "SELECT COUNT(*) AS kelas_aktif FROM classes WHERE year BETWEEN 1 AND 5; SELECT year, COUNT(*) AS kelas FROM classes WHERE year BETWEEN 1 AND 5 GROUP BY year ORDER BY year;"
+          npx wrangler d1 execute DB --remote --config .wrangler-ci.toml --command "SELECT CASE WHEN (SELECT COUNT(*) FROM classes WHERE year BETWEEN 1 AND 5)=42 AND (SELECT COUNT(*) FROM classes WHERE year=4)=8 AND (SELECT COUNT(*) FROM classes WHERE year=5)=8 AND (SELECT COUNT(*) FROM classes WHERE year IN (4,5) AND lower(name)='amber')=0 THEN 'LULUS' ELSE 'GAGAL' END AS audit;"
+          # Any Year 6 records with real data are retained in the DB as archive and are never shown in portal.
           npx wrangler d1 execute DB --remote --config .wrangler-ci.toml --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('users','teacher_assignments','sessions','oauth_states','publications') ORDER BY name;"
 
       - name: Pautkan D1 secara automatik kepada Pages Production
