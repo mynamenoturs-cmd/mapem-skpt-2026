@@ -235,12 +235,14 @@ export async function onRequest({request,env}){
   if(path==='admin/category-assignments'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
    const tahap=b.tahap===undefined?0:Number(b.tahap);if(![0,1,2].includes(tahap))return fail('Tahap tugasan tidak sah.');const ids=b.categoryIds;if(!Array.isArray(ids)||!ids.length||ids.length>CATEGORIES.length-1||new Set(ids).size!==ids.length||ids.some(id=>!CATEGORIES.some(c=>c.id===id&&c.id!=='pbd')))return fail('Pilih tugasan kategori yang sah.');
-   for(const id of ids)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,tahap=excluded.tahap,updated_at=datetime('now')").bind(email,id,user.email,tahap).run();
+   // One school award: assigning either group always grants both groups of Cerdas PLaN.
+   const assignIds=ids.some(id=>id==='plan'||id==='plan-pemulihan')?[...new Set([...ids,'plan','plan-pemulihan'])]:ids;
+   for(const id of assignIds)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,tahap=excluded.tahap,updated_at=datetime('now')").bind(email,id,user.email,tahap).run();
    return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/category-assignments/revoke'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
-   if(typeof b.categoryId!=='string')return fail('Kategori tidak sah.');await env.DB.prepare('DELETE FROM category_assignments WHERE email=? AND category_id=?').bind(email,b.categoryId).run();return JSON_RESPONSE({ok:true});
+   if(typeof b.categoryId!=='string'||!CATEGORIES.some(c=>c.id===b.categoryId&&c.id!=='pbd'))return fail('Kategori tidak sah.');const removeIds=['plan','plan-pemulihan'].includes(b.categoryId)?['plan','plan-pemulihan']:[b.categoryId];for(const id of removeIds)await env.DB.prepare('DELETE FROM category_assignments WHERE email=? AND category_id=?').bind(email,id).run();return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/admins'&&request.method==='GET'){
    requireRole(user,'admin');const grants=await env.DB.prepare('SELECT email,granted_by,created_at FROM admin_grants ORDER BY email').all();
