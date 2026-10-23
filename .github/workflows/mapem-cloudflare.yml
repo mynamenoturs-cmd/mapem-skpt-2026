@@ -81,12 +81,6 @@ jobs:
           EOF
           echo "Konfigurasi D1 sementara disediakan. Tiada kunci rahsia ditulis ke kod sumber."
 
-      - name: Audit agregat UASA dan Mata Pelajaran tanpa nama murid
-        if: steps.ready.outputs.enabled == 'true'
-        run: |
-          npx wrangler d1 execute DB --remote --config .wrangler-ci.toml --command "SELECT d.category_id AS kategori,c.year AS tahun,COALESCE(SUM(json_array_length(d.names_json)),0) AS nama FROM drafts d JOIN classes c ON c.id=d.class_id WHERE d.category_id IN ('uasa','matapelajaran') AND c.year BETWEEN 1 AND 5 GROUP BY d.category_id,c.year ORDER BY d.category_id,c.year;"
-          npx wrangler d1 execute DB --remote --config .wrangler-ci.toml --command "SELECT c.year AS tahun, COALESCE(SUM(CASE WHEN json_type(p.snapshot_json,'$.matapelajaran')='array' THEN json_array_length(json_extract(p.snapshot_json,'$.matapelajaran')) ELSE 0 END),0) AS published_subjects FROM publications p JOIN classes c ON c.id=p.class_id WHERE c.year BETWEEN 1 AND 5 GROUP BY c.year ORDER BY c.year;"
-
       - name: Migrasi database production (pelihara rekod asal)
         if: steps.ready.outputs.enabled == 'true'
         run: npx wrangler d1 migrations apply DB --remote --config .wrangler-ci.toml
