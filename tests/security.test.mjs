@@ -261,6 +261,7 @@ test('migration preserved original classroom data, assignments, nomination and p
  db.prepare('INSERT INTO final_reviews(class_id,category_id,version,confirmed_by) VALUES(?,?,?,?)').run('3-crystal','cemara',2,'admin@example.com');
  db.prepare('INSERT INTO publications(class_id,snapshot_json,published_by) VALUES(?,?,?)').run('1-amber','{"pbd":["Murid Asal"]}','admin@example.com');
  db.exec(file('../migrations/0007_tahap2_classes.sql'));
+ db.exec(file('../migrations/0008_exclude_year6.sql'));
  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,42);
  assert.equal(db.prepare('SELECT version FROM drafts WHERE class_id=?').get('1-amber').version,5);
  assert.equal(db.prepare('SELECT class_id FROM teacher_assignments WHERE email=?').get('guruasal@example.com').class_id,'1-amber');
