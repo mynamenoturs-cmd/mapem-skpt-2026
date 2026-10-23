@@ -9,26 +9,52 @@ function row(n,values,styles,height=30,formulas={}){return `<x:row r="${n}" ht="
 function format(s,n){return [...C].map(c=>s.styles[c+n]||0);}
 function sheet(s,rows,last,{filter=false,summary=false}={}){const merges=['A2:F2','A3:F3','A4:F4',...(summary?['A21:F22']:[`A${last}:C${last}`])];return s.prefix.replace('</x:sheetPr>','<x:pageSetUpPr fitToPage="1"/></x:sheetPr>')+`<x:sheetData>${rows.join('')}</x:sheetData>${filter?`<x:autoFilter ref="A5:F${last-1}"/>`:''}<x:mergeCells count="${merges.length}">${merges.map(ref=>`<x:mergeCell ref="${ref}"/>`).join('')}</x:mergeCells><x:pageMargins left="0.25" right="0.25" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><x:pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></x:worksheet>`;}
 export function buildReport(data,template){
- if(!Array.isArray(data.rows)||data.categories.length!==12)throw Error('Data laporan tidak lengkap. Cuba muat semula portal.');
- const files={...template.files},summary=template.sheets[0],detail=template.sheets[1],names=['Ringkasan',...data.categories.map((c,i)=>String(i+1).padStart(2,'0')+' '+shortNames[i])],endRows=[22];
- const date=new Date(data.generatedAt).toLocaleString('ms-MY',{timeZone:'Asia/Kuching'}),scope=(data.source==='published'?'Senarai diterbitkan':'Senarai kerja termasuk draf')+' — '+(data.year?'Tahun '+data.year:'Semua tahun');
- const head=(s,title)=>[row(1,[],[]),row(2,['MaPeM SKPT 2026',null,null,null,null,null],format(s,2),31),row(3,[title,null,null,null,null,null],format(s,3),37),row(4,[scope+' · Dieksport '+date+' (MYT)',null,null,null,null,null],format(s,4),30)];
- const sum=head(summary,'Ringkasan penerima mengikut kategori');sum.push(row(5,['Bil','Kategori anugerah','Tahun 1','Tahun 2','Tahun 3','Jumlah'],format(summary,5),31));const totals=[0,0,0];
- data.categories.forEach((cat,i)=>{
-  const group=data.rows.filter(r=>r.categoryId===cat.id),end=5+Math.max(1,group.length),last=end+1;endRows.push(last);const body=head(detail,cat.name);body.push(row(5,['Bil','Tahun','Kelas','Nama penuh murid','Status pengisian','Penerbitan'],format(detail,5),31));
-  if(!group.length)body.push(row(6,[null,null,null,'Belum ada penerima bagi pilihan ini.',null,null],format(detail,6),38));
-  group.forEach((r,k)=>body.push(row(k+6,[k+1,r.year,r.className,r.name,r.status,r.publication],format(detail,k%2?7:6),Math.max(30,Math.ceil(r.name.length/46)*17+9))));
-  body.push(row(last,['Jumlah penerima',null,null,group.length,null,null],format(detail,8),30,{3:`COUNT(B6:B${end})`}));files[`xl/worksheets/sheet${i+2}.xml`]=sheet(detail,body,last,{filter:true});
-  const counts=[1,2,3].map(y=>group.filter(r=>r.year===y).length),n=i+6;counts.forEach((v,j)=>totals[j]+=v);
-  const formula={2:`COUNTIFS('${names[i+1]}'!B6:B${end},1)`,3:`COUNTIFS('${names[i+1]}'!B6:B${end},2)`,4:`COUNTIFS('${names[i+1]}'!B6:B${end},3)`,5:`SUM(C${n}:E${n})`};
-  sum.push(row(n,[i+1,cat.name,...counts,group.length],format(summary,i%2?7:6),40,formula));
+ if(!Array.isArray(data.rows)||!Array.isArray(data.categories)||![0,1,2].includes(data.tahap||0))throw Error('Data laporan tidak lengkap.');
+ const files={...template.files},summary=template.sheets[0],detail=template.sheets[1];
+ const stages=data.tahap===1?[1]:data.tahap===2?[2]:[1,2];
+ const years=t=>t===1?[1,2,3]:[4,5,6];
+ const cats=stages.flatMap(t=>data.categories.filter(c=>c.years.some(y=>years(t).includes(y))).map(c=>({t,cat:c})));
+ const names=['Ringkasan',...stages.map(t=>'Tahap '+t),...cats.map(({t,cat},i)=>'T'+t+' '+String(i+1).padStart(2,'0')+' '+cat.name.replace(/[^a-zA-ZÀ-ÿ0-9 ]/g,' ').slice(0,19).trim())];
+ const endRows=[],date=new Date(data.generatedAt).toLocaleString('ms-MY',{timeZone:'Asia/Kuching'});
+ const scope=(data.source==='published'?'Senarai diterbitkan':'Senarai kerja')+' · '+(data.tahap?'Tahap '+data.tahap:'Kedua-dua tahap')+(data.year?' · Tahun '+data.year:'')+' · '+date;
+ const head=(s,title)=>[row(1,[],[]),row(2,['MaPeM SKPT 2026',null,null,null,null,null],format(s,2),31),row(3,[title,null,null,null,null,null],format(s,3),37),row(4,[scope,null,null,null,null,null],format(s,4),30)];
+ const addSheet=(index,s,body,last,opts={})=>{
+   const merges=['A2:F2','A3:F3','A4:F4'];
+   files['xl/worksheets/sheet'+index+'.xml']=s.prefix+'<x:sheetData>'+body.join('')+'</x:sheetData>'+(opts.filter?'<x:autoFilter ref="A5:F'+Math.max(5,last-1)+'"/>':'')+'<x:mergeCells count="'+merges.length+'">'+merges.map(ref=>'<x:mergeCell ref="'+ref+'"/>').join('')+'</x:mergeCells><x:pageMargins left="0.25" right="0.25" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><x:pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></x:worksheet>';
+   endRows.push(last);
+ };
+ const inStage=(r,t)=>t===1?r.year<=3:r.year>=4;
+ const totalBy=t=>data.rows.filter(r=>inStage(r,t)).length;
+ const sum=head(summary,'Ringkasan Tahap 1 dan Tahap 2');
+ sum.push(row(5,['Bil','Kategori anugerah','Tahap 1','Tahap 2','Jumlah','Maklumat'],format(summary,5),30));
+ cats.forEach(({t,cat},i)=>{
+   const group=data.rows.filter(r=>r.categoryId===cat.id&&inStage(r,t));
+   const no=i+6,one=group.filter(r=>r.year<=3).length,two=group.length-one;
+   sum.push(row(no,[i+1,cat.name,one,two,group.length,'Tahap '+t],format(summary,i%2?7:6),35));
  });
- sum.push(row(19,[null,'Jumlah rekod anugerah',...totals,data.rows.length],format(summary,8),32,{2:'SUM(C6:C17)',3:'SUM(D6:D17)',4:'SUM(E6:E17)',5:'SUM(F6:F17)'}));
- sum.push(row(21,['Sumber: Portal MaPeM SKPT 2026. Bilangan rekod anugerah; seorang murid boleh menerima lebih daripada satu anugerah. Pencalonan belum dipilih tidak termasuk.',null,null,null,null,null],format(summary,4),38));
- files['xl/worksheets/sheet1.xml']=sheet(summary,sum,22,{summary:true});
- files['xl/workbook.xml']=`<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="${NS}" xmlns:r="${RNS}"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${names.map((name,i)=>`<sheet name="${xml(name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets><definedNames>${names.map((name,i)=>`<definedName name="_xlnm.Print_Area" localSheetId="${i}">'${xml(name)}'!$A$1:$F$${endRows[i]}</definedName>${i?`<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${xml(name)}'!$1:$5</definedName>`:''}`).join('')}</definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`;
- files['xl/_rels/workbook.xml.rels']=`<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="style" Type="${RNS}/styles" Target="styles.xml"/><Relationship Id="theme" Type="${RNS}/theme" Target="theme/theme1.xml"/>${names.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${RNS}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}</Relationships>`;
- files['[Content_Types].xml']=`<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${names.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`;
+ const foot=cats.length+6;
+ sum.push(row(foot,[null,'JUMLAH REKOD',totalBy(1),totalBy(2),data.rows.length,'Sumber: Portal MaPeM'],format(summary,8),37));
+ addSheet(1,summary,sum,foot);
+ let idx=2;
+ for(const t of stages){
+   const group=data.rows.filter(r=>inStage(r,t));const body=head(detail,'Tahap '+t+' · '+(t===1?'Tahun 1–3':'Tahun 4–6'));
+   body.push(row(5,['Bil','Tahun','Kelas','Nama penuh murid','Kategori anugerah','Status'],format(detail,5),31));
+   if(!group.length)body.push(row(6,[null,null,null,'Tiada data penerima lagi.',null,null],format(detail,6),34));
+   group.forEach((r,i)=>body.push(row(i+6,[i+1,r.year,r.className,r.name,data.categories.find(c=>c.id===r.categoryId)?.name||r.categoryId,r.publication],format(detail,i%2?7:6),34)));
+   const last=6+Math.max(1,group.length);body.push(row(last,['Jumlah rekod',null,null,group.length,null,null],format(detail,8),30));
+   addSheet(idx++,detail,body,last,{filter:true});
+ }
+ for(const {t,cat} of cats){
+   const group=data.rows.filter(r=>r.categoryId===cat.id&&inStage(r,t));const body=head(detail,'Tahap '+t+' · '+cat.name);
+   body.push(row(5,['Bil','Tahun','Kelas','Nama penuh murid','Status pengisian','Penerbitan'],format(detail,5),31));
+   if(!group.length)body.push(row(6,[null,null,null,'Tiada penerima bagi pilihan ini.',null,null],format(detail,6),34));
+   group.forEach((r,i)=>body.push(row(i+6,[i+1,r.year,r.className,r.name,r.status,r.publication],format(detail,i%2?7:6),34)));
+   const last=6+Math.max(1,group.length);body.push(row(last,['Jumlah penerima',null,null,group.length,null,null],format(detail,8),30));
+   addSheet(idx++,detail,body,last,{filter:true});
+ }
+ files['xl/workbook.xml']='<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="'+NS+'" xmlns:r="'+RNS+'"><bookViews><workbookView activeTab="0"/></bookViews><sheets>'+names.map((name,i)=>'<sheet name="'+xml(name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join('')+'</sheets><definedNames>'+names.map((name,i)=>'<definedName name="_xlnm.Print_Area" localSheetId="'+i+'">\\''+xml(name)+'\\'!$A$1:$F$'+endRows[i]+'</definedName>').join('')+'</definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>';
+ files['xl/_rels/workbook.xml.rels']='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="style" Type="'+RNS+'/styles" Target="styles.xml"/><Relationship Id="theme" Type="'+RNS+'/theme" Target="theme/theme1.xml"/>'+names.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="'+RNS+'/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'</Relationships>';
+ files['[Content_Types].xml']='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>'+names.map((_,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'</Types>';
  return new Blob([zipStore(files)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
 }
 // ZIP STORE needs no external service, compression dependency or upload of names.
