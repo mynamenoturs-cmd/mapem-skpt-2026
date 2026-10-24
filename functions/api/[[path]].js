@@ -208,6 +208,47 @@ export async function onRequest({request,env}){
    if(!saved.meta.changes)return fail('Pengumuman telah diubah oleh admin lain. Muat semula sebelum menyunting.',409);
    return JSON_RESPONSE({ok:true,version:b.version+1});
   }
+  // Public notices are separate records; never send drafts or admin identity.
+  if(path==='portal/announcements'&&request.method==='GET'){
+   const rows=(await env.DB.prepare("SELECT id,title,body,pinned,updated_at FROM portal_announcements WHERE enabled=1 AND deleted_at IS NULL ORDER BY pinned DESC,updated_at DESC,id DESC LIMIT 100").all()).results||[];
+   return JSON_RESPONSE({announcements:rows.map(r=>({id:r.id,title:r.title,body:r.body,pinned:!!r.pinned,updatedAt:r.updated_at}))});
+  }
+  if(path==='admin/announcements'&&request.method==='GET'){
+   requireRole(user,'admin');
+   const rows=(await env.DB.prepare("SELECT id,title,body,enabled,pinned,version,created_at,updated_at,updated_by FROM portal_announcements WHERE deleted_at IS NULL ORDER BY pinned DESC,updated_at DESC,id DESC LIMIT 200").all()).results||[];
+   return JSON_RESPONSE({announcements:rows.map(r=>({...r,enabled:!!r.enabled,pinned:!!r.pinned}))});
+  }
+  if(path==='admin/announcements/create'&&request.method==='POST'){
+   requireRole(user,'admin');
+   const b=await reqBody(request);
+   if(typeof b.title!=='string'||typeof b.body!=='string'||typeof b.enabled!=='boolean'||typeof b.pinned!=='boolean')return fail('Format pengumuman tidak sah.',400);
+   const title=b.title.trim(),body=b.body.trim();
+   if(title.length<3||title.length>120||body.length<1||body.length>3000)return fail('Isi tajuk (3–120 aksara) dan mesej (1–3000 aksara).',400);
+   const inserted=await env.DB.prepare("INSERT INTO portal_announcements(title,body,enabled,pinned,updated_by) VALUES(?,?,?,?,?) RETURNING id,version").bind(title,body,b.enabled?1:0,b.pinned?1:0,user.email).first();
+   return JSON_RESPONSE({ok:true,id:inserted.id,version:inserted.version},201);
+  }
+  if(path==='admin/announcements/update'&&request.method==='POST'){
+   requireRole(user,'admin');
+   const b=await reqBody(request);
+   if(!Number.isSafeInteger(b.id)||b.id<1||!Number.isSafeInteger(b.version)||b.version<1||typeof b.title!=='string'||typeof b.body!=='string'||typeof b.enabled!=='boolean'||typeof b.pinned!=='boolean')
+    return fail('Format kemas kini pengumuman tidak sah.',400);
+   const title=b.title.trim(),body=b.body.trim();
+   if(title.length<3||title.length>120||body.length<1||body.length>3000)return fail('Isi tajuk (3–120 aksara) dan mesej (1–3000 aksara).',400);
+   const updated=await env.DB.prepare("UPDATE portal_announcements SET title=?,body=?,enabled=?,pinned=?,version=version+1,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),updated_by=? WHERE id=? AND version=? AND deleted_at IS NULL")
+     .bind(title,body,b.enabled?1:0,b.pinned?1:0,user.email,b.id,b.version).run();
+   if(updated.meta?.changes!==1)return fail('Pengumuman telah disunting/dipadam oleh Admin lain. Muat semula.',409);
+   return JSON_RESPONSE({ok:true,id:b.id,version:b.version+1});
+  }
+  if(path==='admin/announcements/delete'&&request.method==='POST'){
+   requireRole(user,'admin');
+   const b=await reqBody(request);
+   if(!Number.isSafeInteger(b.id)||b.id<1||!Number.isSafeInteger(b.version)||b.version<1)return fail('Maklumat pengumuman tidak sah.',400);
+   // Soft-delete protects against accidental loss and keeps the audit trail.
+   const updated=await env.DB.prepare("UPDATE portal_announcements SET deleted_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),enabled=0,version=version+1,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),updated_by=? WHERE id=? AND version=? AND deleted_at IS NULL")
+     .bind(user.email,b.id,b.version).run();
+   if(updated.meta?.changes!==1)return fail('Pengumuman telah disunting/dipadam oleh Admin lain. Muat semula.',409);
+   return JSON_RESPONSE({ok:true,id:b.id});
+  }
   if(path==='me'&&request.method==='GET')return JSON_RESPONSE(user?{authenticated:true,user}:{authenticated:false});
   if(path==='logout'&&request.method==='POST'){const sid=cookies(request)[SESSION_COOKIE];if(sid)await env.DB.prepare('DELETE FROM sessions WHERE id_hash=?').bind(await sha256(sid)).run();return JSON_RESPONSE({ok:true},200,{'Set-Cookie':cookie(SESSION_COOKIE,'',0)});}
   if(!user)return fail('Sila log masuk menggunakan Google.',401);
