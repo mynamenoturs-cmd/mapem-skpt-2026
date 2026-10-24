@@ -317,13 +317,31 @@ export async function onRequest({request,env}){
    const result=await env.DB.prepare('DELETE FROM publications WHERE class_id=?').bind(id).run();if(result.meta?.changes)await logAction(env,user,'tarik_balik_terbitan',id);return JSON_RESPONSE({ok:true});
   }
   if(path==='admin/correct'&&request.method==='POST'){
-   requireRole(user,'admin');const b=await reqBody(request),id=validateClassId(b.classId);
-   if(b.categoryId!=='pbd')return fail('Pembetulan segera hanya untuk PBD. Anugerah lain disunting melalui Pemilihan & pengisian.');
-   const cls=await env.DB.prepare('SELECT id,year FROM classes WHERE id=?').bind(id).first();if(!cls)return fail('Kelas tidak ditemui.',404);
-   if(await env.DB.prepare('SELECT class_id FROM publications WHERE class_id=?').bind(id).first())return fail('Tarik balik penerbitan terlebih dahulu sebelum membetulkan PBD.',423);
-   const reason=String(b.reason||'').trim();if(reason.length<5||reason.length>400)return fail('Masukkan sebab pembetulan (5–400 aksara).');
-   const list=names(b.names);if(list.length>5)return fail('PBD maksimum lima nama setiap kelas.');
-   return JSON_RESPONSE(await saveDraft(env,id,'pbd',Number(b.version),list,'drafts',null,0,user,reason));
+   requireRole(user,'admin');
+   const b=await reqBody(request),id=validateClassId(b.classId);
+   const cls=await env.DB.prepare('SELECT id,year,status FROM classes WHERE id=?').bind(id).first();
+   if(!cls)return fail('Kelas tidak ditemui.',404);
+   const cat=categoryOf(b.categoryId,cls.year,false)|| (b.categoryId==='pbd'?categoryOf('pbd',cls.year,true):null);
+   if(!cat)return fail('Anugerah ini tidak sah untuk tahun kelas berkenaan.',400);
+   if(await env.DB.prepare('SELECT class_id FROM publications WHERE class_id=?').bind(id).first())
+    return fail('Tarik balik penerbitan kelas sebelum membetulkan mana-mana anugerah.',423);
+   const reason=String(b.reason||'').trim();
+   if(reason.length<5||reason.length>400)return fail('Masukkan sebab pembetulan (5–400 aksara).');
+   const list=names(b.names);
+   if(cat.id==='pbd'&&list.length>5)return fail('PBD maksimum lima nama setiap kelas.');
+   if(cat.classLimit!=null&&list.length>cat.classLimit)return fail('Bilangan nama melebihi had kelas.');
+   // Anugerah dengan keputusan pencalonan / L/P memerlukan pengesahan admin.
+   if(list.length&&(cat.nomination||cat.id==='mawar')&&b.confirmedLP!==true)
+    return fail('Sahkan keputusan pemilihan dan semakan L/P sebelum menyimpan.',400);
+   const limit=cat.scope==='year'?cat.quota?.[cls.year]:cat.quota;
+   const result=await saveDraft(env,id,cat.id,Number(b.version),list,'drafts',
+    cat.id==='pbd'?null:limit??null,(cat.scope==='year'||cat.years?.length===1)?cls.year:0,user,reason);
+   // Keep final-review confirmation aligned to the edited names/version.
+   if(cat.nomination||cat.id==='mawar'){
+    if(list.length)await env.DB.prepare("INSERT INTO final_reviews(class_id,category_id,version,confirmed_by) VALUES(?,?,?,?) ON CONFLICT(class_id,category_id) DO UPDATE SET version=excluded.version,confirmed_by=excluded.confirmed_by,confirmed_at=datetime('now')").bind(id,cat.id,result.version,user.email).run();
+    else await env.DB.prepare('DELETE FROM final_reviews WHERE class_id=? AND category_id=?').bind(id,cat.id).run();
+   }
+   return JSON_RESPONSE({...result,categoryId:cat.id});
   }
   if(path==='admin/audit'&&request.method==='GET'){
    requireRole(user,'admin');const tahap=Number(url.searchParams.get('tahap')||0),limit=Number(url.searchParams.get('limit')||80);
