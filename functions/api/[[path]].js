@@ -321,7 +321,7 @@ export async function onRequest({request,env}){
    const b=await reqBody(request),id=validateClassId(b.classId);
    const cls=await env.DB.prepare('SELECT id,year,status FROM classes WHERE id=?').bind(id).first();
    if(!cls)return fail('Kelas tidak ditemui.',404);
-   const cat=categoryOf(b.categoryId,cls.year,false)|| (b.categoryId==='pbd'?categoryOf('pbd',cls.year,true):null);
+   const cat=CATEGORIES.find(c=>c.id===b.categoryId&&(!c.years||c.years.includes(cls.year)));
    if(!cat)return fail('Anugerah ini tidak sah untuk tahun kelas berkenaan.',400);
    if(await env.DB.prepare('SELECT class_id FROM publications WHERE class_id=?').bind(id).first())
     return fail('Tarik balik penerbitan kelas sebelum membetulkan mana-mana anugerah.',423);
