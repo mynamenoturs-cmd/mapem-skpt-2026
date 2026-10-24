@@ -115,3 +115,17 @@ footer{background:#38091b;border-top-color:#bf94534a}.footer{color:#d2b39b}.hero
 .correction-row span{overflow-wrap:anywhere;flex:1}
 .correction-row b{color:#9f6a28;margin-right:5px}
 @media(max-width:600px){.audit-entry{padding:13px}.audit-heading{align-items:start;flex-direction:column;gap:4px}.audit-diff{grid-template-columns:1fr}.correction-row{gap:8px}.correction-row .btn{flex:none}}
+
+
+/* Editable award titles: mobile-friendly two-column row, no data mutation outside admin modal */
+.award-title-panel .notice{margin-bottom:18px}
+.award-title-list{display:grid;gap:10px;margin-top:18px}
+.award-title-item{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:15px 17px;border:1px solid rgba(189,151,112,.28);background:#fffdfb;border-radius:15px}
+.award-title-item:hover{border-color:rgba(177,123,54,.58);box-shadow:0 4px 16px rgba(67,22,40,.045)}
+.award-title-main{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+.award-title-main strong{font-size:13px;color:#621b33;line-height:1.55;overflow-wrap:anywhere}
+.award-title-main .hint{font-size:11px;overflow-wrap:anywhere;margin:0;color:#82717b}
+.award-title-item .btn{flex-shrink:0;font-size:11px}
+#award-title-dialog .dialog-body .field{margin-top:15px}
+#award-title-dialog #award-title-input{width:100%;font-size:15px}
+@media(max-width:550px){.award-title-item{align-items:flex-start;flex-direction:column;padding:13px}.award-title-item .btn{align-self:flex-start}.award-title-main strong{font-size:13px}}
