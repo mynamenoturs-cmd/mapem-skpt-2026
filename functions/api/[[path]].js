@@ -59,6 +59,18 @@ async function userFor(request,env){const sid=cookies(request)[SESSION_COOKIE];i
  return {sub:user.sub,email,name:user.name,categoryIds:tasks.map(t=>t.category_id),categoryAccess:tasks.map(t=>({id:t.category_id,tahap:t.tahap})),role:isAdmin?'admin':assignment?'teacher':tasks.length?'specialist':'viewer',classId:assignment?.class_id||null,className:assignment?`${assignment.year} ${assignment.class_name}`:null};}
 function requireRole(user,role){if(!user)safeError('Sila log masuk dengan akaun Google.',401);if(role==='admin'&&user.role!=='admin')safeError('Akses pentadbir sahaja.',403);if(role==='teacher'&&!user.classId)safeError('Akses guru kelas sahaja.',403);}
 function categoryOf(id,year,teacher){return year>=1&&year<=5?CATEGORIES.find(c=>c.id===id&&(teacher?c.teacher:c.id!=='pbd')&&(!c.years||c.years.includes(year))):undefined;}
+async function categoryCatalog(env){
+ const rows=(await env.DB.prepare('SELECT category_id,title,version,updated_at,updated_by FROM award_title_overrides').all()).results||[];
+ const overrides=new Map(rows.map(x=>[x.category_id,x]));
+ return CATEGORIES.map(c=>{
+  const edit=overrides.get(c.id);
+  return {...c,name:edit?.title||c.name,defaultName:c.name,titleVersion:edit?.version||0,customTitle:!!edit,titleUpdatedAt:edit?.updated_at||null};
+ });
+}
+async function categoryDisplay(env,cat){
+ const row=await env.DB.prepare('SELECT title FROM award_title_overrides WHERE category_id=?').bind(cat.id).first();
+ return {...cat,name:row?.title||cat.name};
+}
 async function saveDraft(env,classId,categoryId,version,list,table='drafts',limit=null,year=0,actor=null,note=''){
  if(!['drafts','nominations'].includes(table))safeError('Jadual simpanan tidak sah.');
  if(!Number.isSafeInteger(version)||version<0)safeError('Versi simpanan tidak sah.');
@@ -81,7 +93,7 @@ async function workData(env,cls,cat){
  const review=await env.DB.prepare('SELECT version FROM final_reviews WHERE class_id=? AND category_id=?').bind(cls.id,cat.id).first();
  const pub=await env.DB.prepare('SELECT class_id FROM publications WHERE class_id=?').bind(cls.id).first();
  const all=cat.nomination?(await env.DB.prepare('SELECT n.class_id,n.names_json,c.year,c.name FROM nominations n JOIN classes c ON c.id=n.class_id WHERE n.category_id=? ORDER BY c.year,c.name').bind(cat.id).all()).results||[]:[];
- return {class:cls,category:cat,draft:final,confirmedLP:review?.version===final.version,published:!!pub,nominees:all.filter(n=>!cat.years||cat.years.includes(n.year)).map(n=>({classId:n.class_id,label:n.year+' '+n.name,names:JSON.parse(n.names_json)}))};
+ return {class:cls,category:await categoryDisplay(env,cat),draft:final,confirmedLP:review?.version===final.version,published:!!pub,nominees:all.filter(n=>!cat.years||cat.years.includes(n.year)).map(n=>({classId:n.class_id,label:n.year+' '+n.name,names:JSON.parse(n.names_json)}))};
 }
 async function saveFinal(env,user,b,assignedOnly=false){
  const id=validateClassId(b.classId),cls=await env.DB.prepare('SELECT id,year,name,status FROM classes WHERE id=?').bind(id).first();
@@ -108,7 +120,7 @@ async function overview(env){const [classes,drafts,assignments,publications]=awa
  env.DB.prepare('SELECT p.class_id,p.published_at FROM publications p JOIN classes c ON c.id=p.class_id WHERE c.year BETWEEN 1 AND 5').all()]);
  const counts={};const quota={};for(const row of drafts.results||[]){if(+row.class_id[0]>5)continue;const cat=CATEGORIES.find(c=>c.id===row.category_id);if(cat?.years&&!cat.years.includes(+row.class_id[0]))continue;const n=JSON.parse(row.names_json).length;counts[row.class_id]=(counts[row.class_id]||0)+n;const year=+row.class_id[0];quota[row.category_id]??={};quota[row.category_id][year]=(quota[row.category_id][year]||0)+n;}
  const pub=new Map((publications.results||[]).map(x=>[x.class_id,x.published_at]));
- return {classes:(classes.results||[]).map(x=>({...x,total:counts[x.id]||0,publishedAt:pub.get(x.id)||null})),assignments:assignments.results||[],categories:CATEGORIES,quota};}
+ return {classes:(classes.results||[]).map(x=>({...x,total:counts[x.id]||0,publishedAt:pub.get(x.id)||null})),assignments:assignments.results||[],categories:await categoryCatalog(env),quota};}
 function csvEscape(v){let s=String(v??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
 async function exportReportData(env,url){
  const source=url.searchParams.get('source')||'working',year=Number(url.searchParams.get('year')||0),tahap=Number(url.searchParams.get('tahap')||0);if(!['working','published'].includes(source)||![0,1,2,3,4,5].includes(year)||![0,1,2].includes(tahap)||(tahap===1&&year>3)||(tahap===2&&year>0&&year<4))safeError('Pilihan laporan tidak sah.');
@@ -117,7 +129,7 @@ async function exportReportData(env,url){
  const order=new Map(CATEGORIES.map((c,i)=>[c.id,i])),rows=[];
  for(const item of raw){const cls=lookup.get(item.class_id),cat=CATEGORIES.find(c=>c.id===item.category_id);if(!cls||!cat||(year&&cls.year!==year)||(tahap===1&&cls.year>3)||(tahap===2&&cls.year<4)||(cat.years&&!cat.years.includes(cls.year)))continue;for(const name of JSON.parse(item.names_json))rows.push({categoryId:cat.id,year:cls.year,classId:cls.id,className:cls.year+' '+cls.name,name,status:cls.status==='submitted'?'Dihantar':'Draf',publication:publishedIds.has(cls.id)?'Diterbitkan':'Belum diterbitkan'});}
  rows.sort((a,b)=>order.get(a.categoryId)-order.get(b.categoryId)||a.year-b.year||a.className.localeCompare(b.className,'ms')||a.name.localeCompare(b.name,'ms'));
- return {source,year,tahap,generatedAt:new Date().toISOString(),categories:CATEGORIES.map(c=>({id:c.id,name:c.name,years:c.years||[1,2,3,4,5]})),rows};
+ return {source,year,tahap,generatedAt:new Date().toISOString(),categories:(await categoryCatalog(env)).map(c=>({id:c.id,name:c.name,years:c.years||[1,2,3,4,5]})),rows};
 }
 function exportCSV(data){const lookup=new Map(data.categories.map(c=>[c.id,c.name])),body=[['Tahap','Kategori Anugerah','Bil','Tahun','Kelas','Nama Penuh Murid','Status Pengisian','Penerbitan']];let last='',n=0;for(const r of data.rows){if(last!==r.categoryId){last=r.categoryId;n=0;}body.push([r.year<=3?'Tahap 1':'Tahap 2',lookup.get(r.categoryId),++n,r.year,r.className,r.name,r.status,r.publication]);}
  return new Response('\uFEFF'+body.map(a=>a.map(csvEscape).join(',')).join('\r\n'),{headers:{'content-type':'text/csv;charset=utf-8','content-disposition':'attachment; filename=mapem-skpt-2026.csv','cache-control':'no-store','x-content-type-options':'nosniff'}});}
@@ -201,13 +213,13 @@ export async function onRequest({request,env}){
   if(!user)return fail('Sila log masuk menggunakan Google.',401);
   if(path==='published'&&request.method==='GET'){
    const r=await env.DB.prepare('SELECT p.class_id,p.snapshot_json,p.published_at,c.year,c.name AS class_name FROM publications p JOIN classes c ON c.id=p.class_id WHERE c.year BETWEEN 1 AND 5 ORDER BY c.year,c.name').all();
-   return JSON_RESPONSE({categories:CATEGORIES,classes:(r.results||[]).map(x=>({classId:x.class_id,year:x.year,className:x.class_name,publishedAt:x.published_at,awards:Object.fromEntries(Object.entries(JSON.parse(x.snapshot_json)).filter(([id])=>{const cat=CATEGORIES.find(c=>c.id===id);return cat&&(!cat.years||cat.years.includes(x.year));}))}))});
+   return JSON_RESPONSE({categories:await categoryCatalog(env),classes:(r.results||[]).map(x=>({classId:x.class_id,year:x.year,className:x.class_name,publishedAt:x.published_at,awards:Object.fromEntries(Object.entries(JSON.parse(x.snapshot_json)).filter(([id])=>{const cat=CATEGORIES.find(c=>c.id===id);return cat&&(!cat.years||cat.years.includes(x.year));}))}))});
   }
   if(path==='teacher/class'&&request.method==='GET'){
    requireRole(user,'teacher');const cls=await env.DB.prepare('SELECT id,year,name,status,updated_at,submitted_at FROM classes WHERE id=?').bind(user.classId).first();
    const d=await env.DB.prepare('SELECT category_id,names_json,version FROM drafts WHERE class_id=? AND category_id=?').bind(user.classId,'pbd').all();
    const n=await env.DB.prepare('SELECT category_id,names_json,version FROM nominations WHERE class_id=?').bind(user.classId).all();
-   const categories=CATEGORIES.filter(c=>c.teacher&&(!c.years||c.years.includes(cls.year))),allowed=new Set(categories.map(c=>c.id));
+   const categories=(await categoryCatalog(env)).filter(c=>c.teacher&&(!c.years||c.years.includes(cls.year))),allowed=new Set(categories.map(c=>c.id));
    return JSON_RESPONSE({class:cls,categories,drafts:Object.fromEntries([...(d.results||[]),...(n.results||[])].filter(x=>allowed.has(x.category_id)).map(x=>[x.category_id,{names:JSON.parse(x.names_json),version:x.version}]))});
   }
 
@@ -225,7 +237,7 @@ export async function onRequest({request,env}){
    if(r.meta?.changes)await logAction(env,user,'hantar_senarai',user.classId);return r.meta?.changes?JSON_RESPONSE({ok:true}):fail('Senarai sudah dihantar.',409);
   }
   if(path==='work/overview'&&request.method==='GET'){
-   const tahap=Number(url.searchParams.get('tahap')||0);if(![0,1,2].includes(tahap))return fail('Tahap tidak sah.');const categories=CATEGORIES.filter(c=>c.id!=='pbd'&&canWork(user,c.id,url.searchParams.get('scope')==='mine')&&(!tahap||((c.years||Object.keys(c.quota&&typeof c.quota==='object'?c.quota:{})).some(y=>tahap===1?+y<=3:+y>=4)||(c.scope==='total'&&!c.years))));if(!categories.length)return fail('Tiada tugasan kategori diberikan.',403);
+   const tahap=Number(url.searchParams.get('tahap')||0);if(![0,1,2].includes(tahap))return fail('Tahap tidak sah.');const categories=(await categoryCatalog(env)).filter(c=>c.id!=='pbd'&&canWork(user,c.id,url.searchParams.get('scope')==='mine')&&(!tahap||((c.years||Object.keys(c.quota&&typeof c.quota==='object'?c.quota:{})).some(y=>tahap===1?+y<=3:+y>=4)||(c.scope==='total'&&!c.years))));if(!categories.length)return fail('Tiada tugasan kategori diberikan.',403);
    const classes=(await env.DB.prepare('SELECT id,year,name,status FROM classes WHERE year BETWEEN 1 AND 5 ORDER BY year,name').all()).results||[];
    return JSON_RESPONSE({categories,classes});
   }
@@ -236,7 +248,7 @@ export async function onRequest({request,env}){
   }
   if(path==='work/save'&&request.method==='POST')return JSON_RESPONSE(await saveFinal(env,user,await reqBody(request),url.searchParams.get('scope')==='mine'));
   if(path==='admin/category-assignments'&&request.method==='GET'){
-   requireRole(user,'admin');return JSON_RESPONSE({assignments:(await env.DB.prepare('SELECT email,category_id,assigned_by,tahap FROM category_assignments ORDER BY email,category_id').all()).results||[],categories:CATEGORIES.filter(c=>c.id!=='pbd')});
+   requireRole(user,'admin');return JSON_RESPONSE({assignments:(await env.DB.prepare('SELECT email,category_id,assigned_by,tahap FROM category_assignments ORDER BY email,category_id').all()).results||[],categories:(await categoryCatalog(env)).filter(c=>c.id!=='pbd')});
   }
   if(path==='admin/category-assignments'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
@@ -267,12 +279,38 @@ export async function onRequest({request,env}){
    const result=await env.DB.prepare('DELETE FROM admin_grants WHERE email=?').bind(email).run();
    return result.meta?.changes?JSON_RESPONSE({ok:true}):fail('Pentadbir tidak ditemui.',404);
   }
+  if(path==='admin/award-titles'&&request.method==='GET'){
+   requireRole(user,'admin');
+   return JSON_RESPONSE({categories:await categoryCatalog(env)});
+  }
+  if(path==='admin/award-titles'&&request.method==='POST'){
+   requireRole(user,'admin');
+   const b=await reqBody(request);
+   const cat=typeof b.categoryId==='string'?CATEGORIES.find(c=>c.id===b.categoryId):null;
+   if(!cat)return fail('Kategori anugerah tidak sah.',400);
+   if(typeof b.title!=='string'||typeof b.reason!=='string'||!Number.isSafeInteger(b.version)||b.version<0)return fail('Format pembetulan nama anugerah tidak sah.',400);
+   const title=b.title.trim().replace(/\s+/g,' '),reason=b.reason.trim().replace(/\s+/g,' ');
+   if(title.length<3||title.length>130||/[<>\x00-\x1F]/.test(title))return fail('Nama anugerah perlu 3–130 aksara tanpa simbol kawalan atau tag HTML.',400);
+   if(reason.length<5||reason.length>400)return fail('Nyatakan sebab pertukaran nama (5–400 aksara).',400);
+   const current=await env.DB.prepare('SELECT title,version FROM award_title_overrides WHERE category_id=?').bind(cat.id).first();
+   if((current?.version||0)!==b.version)return fail('Nama anugerah telah disunting oleh Admin lain. Muat semula.',409);
+   const currentTitle=current?.title||cat.name;
+   if(currentTitle===title)return fail('Nama anugerah tidak berubah.',400);
+   if(!current){
+    const inserted=await env.DB.prepare('INSERT INTO award_title_overrides(category_id,title,version,updated_by,reason) VALUES(?,?,1,?,?) ON CONFLICT(category_id) DO NOTHING').bind(cat.id,title,user.email,reason).run();
+    if(inserted.meta?.changes!==1)return fail('Nama anugerah telah disunting oleh Admin lain. Muat semula.',409);
+   }else{
+    const updated=await env.DB.prepare("UPDATE award_title_overrides SET title=?,version=version+1,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now'),updated_by=?,reason=? WHERE category_id=? AND version=?").bind(title,user.email,reason,cat.id,b.version).run();
+    if(updated.meta?.changes!==1)return fail('Nama anugerah telah disunting oleh Admin lain. Muat semula.',409);
+   }
+   return JSON_RESPONSE({ok:true,categoryId:cat.id,name:title,defaultName:cat.name,version:b.version+1});
+  }
   if(path==='admin/overview'&&request.method==='GET'){requireRole(user,'admin');return JSON_RESPONSE(await overview(env));}
   if(path==='admin/class'&&request.method==='GET'){
    requireRole(user,'admin');const id=validateClassId(url.searchParams.get('id'));
    const [cls,drafts]=await Promise.all([env.DB.prepare('SELECT c.id,c.year,c.name,c.status,p.published_at FROM classes c LEFT JOIN publications p ON p.class_id=c.id WHERE c.id=?').bind(id).first(),env.DB.prepare('SELECT category_id,names_json,version FROM drafts WHERE class_id=?').bind(id).all()]);
    if(!cls)return fail('Kelas tidak ditemui.',404);
-   return JSON_RESPONSE({class:cls,categories:CATEGORIES.filter(c=>!c.years||c.years.includes(cls.year)),drafts:Object.fromEntries((drafts.results||[]).map(x=>[x.category_id,{names:JSON.parse(x.names_json),version:x.version}]))});
+   return JSON_RESPONSE({class:cls,categories:(await categoryCatalog(env)).filter(c=>!c.years||c.years.includes(cls.year)),drafts:Object.fromEntries((drafts.results||[]).map(x=>[x.category_id,{names:JSON.parse(x.names_json),version:x.version}]))});
   }
   if(path==='admin/assign'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email),id=validateClassId(b.classId);
@@ -348,8 +386,8 @@ export async function onRequest({request,env}){
    if(![0,1,2].includes(tahap)||!Number.isInteger(limit)||limit<1||limit>150)return fail('Penapis log tidak sah.');
    const actor=String(url.searchParams.get('actor')||'').trim().toLowerCase();if(actor.length>254)return fail('Penapis e-mel tidak sah.');
    const classId=String(url.searchParams.get('classId')||'').trim();if(classId)validateClassId(classId);
-   const rows=(await env.DB.prepare("SELECT l.id,l.at,l.actor_email,l.actor_role,l.action,l.class_id,l.category_id,l.before_json,l.after_json,l.note,l.source_table,c.year,c.name AS class_name FROM activity_logs l JOIN classes c ON c.id=l.class_id WHERE c.year BETWEEN 1 AND 5 AND (?=0 OR (?=1 AND c.year<=3) OR (?=2 AND c.year>=4)) AND (?='' OR l.actor_email LIKE ?) AND (?='' OR l.class_id=?) ORDER BY l.id DESC LIMIT ?").bind(tahap,tahap,tahap,actor,'%'+actor+'%',classId,classId,limit).all()).results||[];
-   return JSON_RESPONSE({logs:rows,categories:CATEGORIES.map(c=>({id:c.id,name:c.name})),maxRows:limit});
+   const rows=(await env.DB.prepare("SELECT l.id,l.at,l.actor_email,l.actor_role,l.action,l.class_id,l.category_id,l.before_json,l.after_json,l.note,l.source_table,c.year,c.name AS class_name FROM activity_logs l LEFT JOIN classes c ON c.id=l.class_id WHERE (l.class_id IS NULL OR c.year BETWEEN 1 AND 5) AND (?=0 OR l.class_id IS NULL OR (?=1 AND c.year<=3) OR (?=2 AND c.year>=4)) AND (?='' OR l.actor_email LIKE ?) AND (?='' OR l.class_id=?) ORDER BY l.id DESC LIMIT ?").bind(tahap,tahap,tahap,actor,'%'+actor+'%',classId,classId,limit).all()).results||[];
+   return JSON_RESPONSE({logs:rows,categories:(await categoryCatalog(env)).map(c=>({id:c.id,name:c.name})),maxRows:limit});
   }
   if(path==='admin/export'&&request.method==='GET'){requireRole(user,'admin');const format=url.searchParams.get('format')||'csv';if(!['csv','json'].includes(format))return fail('Format laporan tidak sah.');const data=await exportReportData(env,url);return format==='json'?JSON_RESPONSE(data):exportCSV(data);}
   return fail('Laluan API tidak wujud.',404);

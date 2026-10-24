@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {onRequest,CATEGORIES} from '../functions/api/[[path]].js';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
-function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));db.exec(file('../migrations/0005_portal_announcement.sql'));db.exec(file('../migrations/0006_family_hub.sql'));db.exec(file('../migrations/0007_tahap2_classes.sql'));db.exec(file('../migrations/0008_exclude_year6.sql'));db.exec(file('../migrations/0009_activity_logs.sql'));db.exec(file('../migrations/0010_preserve_delima_t2.sql'));db.exec(file('../migrations/0012_cerdas_plan_subgroups.sql'));db.exec(file('../migrations/0013_subject_awards_quota.sql'));
+function fixture(){const db=new DatabaseSync(':memory:');db.exec(file('../migrations/0001_init.sql'));db.exec(file('../migrations/0002_google_pwa.sql'));db.exec(file('../migrations/0003_admin_roles.sql'));db.exec(file('../migrations/0004_award_responsibilities.sql'));db.exec(file('../migrations/0005_portal_announcement.sql'));db.exec(file('../migrations/0006_family_hub.sql'));db.exec(file('../migrations/0007_tahap2_classes.sql'));db.exec(file('../migrations/0008_exclude_year6.sql'));db.exec(file('../migrations/0009_activity_logs.sql'));db.exec(file('../migrations/0010_preserve_delima_t2.sql'));db.exec(file('../migrations/0012_cerdas_plan_subgroups.sql'));db.exec(file('../migrations/0013_subject_awards_quota.sql'));db.exec(file('../migrations/0014_award_title_overrides.sql'));
 const adapter={prepare(sql){return {bind(...params){const statement=db.prepare(sql);return {first(){return statement.get(...params)||null},all(){return {results:statement.all(...params)}},run(){let result=statement.run(...params);return {meta:{changes:result.changes}}}};},all(){return {results:db.prepare(sql).all()}},first(){return db.prepare(sql).get()||null}}}};
 const env={DB:adapter,GOOGLE_CLIENT_ID:'fake.client',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
 async function addLogin(email,name=email){const sub=email;db.prepare('INSERT INTO users(sub,email,name) VALUES(?,?,?)').run(sub,email,name);const sid=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode('fixture:'+email))).toString('hex');const digest=await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(sid));const hash=Buffer.from(digest).toString('hex');db.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').run(hash,sub,Math.floor(Date.now()/1000)+3600);return `${'__Host-mapem_session'}=${sid}`;}
@@ -306,7 +306,7 @@ test('audit captures teacher edits and admin correction with exact name differen
  assert.deepEqual(JSON.parse(latest.before_json),names);assert.deepEqual(JSON.parse(latest.after_json),names.slice(0,4));
  assert.match(latest.note,/Tersalah nama/);
  assert.equal((await call(env,'admin/audit?tahap=1',{cookie:admin})).status,200);
- assert.equal((await call(env,'admin/correct',{cookie:admin,method:'POST',body:{classId:'4-crystal',categoryId:'uasa',names:[],version:0,reason:'Betulkan nama'}})).status,400);
+ assert.equal((await call(env,'admin/correct',{cookie:admin,method:'POST',body:{classId:'4-crystal',categoryId:'uasa',names:[],version:0,reason:'Betulkan nama'}})).status,200);
  assert.equal((await call(env,'admin/correct',{cookie:admin,method:'POST',body:{classId:'4-crystal',categoryId:'pbd',names:[],version:2,reason:'Betulkan nama'}})).status,200);
  const del=db.prepare('SELECT action FROM activity_logs WHERE class_id=? ORDER BY id DESC LIMIT 1').get('4-crystal');
  assert.equal(del.action,'kosongkan_nama');
@@ -469,4 +469,60 @@ test('subject restructuring migration aborts if legacy generic student names app
  db.prepare('DELETE FROM subject_restructure_verified').run();
  assert.throws(()=>db.exec(file('../migrations/0013_subject_awards_quota.sql')),/CHECK constraint failed|constraint failed/i);
  assert.equal(db.prepare("SELECT names_json FROM drafts WHERE class_id='4-crystal' AND category_id='matapelajaran'").get().names_json,'["Murid Belum Diklasifikasikan"]');
+});
+
+
+test('admin can rename every stable award category; recipient data, quotas, viewer and exports use display title',async()=>{
+ const {db,env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com'),teacher=await addLogin('guru@example.com'),viewer=await addLogin('parent@example.com');
+ const post=(cookie,body)=>call(env,'admin/award-titles',{cookie,method:'POST',body});
+ db.prepare("INSERT INTO teacher_assignments(email,class_id) VALUES('guru@example.com','4-crystal')").run();
+ const original=CATEGORIES.find(c=>c.id==='pbd').name;
+ assert.equal((await call(env,'admin/award-titles',{cookie:viewer})).status,403);
+ assert.equal((await call(env,'admin/award-titles',{cookie:teacher})).status,403);
+ assert.equal((await post(viewer,{categoryId:'pbd',title:'PBD Juara',version:0,reason:'Surat rasmi'})).status,403);
+ assert.equal((await post(teacher,{categoryId:'pbd',title:'PBD Juara',version:0,reason:'Surat rasmi'})).status,403);
+ assert.equal((await post(admin,{categoryId:'invalid',title:'Salah',version:0,reason:'Betulkan nama'})).status,400);
+ assert.equal((await post(admin,{categoryId:'pbd',title:'<script>x</script>',version:0,reason:'Betulkan nama'})).status,400);
+ assert.equal((await post(admin,{categoryId:'pbd',title:'Nama Baru',version:0,reason:'x'})).status,400);
+ const changed=await post(admin,{categoryId:'pbd',title:'Anugerah PBD Cemerlang',version:0,reason:'Selaras nama rasmi'});
+ assert.equal(changed.status,200);assert.equal((await json(changed)).version,1);
+ const display=(await json(await call(env,'admin/award-titles',{cookie:admin}))).categories.find(c=>c.id==='pbd');
+ assert.equal(display.name,'Anugerah PBD Cemerlang');
+ assert.equal(display.defaultName,original);
+ assert.equal(display.titleVersion,1);
+ assert.equal(display.customTitle,true);
+ assert.equal(CATEGORIES.find(c=>c.id==='pbd').name,original);
+ assert.equal((await json(await call(env,'teacher/class',{cookie:teacher}))).categories[0].name,'Anugerah PBD Cemerlang');
+ assert.equal((await json(await call(env,'admin/overview',{cookie:admin}))).categories.find(c=>c.id==='pbd').name,'Anugerah PBD Cemerlang');
+ assert.equal((await json(await call(env,'admin/class?id=4-crystal',{cookie:admin}))).categories.find(c=>c.id==='pbd').name,'Anugerah PBD Cemerlang');
+ assert.equal((await json(await call(env,'admin/export?format=json&tahap=2',{cookie:admin}))).categories.find(c=>c.id==='pbd').name,'Anugerah PBD Cemerlang');
+ assert.equal((await json(await call(env,'published',{cookie:viewer}))).categories.find(c=>c.id==='pbd').name,'Anugerah PBD Cemerlang');
+ assert.equal((await post(admin,{categoryId:'pbd',title:'Versi usang',version:0,reason:'Percubaan serentak'})).status,409);
+ const audit=await json(await call(env,'admin/audit?tahap=2',{cookie:admin}));
+ const change= audit.logs.find(x=>x.action==='tukar_nama_anugerah'&&x.category_id==='pbd');
+ assert(change);assert.equal(change.actor_email,'admin@gmail.com');
+ assert.deepEqual(JSON.parse(change.after_json),['Anugerah PBD Cemerlang']);
+ assert.equal(change.note,'Selaras nama rasmi');
+ assert.equal((await post(admin,{categoryId:'pbd',title:original,version:1,reason:'Kembalikan nama rasmi'})).status,200);
+ const reverted=(await json(await call(env,'admin/award-titles',{cookie:admin}))).categories.find(c=>c.id==='pbd');
+ assert.equal(reverted.name,original);assert.equal(reverted.titleVersion,2);
+ assert.equal(db.prepare("SELECT count(*) AS n FROM activity_logs WHERE action='tukar_nama_anugerah'").get().n,2);
+ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM drafts").get().n,0);
+});
+test('award title overrides also work for specialist categories without changing quotas or permissions',async()=>{
+ const {env,db,addLogin}=fixture(),admin=await addLogin('admin@gmail.com'),specialist=await addLogin('pic@example.com'),viewer=await addLogin('viewer@gmail.com');
+ const categories=CATEGORIES.filter(c=>c.id!=='pbd');
+ assert(categories.length>20);
+ db.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES('pic@example.com','subjek-sej','admin@gmail.com',2)").run();
+ const update=await call(env,'admin/award-titles',{cookie:admin,method:'POST',body:{categoryId:'subjek-sej',title:'Anugerah Pencapaian Sejarah Gemilang',reason:'Nama rasmi sekolah',version:0}});
+ assert.equal(update.status,200);
+ const work=await json(await call(env,'work/overview?scope=mine',{cookie:specialist}));
+ assert.equal(work.categories.find(c=>c.id==='subjek-sej').name,'Anugerah Pencapaian Sejarah Gemilang');
+ const details=await json(await call(env,'work/class?classId=4-crystal&categoryId=subjek-sej&scope=mine',{cookie:specialist}));
+ assert.equal(details.category.name,'Anugerah Pencapaian Sejarah Gemilang');
+ assert.equal(details.category.quota[4],5);
+ assert.equal((await call(env,'work/class?classId=3-crystal&categoryId=subjek-sej&scope=mine',{cookie:specialist})).status,403);
+ assert.equal((await json(await call(env,'admin/category-assignments',{cookie:admin}))).categories.find(c=>c.id==='subjek-sej').name,'Anugerah Pencapaian Sejarah Gemilang');
+ assert.equal((await json(await call(env,'published',{cookie:viewer}))).categories.find(c=>c.id==='subjek-sej').name,'Anugerah Pencapaian Sejarah Gemilang');
+ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM award_title_overrides").get().n,1);
 });
