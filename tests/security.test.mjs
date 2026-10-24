@@ -578,7 +578,7 @@ test('existing single announcement is retained exactly once when upgrading to mu
  db.prepare("UPDATE portal_announcement SET title=?,body=?,enabled=1,version=7 WHERE id=1").run('Makluman Lama','Pengumuman sedia ada');
  db.exec(file('../migrations/0015_multiple_announcements.sql'));
  let row=db.prepare('SELECT title,body,enabled,version FROM portal_announcements WHERE id=1').get();
- assert.deepEqual(row,{title:'Makluman Lama',body:'Pengumuman sedia ada',enabled:1,version:7});
+ assert.deepEqual({...row},{title:'Makluman Lama',body:'Pengumuman sedia ada',enabled:1,version:7});
  db.exec(file('../migrations/0015_multiple_announcements.sql'));
  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM portal_announcements').get().n,1);
  row=db.prepare('SELECT title FROM portal_announcements WHERE id=1').get();
