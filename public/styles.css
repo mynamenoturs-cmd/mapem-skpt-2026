@@ -129,3 +129,43 @@ footer{background:#38091b;border-top-color:#bf94534a}.footer{color:#d2b39b}.hero
 #award-title-dialog .dialog-body .field{margin-top:15px}
 #award-title-dialog #award-title-input{width:100%;font-size:15px}
 @media(max-width:550px){.award-title-item{align-items:flex-start;flex-direction:column;padding:13px}.award-title-item .btn{align-self:flex-start}.award-title-main strong{font-size:13px}}
+
+
+/* MULTIPLE ANNOUNCEMENTS — MaPeM: compact public feed and native admin management */
+.announcement-feed{display:grid;gap:16px;min-width:0;margin:14px 0 25px}
+.announcement-feed .portal-announcement{margin:0;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.announcement-feed .portal-announcement:hover{transform:translateY(-2px);box-shadow:0 17px 35px rgba(52,12,30,.17)}
+.announcement-feed .portal-announcement.announcement-pinned{border-color:#ffdc8a;box-shadow:0 12px 30px rgba(118,60,34,.16),inset 0 0 0 1px rgba(251,217,144,.4)}
+.announcement-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.announcement-head time{font-size:11px;color:#f2d9b1;white-space:nowrap}
+.announcement-more{border:1px solid #e3c89e;border-radius:16px;background:#fffaf1;padding:14px 17px}
+.announcement-more>summary{font-weight:800;color:#681e34;cursor:pointer;list-style-position:inside}
+.announcement-more[open]>.announcement-feed{margin-top:15px;margin-bottom:0}
+.announcement-dashboard-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:16px 0 19px}
+.announcement-dashboard-stats>div{display:flex;flex-direction:column;gap:4px;background:#fff;border:1px solid #e8dac8;border-radius:15px;padding:16px 18px;box-shadow:0 6px 18px rgba(54,11,31,.045)}
+.announcement-dashboard-stats b{font-size:27px;color:#712442}
+.announcement-dashboard-stats small{font-size:11px;color:#816b78}
+.announcement-privacy{margin:15px 0 20px}
+.announcement-manage-list{display:grid;gap:13px;margin:15px 0 30px}
+.announcement-manage-item{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:21px 22px;border-radius:18px;border:1px solid #ead9c5;background:linear-gradient(115deg,#fffefc,#fffaf4);box-shadow:0 9px 24px rgba(65,23,38,.048)}
+.announcement-manage-main{min-width:0;flex:1}
+.announcement-manage-flags{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:10px}
+.announcement-manage-flags .status{font-size:10px}
+.announcement-pin-label{font-weight:700;color:#986322;font-size:11px}
+.announcement-manage-item h3{font-size:18px;color:#5c1d37;letter-spacing:-.2px;margin:8px 0}
+.announcement-manage-excerpt{white-space:pre-line;overflow-wrap:anywhere;font-size:12px;color:#786878;line-height:1.65;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:9px 0 13px}
+.announcement-manage-item small{font-size:10px;color:#968596;overflow-wrap:anywhere}
+.announcement-manage-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start;gap:8px;max-width:312px}
+.announcement-manage-actions .btn{font-size:10px;border-radius:9px;white-space:nowrap;padding:8px 10px}
+.announcement-editor-dialog{width:min(96vw,620px)}
+.announcement-editor-dialog .dialog-body{max-height:min(65vh,680px);overflow:auto}
+.announcement-editor-dialog .field{margin:14px 0}
+.announcement-editor-dialog .announcement-toggle{font-size:13px;margin:13px 0}
+.announcement-editor-preview{margin-top:20px}
+.announcement-editor-preview>h3{font-size:13px;color:#6c3646;margin:0 0 8px}
+.announcement-editor-preview .portal-announcement{margin:0;padding:17px 20px}
+.announcement-editor-preview .portal-announcement h2{font-size:19px}
+.announcement-editor-preview .portal-announcement p{font-size:12px}
+@media(max-width:780px){.announcement-manage-item{flex-direction:column;padding:18px}.announcement-manage-actions{max-width:none;width:100%;justify-content:flex-start}.announcement-manage-actions .btn{flex:0 0 auto}.announcement-dashboard-stats{gap:9px}.announcement-dashboard-stats>div{padding:13px}}
+@media(max-width:420px){.announcement-dashboard-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.announcement-dashboard-stats>div{padding:11px 8px;border-radius:11px}.announcement-dashboard-stats b{font-size:21px}.announcement-dashboard-stats small{font-size:9px}.announcement-manage-item h3{font-size:15px}.announcement-manage-actions{gap:5px}.announcement-manage-actions .btn{padding:8px;font-size:10px}.announcement-head time{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.announcement-feed .portal-announcement{transition:none}.announcement-feed .portal-announcement:hover{transform:none}}
