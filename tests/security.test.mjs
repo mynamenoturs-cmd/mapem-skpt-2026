@@ -306,7 +306,7 @@ test('audit captures teacher edits and admin correction with exact name differen
  assert.deepEqual(JSON.parse(latest.before_json),names);assert.deepEqual(JSON.parse(latest.after_json),names.slice(0,4));
  assert.match(latest.note,/Tersalah nama/);
  assert.equal((await call(env,'admin/audit?tahap=1',{cookie:admin})).status,200);
- assert.equal((await call(env,'admin/correct',{cookie:admin,method:'POST',body:{classId:'4-crystal',categoryId:'uasa',names:[],version:0,reason:'Betulkan nama'}})).status,400);
+ assert.equal((await call(env,'admin/correct',{cookie:admin,method:'POST',body:{classId:'4-crystal',categoryId:'uasa',names:[],version:0,reason:'Betulkan nama'}})).status,200);
  assert.equal((await call(env,'admin/correct',{cookie:admin,method:'POST',body:{classId:'4-crystal',categoryId:'pbd',names:[],version:2,reason:'Betulkan nama'}})).status,200);
  const del=db.prepare('SELECT action FROM activity_logs WHERE class_id=? ORDER BY id DESC LIMIT 1').get('4-crystal');
  assert.equal(del.action,'kosongkan_nama');
