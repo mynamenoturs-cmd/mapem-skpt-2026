@@ -232,13 +232,72 @@ async function loadLoginAnnouncement(){
  }catch{/* Login remains available if announcements cannot load. */}
 }
 async function renderAnnouncementEditor(){
- const target=$('admin-content');target.innerHTML='<div class="empty">Memuatkan pengumuman...</div>';
- let data;try{data=await api('admin/announcement');}catch(e){if(target.isConnected)target.textContent=e.message;return;}if(!target.isConnected||state.tab!=='announcement')return;
- target.innerHTML=`<div class="section-title"><div><h2>Pengumuman portal</h2><p>Sunting mesej pada halaman log masuk tanpa mengubah kod.</p></div></div><form id="announcement-form" class="card"><div class="notice warning">Pengumuman yang diterbitkan boleh dibaca oleh sesiapa sebelum log masuk. Gunakan maklumat umum sahaja; jangan masukkan nama murid, nombor telefon peribadi atau maklumat sulit.</div><div class="field"><label for="announcement-title">Tajuk pengumuman</label><input id="announcement-title" maxlength="120" value="${esc(data.title)}" placeholder="Contoh: Makluman pengisian MaPeM"></div><div class="field"><label for="announcement-body">Mesej pengumuman</label><textarea id="announcement-body" maxlength="3000" rows="7" placeholder="Tulis makluman, arahan atau pengumuman majlis di sini.">${esc(data.body)}</textarea><small class="hint">Teks biasa sahaja. Maksimum 3000 aksara.</small></div><label class="announcement-toggle"><input id="announcement-enabled" type="checkbox" ${data.enabled?'checked':''}> Paparkan pada halaman log masuk</label><div class="dialog-actions"><span id="announcement-status" role="status" class="save-status">${data.enabled?'Sedang diterbitkan':'Disembunyikan daripada orang awam'}</span><button class="btn" type="submit" id="announcement-save">Simpan pengumuman</button></div></form><section class="section"><h3>Pratonton</h3><p class="hint">Pratonton belum diterbitkan sehingga anda menekan Simpan.</p><div id="announcement-preview"></div></section>`;
- const preview=()=>{$('announcement-preview').innerHTML=announcementHTML({title:$('announcement-title').value||'Tajuk pengumuman',body:$('announcement-body').value||'Mesej pengumuman akan dipaparkan di sini.'});};preview();$('announcement-title').oninput=preview;$('announcement-body').oninput=preview;
- $('announcement-form').onsubmit=async e=>{e.preventDefault();const button=$('announcement-save'),status=$('announcement-status');button.disabled=true;status.textContent='Menyimpan...';try{const enabled=$('announcement-enabled').checked;const result=await api('admin/announcement','POST',{title:$('announcement-title').value,body:$('announcement-body').value,enabled,version:data.version});data.version=result.version;status.textContent=enabled?'Disimpan dan diterbitkan pada halaman log masuk.':'Disimpan dan disembunyikan daripada halaman log masuk.';msg('Pengumuman berjaya disimpan.');}catch(e){status.textContent=e.message;}finally{button.disabled=false;}};
+ const target=$('admin-content');
+ target.innerHTML='<div class="empty">Memuatkan senarai pengumuman...</div>';
+ let data;
+ try{data=await api('admin/announcements');}
+ catch(e){if(target.isConnected)target.textContent=e.message;return;}
+ if(!target.isConnected||state.tab!=='announcement')return;
+ const list=data.announcements||[];
+ const active=list.filter(x=>x.enabled).length;
+ const formatTime=value=>{
+  if(!value)return '';
+  const str=String(value),d=new Date(str.includes('T')?str:str.replace(' ','T')+'Z');
+  return Number.isNaN(d.getTime())?'':d.toLocaleString('ms-MY',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kuala_Lumpur'});
+ };
+ target.innerHTML=`<div class="section-title"><div><span class="section-kicker">PENGURUSAN MAKLUMAN</span><h2>Pengumuman Portal</h2><p>Tambah makluman baharu. Setiap pengumuman boleh disunting, diterbitkan, disembunyikan, disemat atau dipadam secara berasingan.</p></div><button id="announcement-add" class="btn">＋ Pengumuman baharu</button></div><div class="announcement-dashboard-stats"><div><b>${list.length}</b><small>Jumlah pengumuman</small></div><div><b>${active}</b><small>Sedang diterbitkan</small></div><div><b>${list.length-active}</b><small>Draf / tersembunyi</small></div></div><div class="notice warning announcement-privacy">Pengumuman aktif boleh dibaca sebelum log masuk. Jangan sertakan maklumat sulit, nama murid atau nombor telefon peribadi.</div><div class="announcement-manage-list">${list.length?list.map(a=>`<article class="announcement-manage-item"><div class="announcement-manage-main"><div class="announcement-manage-flags"><span class="status ${a.enabled?'published':'draft'}">${a.enabled?'Diterbitkan':'Draf / tersembunyi'}</span>${a.pinned?'<span class="announcement-pin-label">✦ Disemat di atas</span>':''}</div><h3>${esc(a.title)}</h3><p class="announcement-manage-excerpt">${esc(a.body)}</p><small>${esc(formatTime(a.updated_at))}${a.updated_by?' · '+esc(a.updated_by):''}</small></div><div class="announcement-manage-actions"><button type="button" class="btn btn-outline btn-small" data-ann-edit="${a.id}">✎ Sunting</button><button type="button" class="btn btn-outline btn-small" data-ann-pin="${a.id}">${a.pinned?'Nyahsemat':'✦ Semat'}</button><button type="button" class="btn ${a.enabled?'btn-outline':'btn-green'} btn-small" data-ann-toggle="${a.id}">${a.enabled?'Sembunyikan':'Terbitkan'}</button><button type="button" class="btn btn-red btn-small" data-ann-delete="${a.id}">Padam</button></div></article>`).join(''):'<div class="card hub-empty"><h3>Belum ada pengumuman.</h3><p>Tekan Pengumuman baharu untuk menyediakan makluman pertama.</p></div>'}</div>`;
+ $('announcement-add').onclick=()=>openAnnouncementEditor(null);
+ const find=id=>list.find(a=>a.id===Number(id));
+ const mutate=async(btn,route,body,success)=>{
+  btn.disabled=true;
+  try{await api(route,'POST',body);msg(success);await renderAnnouncementEditor();}
+  catch(err){msg(err.message);btn.disabled=false;}
+ };
+ target.querySelectorAll('[data-ann-edit]').forEach(btn=>btn.onclick=()=>openAnnouncementEditor(find(btn.dataset.annEdit)));
+ target.querySelectorAll('[data-ann-pin]').forEach(btn=>btn.onclick=()=>{
+  const a=find(btn.dataset.annPin);if(!a)return;
+  mutate(btn,'admin/announcements/update',{id:a.id,title:a.title,body:a.body,pinned:!a.pinned,enabled:a.enabled,version:a.version},a.pinned?'Pengumuman dinyahsemat.':'Pengumuman disemat di atas.');
+ });
+ target.querySelectorAll('[data-ann-toggle]').forEach(btn=>btn.onclick=()=>{
+  const a=find(btn.dataset.annToggle);if(!a)return;
+  if(!a.enabled&&!confirm('Terbitkan pengumuman ini untuk semua pelawat, termasuk sebelum log masuk?'))return;
+  mutate(btn,'admin/announcements/update',{id:a.id,title:a.title,body:a.body,pinned:a.pinned,enabled:!a.enabled,version:a.version},a.enabled?'Pengumuman disembunyikan.':'Pengumuman diterbitkan.');
+ });
+ target.querySelectorAll('[data-ann-delete]').forEach(btn=>btn.onclick=()=>{
+  const a=find(btn.dataset.annDelete);
+  if(!a||!confirm('Padam pengumuman "'+a.title+'"? Pengumuman hilang daripada portal tetapi sejarah audit kekal.'))return;
+  mutate(btn,'admin/announcements/delete',{id:a.id,version:a.version},'Pengumuman telah dipadam daripada senarai.');
+ });
 }
-
+function openAnnouncementEditor(item){
+ document.querySelector('#announcement-editor-dialog')?.remove();
+ const dialog=document.createElement('dialog');
+ dialog.id='announcement-editor-dialog';dialog.className='app-dialog announcement-editor-dialog';
+ const isNew=!item;
+ dialog.innerHTML=`<div class="dialog-heading"><div><span class="eyebrow">${isNew?'MAKLUMAN BAHARU':'KEMAS KINI MAKLUMAN'}</span><h2>${isNew?'Tambah pengumuman':'Sunting pengumuman'}</h2></div><button type="button" class="icon-btn" id="ann-editor-close" aria-label="Tutup">×</button></div><form id="ann-editor-form"><div class="dialog-body"><div class="field"><label for="ann-title">Tajuk pengumuman</label><input id="ann-title" maxlength="120" minlength="3" required autocomplete="off" placeholder="Contoh: Makluman Hari Anugerah"></div><div class="field"><label for="ann-body">Mesej pengumuman</label><textarea id="ann-body" maxlength="3000" rows="6" required placeholder="Tulis pengumuman untuk guru dan ibu bapa..."></textarea><small class="hint">Maksimum 3000 aksara; teks biasa tanpa HTML.</small></div><label class="announcement-toggle"><input type="checkbox" id="ann-enabled"> Terbitkan kepada semua pelawat sekarang</label><label class="announcement-toggle"><input type="checkbox" id="ann-pinned"> ✦ Semat pengumuman di bahagian paling atas</label><div class="notice">Untuk menyimpan sebagai draf, biarkan kotak Terbitkan tidak ditandakan.</div><p id="ann-editor-status" class="save-status" role="status"></p><div class="announcement-editor-preview"><h3>Pratonton</h3><div id="ann-preview"></div></div></div><div class="dialog-actions"><button type="button" class="btn btn-outline" id="ann-editor-cancel">Batal</button><button type="submit" class="btn" id="ann-editor-save">${isNew?'Tambah pengumuman':'Simpan perubahan'}</button></div></form>`;
+ document.body.append(dialog);
+ const title=$('ann-title'),body=$('ann-body'),enabled=$('ann-enabled'),pinned=$('ann-pinned');
+ title.value=item?.title||'';body.value=item?.body||'';enabled.checked=Boolean(item?.enabled);pinned.checked=Boolean(item?.pinned);
+ const preview=()=>{$('ann-preview').innerHTML=announcementHTML({title:title.value||'Tajuk pengumuman',body:body.value||'Mesej pengumuman',pinned:pinned.checked,updatedAt:item?.updated_at||null});};
+ for(const field of [title,body])field.oninput=preview;
+ pinned.onchange=preview;enabled.onchange=preview;preview();
+ const close=()=>dialog.close();$('ann-editor-close').onclick=close;$('ann-editor-cancel').onclick=close;
+ dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+ $('ann-editor-form').onsubmit=async e=>{
+  e.preventDefault();
+  const textTitle=title.value.trim(),textBody=body.value.trim(),btn=$('ann-editor-save'),status=$('ann-editor-status');
+  if(textTitle.length<3||textTitle.length>120||!textBody||textBody.length>3000){status.textContent='Isi tajuk 3–120 aksara dan mesej sehingga 3000 aksara.';return;}
+  if(enabled.checked&&!item?.enabled&&!confirm('Pengumuman ini akan dipaparkan kepada semua pelawat, termasuk sebelum log masuk. Teruskan?'))return;
+  btn.disabled=true;status.textContent='Menyimpan pengumuman...';
+  try{
+   const route=isNew?'admin/announcements/create':'admin/announcements/update';
+   await api(route,'POST',{...(item?{id:item.id,version:item.version}:{}),title:textTitle,body:textBody,enabled:enabled.checked,pinned:pinned.checked});
+   dialog.close();msg(isNew?'Pengumuman baharu berjaya ditambah.':'Pengumuman berjaya dikemas kini.');
+   await renderAnnouncementEditor();
+  }catch(err){status.textContent=err.message;btn.disabled=false;}
+ };
+ dialog.showModal();title.focus();
+}
 async function renderEventEditor(){const target=$('admin-content');target.innerHTML='<div class="empty">Memuatkan maklumat majlis...</div>';let data;try{data=await api('admin/event');}catch(e){if(target.isConnected)target.textContent=e.message;return;}if(!target.isConnected||state.tab!=='event')return;const labels={title:'Nama majlis',date:'Tarikh',time:'Masa mula (waktu Malaysia)',venue:'Tempat / alamat lengkap',dresscode:'Panduan pakaian',schedule:'Atur cara — satu aktiviti setiap baris',guidance:'Panduan kehadiran / maklumat tambahan'};target.innerHTML=`<div class="section-title"><div><h2>Maklumat majlis</h2><p>Diterbitkan dalam Hab Guru &amp; Ibu Bapa. Isi maklumat yang telah disahkan sahaja.</p></div></div><form class="card" id="event-form"><div class="notice">Maklumat majlis yang diterbitkan ialah maklumat umum. Nama penerima tetap memerlukan log masuk dan penerbitan senarai berasingan.</div>${Object.entries(labels).map(([key,label])=>`<div class="field"><label for="event-${key}">${label}</label>${['schedule','guidance'].includes(key)?`<textarea id="event-${key}" rows="5" maxlength="${key==='schedule'?6000:3000}" placeholder="${key==='schedule'?'07:00 | Pendaftaran tetamu':''}">${esc(data.event[key])}</textarea>`:`<input id="event-${key}" type="${key==='date'?'date':key==='time'?'time':'text'}" maxlength="${key==='title'?120:key==='venue'?250:200}" value="${esc(data.event[key])}">`}</div>`).join('')}<label class="announcement-toggle"><input type="checkbox" id="event-enabled" ${data.enabled?'checked':''}> Terbitkan maklumat majlis</label><div class="dialog-actions"><span id="event-status" role="status" class="save-status">${data.enabled?'Sedang diterbitkan':'Belum diterbitkan'}</span><button class="btn" id="event-save">Simpan maklumat</button></div></form><section class="section"><h3>Pratonton sebelum diterbitkan</h3><div id="event-preview"></div></section>`;const read=()=>Object.fromEntries(Object.keys(labels).map(key=>[key,$('event-'+key).value]));const preview=()=>{$('event-preview').innerHTML=eventMarkup(read());const calendar=$('event-preview').querySelector('#hub-calendar');if(calendar)calendar.disabled=true;$('event-preview').querySelector('.event-actions')?.remove();};for(const key of Object.keys(labels))$('event-'+key).oninput=()=>{state.eventDirty=true;preview();};$('event-enabled').onchange=()=>{state.eventDirty=true;};preview();$('event-form').onsubmit=async e=>{e.preventDefault();const btn=$('event-save');btn.disabled=true;try{const result=await api('admin/event','POST',{event:read(),enabled:$('event-enabled').checked,version:data.version});data.version=result.version;state.eventDirty=false;$('event-status').textContent=$('event-enabled').checked?'Disimpan dan diterbitkan.':'Disimpan sebagai draf.';msg('Maklumat majlis berjaya disimpan.');}catch(e){$('event-status').textContent=e.message;}finally{btn.disabled=false;}};}
 
 function openExportReport(){
