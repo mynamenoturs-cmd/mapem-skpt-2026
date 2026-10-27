@@ -288,16 +288,31 @@ export async function onRequest({request,env}){
    return JSON_RESPONSE(await workData(env,cls,cat));
   }
   if(path==='work/save'&&request.method==='POST')return JSON_RESPONSE(await saveFinal(env,user,await reqBody(request),url.searchParams.get('scope')==='mine'));
+  if(path==='admin/assignment-email'&&request.method==='GET'){
+   requireRole(user,'admin');
+   const email=adminTeacherEmail(url.searchParams.get('email'));
+   const account=await env.DB.prepare('SELECT name,updated_at FROM users WHERE lower(email)=? ORDER BY updated_at DESC LIMIT 1').bind(email).first();
+   return JSON_RESPONSE({email,registered:!!account,googleName:account?.name||null,lastGoogleLogin:account?.updated_at||null,
+    message:account?'E-mel sepadan dengan akaun Google yang pernah log masuk ke MaPeM.':'E-mel belum pernah digunakan untuk log masuk ke MaPeM. Tugasan boleh diberikan, tetapi guru mesti log masuk dengan alamat yang sama.'});
+  }
   if(path==='admin/category-assignments'&&request.method==='GET'){
-   requireRole(user,'admin');return JSON_RESPONSE({assignments:(await env.DB.prepare('SELECT email,category_id,assigned_by,tahap FROM category_assignments ORDER BY email,category_id').all()).results||[],categories:(await categoryCatalog(env)).filter(c=>c.id!=='pbd')});
+   requireRole(user,'admin');return JSON_RESPONSE({assignments:(await env.DB.prepare('SELECT a.email,a.category_id,a.assigned_by,a.tahap,CASE WHEN EXISTS (SELECT 1 FROM users u WHERE lower(u.email)=a.email) THEN 1 ELSE 0 END AS has_login,(SELECT u.name FROM users u WHERE lower(u.email)=a.email ORDER BY u.updated_at DESC LIMIT 1) AS google_name FROM category_assignments a ORDER BY a.email,a.category_id').all()).results||[],categories:(await categoryCatalog(env)).filter(c=>c.id!=='pbd')});
   }
   if(path==='admin/category-assignments'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
    const tahap=b.tahap===undefined?0:Number(b.tahap);if(![0,1,2].includes(tahap))return fail('Tahap tugasan tidak sah.');const ids=b.categoryIds;if(!Array.isArray(ids)||!ids.length||ids.length>CATEGORIES.length-1||new Set(ids).size!==ids.length||ids.some(id=>!CATEGORIES.some(c=>c.id===id&&c.id!=='pbd')))return fail('Pilih tugasan kategori yang sah.');
+   const stageHasCategory=(category,t)=>t===0||(category.years||Object.keys(category.quota&&typeof category.quota==='object'?category.quota:{})).some(y=>t===1?Number(y)<=3:Number(y)>=4&&Number(y)<=5);
+   if(ids.some(id=>!stageHasCategory(CATEGORIES.find(c=>c.id===id),tahap)))return fail('Kategori yang dipilih tidak sesuai dengan tahap tugasan.',400);
    // One school award: assigning either group always grants both groups of Cerdas PLaN.
    const assignIds=ids.some(id=>id==='plan'||id==='plan-pemulihan')?[...new Set([...ids,'plan','plan-pemulihan'])]:ids;
    for(const id of assignIds)await env.DB.prepare("INSERT INTO category_assignments(email,category_id,assigned_by,tahap) VALUES(?,?,?,?) ON CONFLICT(email,category_id) DO UPDATE SET assigned_by=excluded.assigned_by,tahap=excluded.tahap,updated_at=datetime('now')").bind(email,id,user.email,['plan','plan-pemulihan'].includes(id)?0:tahap).run();
-   return JSON_RESPONSE({ok:true});
+   // Confirm persistence from D1. An email entered manually is an ACCESS GRANT, not an outgoing email notification.
+   const saved=(await env.DB.prepare('SELECT category_id,tahap FROM category_assignments WHERE email=?').bind(email).all()).results||[];
+   const assigned=assignIds.map(id=>saved.find(x=>x.category_id===id)).filter(Boolean);
+   if(assigned.length!==assignIds.length)throw new Error('Tugasan tidak dapat disahkan dalam database.');
+   const account=await env.DB.prepare('SELECT name FROM users WHERE lower(email)=? ORDER BY updated_at DESC LIMIT 1').bind(email).first();
+   await logAction(env,user,'tugasan_diberikan',null,null,email+' · '+assigned.map(x=>x.category_id).join(',')+' · tahap '+tahap);
+   return JSON_RESPONSE({ok:true,email,assigned,registered:!!account,googleName:account?.name||null});
   }
   if(path==='admin/category-assignments/revoke'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
@@ -357,7 +372,11 @@ export async function onRequest({request,env}){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email),id=validateClassId(b.classId);
    const cls=await env.DB.prepare('SELECT id FROM classes WHERE id=?').bind(id).first();if(!cls)return fail('Kelas tidak ditemui.',404);
    await env.DB.prepare('INSERT INTO teacher_assignments(email,class_id,updated_at) VALUES(?,?,datetime(\'now\')) ON CONFLICT(email) DO UPDATE SET class_id=excluded.class_id,updated_at=datetime(\'now\')').bind(email,id).run();
-   return JSON_RESPONSE({ok:true});
+   const saved=await env.DB.prepare('SELECT class_id FROM teacher_assignments WHERE email=?').bind(email).first();
+   if(saved?.class_id!==id)throw new Error('Tugasan guru kelas tidak dapat disahkan dalam database.');
+   const account=await env.DB.prepare('SELECT name FROM users WHERE lower(email)=? ORDER BY updated_at DESC LIMIT 1').bind(email).first();
+   await logAction(env,user,'guru_kelas_ditugaskan',id,null,email);
+   return JSON_RESPONSE({ok:true,email,classId:id,registered:!!account,googleName:account?.name||null});
   }
   if(path==='admin/unassign'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
