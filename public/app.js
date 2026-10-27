@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const root=document.querySelector('#root'),toast=document.querySelector('#toast'),chip=document.querySelector('#role-chip'),logoutBtn=document.querySelector('#logout'),installBtn=document.querySelector('#install'),viewBtn=document.querySelector('#view');
-const state={me:null,mode:'admin',tab:'classes',year:0,tahap:1,viewerTahap:1,overview:null,selectedClass:'',workCategory:'',workClass:'',workDirty:false,eventDirty:false,activeSpecial:'',classDetails:null,timers:{},saving:{},pendingEdit:{},drafts:null,teacherData:null,installEvent:null,conflicts:{}};
+const state={me:null,mode:'admin',tab:'classes',year:0,tahap:1,viewerTahap:1,overview:null,selectedClass:'',workCategory:'',workClass:'',workDirty:false,eventDirty:false,activeSpecial:'',classDetails:null,timers:{},saving:{},pendingEdit:{},drafts:null,teacherData:null,installEvent:null,conflicts:{},taskFeedback:null};
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=id=>document.getElementById(id);
 const msg=s=>{const dialog=document.querySelector('dialog[open]');if(dialog){let notice=dialog.querySelector('.dialog-message');if(!notice){notice=document.createElement('div');notice.className='notice warning dialog-message';notice.setAttribute('role','status');dialog.querySelector('.dialog-body').prepend(notice);}notice.textContent=s;}toast.textContent=s;toast.classList.add('show');clearTimeout(msg.timer);msg.timer=setTimeout(()=>toast.classList.remove('show'),4500);};
@@ -263,14 +263,85 @@ async function renderWorkEditor(targetId='admin-content'){
  }
  categorySelect.onchange=()=>{if(!guardWorkChange()){categorySelect.value=state.workCategory;return;}fillClasses();load();};classSelect.onchange=()=>{if(!guardWorkChange()){classSelect.value=state.workClass;return;}load();};fillClasses();await load();
 }
-async function refreshOwnAssignments(){state.me=(await api('me')).user;mount(adminShell(),state.tab);}
+function renderTaskSuccessBox(feedback){
+ if(!feedback)return '';
+ const suffix=feedback.registered?'Akaun Google telah dikenal pasti':'Akaun ini belum pernah log masuk ke MaPeM';
+ const labels=feedback.labels||[];
+ const subject=encodeURIComponent('Tugasan MaPeM SKPT 2026');
+ const body=encodeURIComponent('Salam,\n\nAnda diberikan tugasan kategori anugerah berikut melalui portal MaPeM SKPT 2026:\n'+labels.map(x=>'- '+x).join('\n')+'\n\nSila buka https://mapem-skpt-2026.pages.dev dan log masuk menggunakan akaun Google: '+feedback.email+'\n\nJika tugasan tidak kelihatan, pastikan alamat Google yang digunakan sama dengan alamat ini dan muat semula portal.\n\nTerima kasih.');
+ return `<div class="notice task-success" role="status" aria-live="polite"><strong>✓ ${feedback.assignedCount} tugasan telah disimpan dalam database</strong><p>E-mel ditugaskan: <strong>${esc(feedback.email)}</strong> · ${esc(suffix)}${feedback.googleName?' ('+esc(feedback.googleName)+')':''}.</p><p>Pemberian tugasan <strong>tidak menghantar e-mel automatik</strong>. Guru boleh log masuk melalui Google menggunakan alamat yang sama.</p><a class="btn btn-outline btn-small" href="mailto:${encodeURIComponent(feedback.email)}?subject=${subject}&body=${body}">✉ Buka e-mel pemberitahuan</a></div>`;
+}
 async function renderCategoryAssignments(){
- const target=$('admin-content');target.innerHTML='<div class="empty">Memuatkan tugasan...</div>';let data;try{data=await api('admin/category-assignments');}catch(e){target.innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return;}if(!target.isConnected)return;
- data.categories=data.categories.filter(c=>kategoriDalamTahap(c));data.assignments=data.assignments.filter(a=>data.categories.some(c=>c.id===a.category_id)&&(a.tahap===0||a.tahap===state.tahap));const owners=[...new Set(data.categories.map(c=>c.owner))];
- target.innerHTML=`<div class="section-title"><div><h2>Tugasan guru &amp; penyelaras</h2><p>Nama dalam nota ialah panduan. Daftarkan e-mel Google sebenar guru berkenaan.</p></div></div><div class="columns"><article class="card"><h2>Tambah tugasan kategori</h2><p>Guru kelas dan admin boleh turut memegang tugasan kategori. Admin melihat tugasan yang diberikan melalui Tugasan Saya. Penugasan ini tidak memberikan kuasa admin kepada guru lain.</p><form id="category-assign-form"><div class="field"><label for="task-email">E-mel Google guru</label><input id="task-email" type="email" required maxlength="254" placeholder="nama@gmail.com"></div><div class="field"><label for="task-profile">Pilih panduan tugas</label><select id="task-profile"><option value="">Pilih secara manual</option>${owners.map((o,i)=>`<option value="${i}">${esc(o)}</option>`).join('')}</select></div><div class="task-checks">${data.categories.map(c=>`<label class="check-row"><input type="checkbox" name="task-category" value="${esc(c.id)}"><span><strong>${esc(c.name)}</strong><small>${esc(c.owner)}${c.nomination?' · Pemilihan penerima daripada calon':''}</small></span></label>`).join('')}</div><div class="notice">Guru hanya boleh mengisi kategori yang ditugaskan untuk tahap yang dipilih. Tukar tahap di bahagian atas sebelum memberi tugasan kepada guru. Tugasan sedia ada dikekalkan; buang akses yang tidak lagi diperlukan di sebelah.</div><button class="btn btn-full" style="margin-top:16px" id="task-assign-submit">Tambah tugasan</button><p id="task-message" class="save-status" role="status"></p></form></article><article class="card"><h2>Senarai tugasan</h2><div class="task-assignment-list">${data.assignments.length?data.assignments.map((a,i)=>`<div class="admin-access-row"><div><strong>${esc(a.email)}</strong><small>${esc(data.categories.find(c=>c.id===a.category_id)?.name||a.category_id)} · ${a.tahap===0?'Kedua-dua tahap':'Tahap '+a.tahap}</small></div><button class="btn btn-red btn-small" data-task-revoke="${i}">Buang</button></div>`).join(''):'<p>Belum ada e-mel guru kategori didaftarkan.</p>'}</div></article></div>`;
- $('task-profile').onchange=()=>{const owner=owners[+$('task-profile').value];document.querySelectorAll('[name="task-category"]').forEach(b=>b.checked=$('task-profile').value!==''&&data.categories.find(c=>c.id===b.value).owner===owner);};
- $('category-assign-form').onsubmit=async e=>{e.preventDefault();const ids=[...document.querySelectorAll('[name="task-category"]:checked')].map(b=>b.value),email=$('task-email').value.trim();if(!ids.length){msg('Pilih sekurang-kurangnya satu kategori.');return;}if(!confirm('Berikan '+ids.length+' tugasan kategori kepada '+email+'? Guru ini boleh mengakses data kategori tersebut bagi kelas yang berkaitan.'))return;$('task-assign-submit').disabled=true;try{await api('admin/category-assignments','POST',{email,categoryIds:ids,tahap:state.tahap});msg('Tugasan berjaya ditambah. Guru boleh muat semula portal.');await refreshOwnAssignments();await renderCategoryAssignments();}catch(e){$('task-message').textContent=e.message;$('task-assign-submit').disabled=false;}};
- document.querySelectorAll('[data-task-revoke]').forEach(b=>b.onclick=async()=>{const a=data.assignments[+b.dataset.taskRevoke];if(!confirm('Buang tugasan kategori ini daripada '+a.email+'?'))return;b.disabled=true;try{await api('admin/category-assignments/revoke','POST',{email:a.email,categoryId:a.category_id});await refreshOwnAssignments();await renderCategoryAssignments();}catch(e){msg(e.message);b.disabled=false;}});
+ const target=$('admin-content');if(!target)return;
+ target.innerHTML='<div class="empty">Memuatkan tugasan...</div>';
+ let data;
+ try{data=await api('admin/category-assignments');}
+ catch(e){if(target.isConnected)target.innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return;}
+ if(!target.isConnected||state.tab!=='tasks')return;
+ const categories=data.categories.filter(c=>kategoriDalamTahap(c)),allAssignments=data.assignments||[];
+ const assignments=allAssignments.filter(a=>categories.some(c=>c.id===a.category_id)&&(a.tahap===0||a.tahap===state.tahap));
+ const owners=[...new Set(categories.map(c=>c.owner))];
+ const feedback=state.taskFeedback;
+ target.innerHTML=`<div class="section-title"><div><span class="section-kicker">AKSES GURU & PENYELARAS</span><h2>Pengagihan Tugasan · Tahap ${state.tahap}</h2><p>Masukkan e-mel Google guru secara manual atau pilih tugasan mengikut PIC. Tugasan disimpan sebagai akses portal, bukan dihantar terus ke peti masuk e-mel.</p></div><span class="status draft">${assignments.length} tugasan dipaparkan</span></div>
+ ${renderTaskSuccessBox(feedback)}
+ <div class="columns"><article class="card"><h2>Tambah tugasan kategori</h2><p>Guru kelas dan Admin juga boleh menerima tugasan kategori. Guru hanya boleh membuka kategori yang diberikan mengikut tahap.</p>
+ <form id="category-assign-form">
+ <div class="field"><label for="task-email">E-mel Google guru (boleh taip manual)</label><input id="task-email" type="email" required maxlength="254" autocomplete="email" placeholder="nama@moe-dl.edu.my"></div>
+ <div class="task-email-check"><button type="button" class="btn btn-outline btn-small" id="task-check-email">Semak e-mel Google</button><span id="task-email-status" class="save-status" role="status" aria-live="polite">Gunakan e-mel yang sama seperti ketika guru log masuk Google ke MaPeM.</span></div>
+ <div class="field"><label for="task-profile">Pilih panduan tugas</label><select id="task-profile"><option value="">Pilih secara manual</option>${owners.map((owner,i)=>`<option value="${i}">${esc(owner)}</option>`).join('')}</select></div>
+ <div class="task-checks">${categories.map(c=>`<label class="check-row"><input type="checkbox" name="task-category" value="${esc(c.id)}"><span><strong>${esc(c.name)}</strong><small>${esc(c.owner)}${c.nomination?' · Pemilihan penerima daripada calon':''}</small></span></label>`).join('')}</div>
+ <div class="notice">Pilih kategori dan tekan <strong>Simpan tugasan</strong>. Alamat akan dipadankan dengan akaun Google semasa guru log masuk. Jika belum pernah log masuk, tugasan tetap boleh disimpan dan akan muncul selepas guru menggunakan e-mel yang sama. Tukar tahap di bahagian atas untuk kategori lain.</div>
+ <button class="btn btn-full" style="margin-top:16px" id="task-assign-submit" type="submit">Simpan tugasan</button>
+ <p id="task-message" class="save-status" role="status" aria-live="polite"></p>
+ </form></article>
+ <article class="card"><h2>Senarai tugasan Tahap ${state.tahap}</h2><p class="hint">Dipaparkan mengikut tahap yang dipilih. Gunakan tab Tahap 1 / Tahap 2 untuk melihat tugasan lain; tugasan gabungan muncul pada kedua-duanya.</p>
+ <div class="task-assignment-list">${assignments.length?assignments.map((a,i)=>`<div class="admin-access-row"><div><strong>${esc(a.email)}</strong><small>${esc(categories.find(c=>c.id===a.category_id)?.name||a.category_id)} · ${a.tahap===0?'Kedua-dua tahap':'Tahap '+a.tahap}</small><small class="${a.has_login?'assignment-verified':'assignment-pending'}">${a.has_login?'✓ Sudah log masuk Google'+(a.google_name?' · '+esc(a.google_name):''):'◷ Belum log masuk ke MaPeM menggunakan e-mel ini'}</small></div><button type="button" class="btn btn-red btn-small" data-task-revoke="${i}">Buang</button></div>`).join(''):'<p>Belum ada tugasan kategori bagi tahap ini.</p>'}</div></article></div>`;
+ const emailInput=$('task-email'),checkButton=$('task-check-email'),emailStatus=$('task-email-status');
+ const validateEmail=async()=>{
+  const email=emailInput.value.trim().toLowerCase();
+  if(!email||!emailInput.checkValidity()){emailStatus.textContent='Masukkan alamat e-mel Google yang sah dahulu.';emailStatus.className='save-status err';return;}
+  checkButton.disabled=true;emailStatus.textContent='Memeriksa padanan e-mel...';emailStatus.className='save-status';
+  try{
+   const matched=await api('admin/assignment-email?email='+encodeURIComponent(email));
+   if(emailInput.value.trim().toLowerCase()!==email)return;
+   emailStatus.textContent=matched.registered?'✓ Akaun Google dikenali: '+matched.googleName+' ('+matched.email+')':'Belum pernah log masuk ke MaPeM. Tugasan masih boleh diberikan; guru mesti log masuk dengan e-mel '+matched.email+'.';
+   emailStatus.className='save-status '+(matched.registered?'ok':'');
+  }catch(e){if(emailInput.value.trim().toLowerCase()===email){emailStatus.textContent='Semakan e-mel gagal: '+e.message;emailStatus.className='save-status err';}}
+  finally{checkButton.disabled=false;}
+ };
+ checkButton.onclick=validateEmail;
+ emailInput.addEventListener('change',validateEmail);
+ $('task-profile').onchange=()=>{
+  const choice=$('task-profile').value,owner=choice===''?null:owners[Number(choice)];
+  target.querySelectorAll('[name="task-category"]').forEach(input=>input.checked=owner!==null&&categories.find(c=>c.id===input.value)?.owner===owner);
+ };
+ $('category-assign-form').onsubmit=async e=>{
+  e.preventDefault();
+  const ids=[...target.querySelectorAll('[name="task-category"]:checked')].map(b=>b.value);
+  const email=emailInput.value.trim().toLowerCase();
+  if(!emailInput.checkValidity()){emailInput.reportValidity();return;}
+  const message=$('task-message');
+  if(!ids.length){message.textContent='Pilih sekurang-kurangnya satu kategori.';message.className='save-status err';return;}
+  if(!confirm('Simpan '+ids.length+' tugasan kategori untuk '+email+' pada Tahap '+state.tahap+'? Ini memberikan akses dalam portal, bukan menghantar e-mel secara automatik.'))return;
+  const button=$('task-assign-submit');button.disabled=true;button.textContent='Menyimpan dan mengesahkan...';
+  message.textContent='Menyimpan tugasan dalam database...';message.className='save-status';
+  try{
+   const result=await api('admin/category-assignments','POST',{email,categoryIds:ids,tahap:state.tahap});
+   state.taskFeedback={email:result.email,assignedCount:result.assigned.length,registered:result.registered,googleName:result.googleName,labels:result.assigned.map(x=>categories.find(c=>c.id===x.category_id)?.name||x.category_id)};
+   await showAdmin();
+  }catch(e){message.textContent='Gagal: '+e.message;message.className='save-status err';button.disabled=false;button.textContent='Cuba simpan semula';}
+ };
+ target.querySelectorAll('[data-task-revoke]').forEach(button=>button.onclick=async()=>{
+  const a=assignments[Number(button.dataset.taskRevoke)];
+  if(!a||!confirm('Buang akses '+a.category_id+' daripada '+a.email+'?'))return;
+  button.disabled=true;
+  try{
+   await api('admin/category-assignments/revoke','POST',{email:a.email,categoryId:a.category_id});
+   state.taskFeedback=null;
+   await showAdmin();
+   msg('Tugasan '+a.category_id+' dibatalkan untuk '+a.email+'.');
+  }catch(e){msg(e.message);button.disabled=false;}
+ });
 }
 window.addEventListener('beforeunload',e=>{if(state.workDirty||state.eventDirty){e.preventDefault();e.returnValue='';}});
 
