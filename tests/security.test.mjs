@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {webcrypto} from 'node:crypto';
+import {runInNewContext} from 'node:vm';
 import {onRequest,CATEGORIES} from '../functions/api/[[path]].js';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
@@ -598,4 +599,72 @@ test('separate announcement edits and pin toggles do not affect recipients, clas
  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM classes').get().n,42);
  const log=(await json(await call(env,'admin/audit?tahap=1',{cookie:admin}))).logs;
  assert(log.some(x=>x.action==='pengumuman_pin_diubah'||x.action==='pengumuman_dicipta'));
+});
+
+
+function teacherSyncTestCode(){
+ const app=file('../public/app.js');
+ const cut=(start,end)=>{const a=app.indexOf(start),b=app.indexOf(end,a);if(a<0||b<0)throw Error('Teacher sync helper missing: '+start);return app.slice(a,b);};
+ return [
+  cut('function sameNames(', 'function teacherConflictStatus('),
+  cut('async function getLatestTeacherDraft(', 'async function showTeacherSaveConflict('),
+  cut('async function saveTeacher(', 'async function finishSave(')
+ ].join('\n');
+}
+test('teacher auto-save recovers safely from 3 saved names to 5 typed names after a 409 version conflict',async()=>{
+ const base=['Murid Satu','Murid Dua'],remote=['Murid Satu','Murid Dua','Murid Tiga'],typed=['Murid Satu','Murid Dua','Murid Tiga','Murid Empat','Murid Lima'];
+ const state={teacherData:{class:{id:'4-crystal',status:'draft'},categories:[{id:'pbd',classLimit:5}],drafts:{pbd:{names:base,version:1}}},conflicts:{},pendingEdit:{},saving:{},timers:{}};
+ const requests=[],statuses=[];let dialogCount=0;
+ const context={state,textareaList:()=>typed,saveInfo:(id,text,status)=>statuses.push({text,status}),msg:()=>{},
+   showTeacherSaveConflict:async()=>{dialogCount++;},setTimeout:()=>0,clearTimeout:()=>{},
+   api:async(route,method,body)=>{
+    if(route==='teacher/class')return {class:{id:'4-crystal',status:'draft'},drafts:{pbd:{names:remote,version:2}}};
+    if(route==='teacher/save'){
+     requests.push(body);
+     if(requests.length===1){const e=new Error('Konflik versi');e.status=409;throw e;}
+     return {ok:true,version:3};
+    }
+    throw Error('Unexpected route: '+route);
+   }};
+ runInNewContext(teacherSyncTestCode(),context);
+ const saved=await runInNewContext('saveTeacher("pbd")',context);
+ assert.equal(saved,true);
+ assert.equal(requests.length,2);
+ assert.equal(requests[0].version,1);
+ assert.equal(requests[1].version,2);
+ assert.deepEqual(requests[1].names,typed);
+ assert.deepEqual(state.teacherData.drafts.pbd.names,typed);
+ assert.equal(state.teacherData.drafts.pbd.version,3);
+ assert.equal(dialogCount,0);
+ assert.equal(Object.keys(state.conflicts).length,0);
+ assert(statuses.some(x=>x.status==='ok'&&x.text.includes('5 nama')));
+});
+test('teacher conflicting modifications require explicit resolution and never silently replace the server record',async()=>{
+ const base=['Murid Satu','Murid Dua'],remote=['Murid Satu','Murid Lain'],typed=['Murid Satu','Murid Dua','Murid Tiga','Murid Empat','Murid Lima'];
+ const state={teacherData:{class:{id:'2-crystal',status:'draft'},categories:[{id:'pbd',classLimit:5}],drafts:{pbd:{names:base,version:1}}},conflicts:{},pendingEdit:{},saving:{},timers:{}};
+ const sent=[];let seen=0;
+ const context={state,textareaList:()=>typed,saveInfo:()=>{},msg:()=>{},
+    showTeacherSaveConflict:async()=>{seen++;},setTimeout:()=>0,clearTimeout:()=>{},
+    api:async(route,method,body)=>{
+     if(route==='teacher/class')return {class:{id:'2-crystal',status:'draft'},drafts:{pbd:{names:remote,version:2}}};
+     if(route==='teacher/save'){sent.push(body);const e=new Error('Konflik versi');e.status=409;throw e;}
+     throw Error('Unexpected route: '+route);
+    }};
+ runInNewContext(teacherSyncTestCode(),context);
+ const saved=await runInNewContext('saveTeacher("pbd")',context);
+ assert.equal(saved,false);
+ assert.equal(seen,1);
+ assert.equal(sent.length,1);
+ assert.deepEqual(sent[0].names,typed);
+ assert.deepEqual(state.conflicts.pbd.remote.names,remote);
+ assert.deepEqual(state.teacherData.drafts.pbd.names,base);
+ assert.equal(state.saving.pbd,false);
+});
+test('teacher sync auto-retry refuses server deletions, duplicate names and excessive names',()=>{
+ const src=teacherSyncTestCode();const ctx={};runInNewContext(src,ctx);
+ assert.equal(runInNewContext("isSafeTeacherAppend(['A','B'],['A','B','C'],['A','B','C','D','E'])",ctx),true);
+ assert.equal(runInNewContext("isSafeTeacherAppend(['A','B'],['A'],['A','B','C'])",ctx),false);
+ assert.equal(runInNewContext("isSafeTeacherAppend(['A','B'],['A','C'],['A','B','C'])",ctx),false);
+ assert.equal(runInNewContext("isSafeTeacherAppend(['A'],['A','B'],['A','B','B'])",ctx),false);
+ assert.equal(runInNewContext("isSafeTeacherAppend(['A'],['A','B'],['A','B','C','D','E','F'])",ctx),false);
 });
