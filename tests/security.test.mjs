@@ -745,3 +745,28 @@ test('task UI shows explicit manual email input, portal access confirmation and 
  assert.match(app,/tidak menghantar e-mel automatik/);
  assert.doesNotMatch(app,/async function refreshOwnAssignments\(\)\{[^}]*mount\(adminShell/);
 });
+
+
+test('all award-recipient textareas disable name autofill, autocorrect, and spelling suggestions',()=>{
+ const app=file('../public/app.js');
+ const fields=['txt-','work-names','correct-names'];
+ for(const id of fields){
+  const markup=app.match(new RegExp('<textarea id="'+id+'[^>]*>'));
+  assert(markup,'Missing recipient editor: '+id);
+  for(const requirement of ['autocomplete="off"','autocorrect="off"','autocapitalize="off"','spellcheck="false"','data-gramm="false"'])
+   assert(markup[0].includes(requirement),id+' missing '+requirement);
+ }
+ assert.match(file('../public/index.html'),/app\.js\?v=19/);
+ assert.match(file('../public/sw.js'),/mapem-shell-v22/);
+});
+test('manual name input stays editable and is not replaced by a database suggestion widget',()=>{
+ const app=file('../public/app.js');
+ const teacher=app.match(/<textarea id="txt-\$\{esc\(cat\.id\)\}"[^>]*>/);
+ const specialist=app.match(/<textarea id="work-names"[^>]*>/);
+ assert(teacher&&specialist);
+ assert(!teacher[0].includes('readonly'));
+ assert(!specialist[0].includes('readonly'));
+ assert.doesNotMatch(app,/(?:student-suggest|student-autocomplete|name-datalist|names\/suggestions)/i);
+ assert.match(app,/teacher\/save/);
+ assert.match(app,/work\/save/);
+});
