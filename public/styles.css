@@ -182,3 +182,15 @@ footer{background:#38091b;border-top-color:#bf94534a}.footer{color:#d2b39b}.hero
 .teacher-conflict-actions{gap:8px;flex-wrap:wrap}
 .teacher-conflict-actions .btn{font-size:12px}
 @media(max-width:640px){.teacher-sync-compare{grid-template-columns:1fr}.teacher-conflict-dialog .dialog-body{max-height:54vh}.teacher-conflict-actions{display:flex;flex-direction:column}.teacher-conflict-actions .btn{width:100%}}
+
+
+/* Verified manual e-mail assignment workflow */
+.task-success{margin:12px 0 19px;padding:18px;border:1px solid #dbbb77;background:#fff8e9;box-shadow:0 6px 18px rgba(66,28,37,.05);border-radius:14px}
+.task-success strong{overflow-wrap:anywhere}
+.task-success p{font-size:12px;line-height:1.7;margin:8px 0 13px}
+.task-success .btn{display:inline-flex;align-items:center;gap:7px;font-size:12px}
+.task-email-check{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin:1px 0 18px}
+.task-email-check .save-status{font-size:12px;line-height:1.6;flex:1;min-width:200px;overflow-wrap:anywhere}
+.task-assignment-list .assignment-verified,.task-assignment-list .assignment-pending{display:block;margin-top:5px;font-size:11px;overflow-wrap:anywhere}
+.assignment-verified{color:#166446!important}.assignment-pending{color:#9b6225!important}
+@media(max-width:560px){.task-email-check{flex-direction:column}.task-email-check .save-status{min-width:0}.task-success{padding:14px}.task-success .btn{width:100%;justify-content:center}}

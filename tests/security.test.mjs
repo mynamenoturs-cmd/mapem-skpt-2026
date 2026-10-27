@@ -668,3 +668,80 @@ test('teacher sync auto-retry refuses server deletions, duplicate names and exce
  assert.equal(runInNewContext("isSafeTeacherAppend(['A'],['A','B'],['A','B','B'])",ctx),false);
  assert.equal(runInNewContext("isSafeTeacherAppend(['A'],['A','B'],['A','B','C','D','E','F'])",ctx),false);
 });
+
+
+test('manual category email assignment is verified in D1 and recognized after Google sign-in',async()=>{
+ const {db,env,addLogin}=fixture();
+ const admin=await addLogin('admin@gmail.com'),guest=await addLogin('ibubapa@gmail.com');
+ const email='cikgu.manual@moe-dl.edu.my';
+ assert.equal((await call(env,'admin/assignment-email?email='+encodeURIComponent(email),{cookie:guest})).status,403);
+ assert.equal((await call(env,'admin/assignment-email',{cookie:admin})).status,400);
+ let lookup=await json(await call(env,'admin/assignment-email?email='+encodeURIComponent(email),{cookie:admin}));
+ assert.equal(lookup.email,email);
+ assert.equal(lookup.registered,false);
+ assert.equal(lookup.googleName,null);
+ let response=await call(env,'admin/category-assignments',{cookie:admin,method:'POST',body:{email:'  CIKGU.Manual@moe-dl.edu.my  ',categoryIds:['uasa','subjek-bm'],tahap:2}});
+ assert.equal(response.status,200);
+ let payload=await json(response);
+ assert.equal(payload.email,email);
+ assert.equal(payload.registered,false);
+ assert.deepEqual(payload.assigned.map(x=>x.category_id),['uasa','subjek-bm']);
+ assert.deepEqual(payload.assigned.map(x=>x.tahap),[2,2]);
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM category_assignments WHERE email=?').get(email).n,2);
+ let listed=await json(await call(env,'admin/category-assignments',{cookie:admin}));
+ assert.equal(listed.assignments.filter(x=>x.email===email).length,2);
+ assert(listed.assignments.filter(x=>x.email===email).every(x=>x.has_login===0));
+ // Assignment may precede first login: the exact Google account gains permissions after signing in.
+ const specialist=await addLogin(email,'Cikgu Manual');
+ lookup=await json(await call(env,'admin/assignment-email?email='+encodeURIComponent(email),{cookie:admin}));
+ assert.equal(lookup.registered,true);
+ assert.equal(lookup.googleName,'Cikgu Manual');
+ assert.equal((await json(await call(env,'me',{cookie:specialist}))).user.role,'specialist');
+ const work=await json(await call(env,'work/overview?scope=mine&tahap=2',{cookie:specialist}));
+ assert.deepEqual(work.categories.map(x=>x.id),['uasa','subjek-bm']);
+ listed=await json(await call(env,'admin/category-assignments',{cookie:admin}));
+ assert(listed.assignments.filter(x=>x.email===email).every(x=>x.has_login===1&&x.google_name==='Cikgu Manual'));
+ assert.equal((await call(env,'work/class?classId=2-crystal&categoryId=subjek-bm&scope=mine',{cookie:specialist})).status,403);
+ assert.equal((await call(env,'work/class?classId=4-crystal&categoryId=subjek-bm&scope=mine',{cookie:specialist})).status,200);
+ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM activity_logs WHERE action='tugasan_diberikan'").get().n,1);
+});
+test('manual category assignment cannot give specialist wrong stage or PBD access',async()=>{
+ const {env,addLogin,db}=fixture(),admin=await addLogin('admin@gmail.com');
+ const post=(categoryIds,tahap)=>call(env,'admin/category-assignments',{cookie:admin,method:'POST',body:{email:'fitri@example.com',categoryIds,tahap}});
+ assert.equal((await post(['subjek-sej'],1)).status,400);
+ assert.equal((await post(['pbd'],2)).status,400);
+ assert.equal((await post(['uasa'],5)).status,400);
+ assert.equal((await post(['subjek-bm'],2)).status,200);
+ assert.equal((await post(['plan'],1)).status,200);
+ const group=db.prepare("SELECT category_id,tahap FROM category_assignments WHERE email='fitri@example.com' ORDER BY category_id").all();
+ assert.deepEqual(group.map(x=>({category_id:x.category_id,tahap:x.tahap})),[
+  {category_id:'plan',tahap:0},{category_id:'plan-pemulihan',tahap:0},{category_id:'subjek-bm',tahap:2}
+ ]);
+});
+test('manual email guru kelas assignment returns confirmed school class and account status',async()=>{
+ const {db,env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com'),teacherEmail='guru.kelas@moe-dl.edu.my';
+ const saved=await call(env,'admin/assign',{cookie:admin,method:'POST',body:{email:'  GURU.KELAS@moe-dl.edu.my ',classId:'5-crystal'}});
+ assert.equal(saved.status,200);
+ const result=await json(saved);
+ assert.equal(result.email,teacherEmail);
+ assert.equal(result.classId,'5-crystal');
+ assert.equal(result.registered,false);
+ assert.equal(db.prepare('SELECT class_id FROM teacher_assignments WHERE email=?').get(teacherEmail).class_id,'5-crystal');
+ const login=await addLogin(teacherEmail,'Guru Kelas Tahun 5');
+ assert.equal((await json(await call(env,'me',{cookie:login}))).user.classId,'5-crystal');
+ const after=await json(await call(env,'admin/assignment-email?email='+encodeURIComponent(teacherEmail),{cookie:admin}));
+ assert.equal(after.registered,true);
+ assert.equal(after.googleName,'Guru Kelas Tahun 5');
+ assert.equal(db.prepare("SELECT COUNT(*) AS n FROM activity_logs WHERE action='guru_kelas_ditugaskan'").get().n,1);
+});
+test('task UI shows explicit manual email input, portal access confirmation and avoids unbound remount',()=>{
+ const app=file('../public/app.js');
+ assert.match(app,/id="task-email" type="email"/);
+ assert.match(app,/admin\/assignment-email\?email=/);
+ assert.match(app,/const result=await api\('admin\/category-assignments','POST'/);
+ assert.match(app,/state\.taskFeedback=/);
+ assert.match(app,/result\.assigned\.length/);
+ assert.match(app,/Buka e-mel pemberitahuan/);
+ assert.match(app,/tidak menghantar e-mel automatik/);
+ assert.doesNotMatch(app,/async function refreshOwnAssignments\(\)\{[^}]*mount\(adminShell/);
+});
