@@ -606,7 +606,7 @@ function teacherSyncTestCode(){
  const app=file('../public/app.js');
  const cut=(start,end)=>{const a=app.indexOf(start),b=app.indexOf(end,a);if(a<0||b<0)throw Error('Teacher sync helper missing: '+start);return app.slice(a,b);};
  return [
-  cut('function sameNames(', 'function teacherConflictStatus('),
+  cut('function sameNames(', 'async function getLatestTeacherDraft('),
   cut('async function getLatestTeacherDraft(', 'async function showTeacherSaveConflict('),
   cut('async function saveTeacher(', 'async function finishSave(')
  ].join('\n');
