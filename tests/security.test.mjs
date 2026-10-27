@@ -653,13 +653,55 @@ test('teacher conflicting modifications require explicit resolution and never si
  runInNewContext(teacherSyncTestCode(),context);
  const saved=await runInNewContext('saveTeacher("pbd")',context);
  assert.equal(saved,false);
- assert.equal(seen,1);
+ assert.equal(seen,0,'Autosave must NOT force a modal during typing');
  assert.equal(sent.length,1);
  assert.deepEqual(sent[0].names,typed);
+ const userRequested=await runInNewContext('saveTeacher("pbd",true)',context);
+ assert.equal(userRequested,false);
+ assert.equal(seen,1,'Manual Save shows the conflict comparison');
  assert.deepEqual(state.conflicts.pbd.remote.names,remote);
  assert.deepEqual(state.teacherData.drafts.pbd.names,base);
  assert.equal(state.saving.pbd,false);
 });
+test('typing completes NUR into NUR INA without interrupting teacher with a conflict modal',async()=>{
+ const base=['Nama A','Nama B','Nama C'],server=['Nama A','Nama B','Nama C','NUR'],local=['Nama A','Nama B','Nama C','NUR INA'];
+ const state={teacherData:{class:{id:'1-crystal',status:'draft'},categories:[{id:'pbd',classLimit:5}],drafts:{pbd:{names:base,version:1}}},conflicts:{},pendingEdit:{},saving:{},timers:{}};
+ const requests=[],statusMessages=[];let dialogs=0;
+ const context={state,textareaList:()=>local,saveInfo:(id,text,status)=>statusMessages.push({text,status}),msg:()=>{},
+  showTeacherSaveConflict:async()=>{dialogs++;},setTimeout:()=>0,clearTimeout:()=>{},
+  api:async(route,method,body)=>{
+   if(route==='teacher/class')return {class:{id:'1-crystal',status:'draft'},drafts:{pbd:{names:server,version:2}}};
+   if(route==='teacher/save'){requests.push(body);if(requests.length===1){const e=new Error('Conflict');e.status=409;throw e;}return {version:3,ok:true};}
+   throw Error('Unexpected route: '+route);
+  }};
+ runInNewContext(teacherSyncTestCode(),context);
+ const result=await runInNewContext('saveTeacher("pbd")',context);
+ assert.equal(result,true);
+ assert.equal(dialogs,0);
+ assert.equal(requests.length,2);
+ assert.equal(requests[1].version,2);
+ assert.deepEqual(requests[1].names,local);
+ assert.deepEqual(state.teacherData.drafts.pbd.names,local);
+ assert.equal(Object.keys(state.conflicts).length,0);
+ assert(statusMessages.some(x=>x.status==='ok'&&x.text.includes('4 nama')));
+});
+test('unrelated edits cannot be silently merged by partial-name reconciliation',()=>{
+ const ctx={};runInNewContext(teacherSyncTestCode(),ctx);
+ assert.equal(runInNewContext("isSafeTeacherContinuation(['A','B','C'],['A','B','C','NUR'],['A','B','C','NUR INA'])",ctx),true);
+ assert.equal(runInNewContext("isSafeTeacherContinuation(['A','B','C'],['A','B','C','NUR'],['A','B','C','NUR'])",ctx),false);
+ assert.equal(runInNewContext("isSafeTeacherContinuation(['A','B','C'],['A','B','C','ALI'],['A','B','C','NUR INA'])",ctx),false);
+ assert.equal(runInNewContext("isSafeTeacherContinuation(['A','B','C'],['A','B','Z','NUR'],['A','B','C','NUR INA'])",ctx),false);
+ assert.equal(runInNewContext("isSafeTeacherContinuation(['A','B','C'],['A','B','C','NUR'],['A','B','C','NUR INA','E','F'])",ctx),false);
+});
+test('teacher typing waits 2.4 seconds before autosave, conflict dialogue requires manual save',()=>{
+ const app=file('../public/app.js');
+ assert.match(app,/state\.timers\[id\]=setTimeout\(\(\)=>saveTeacher\(id\),2400\)/);
+ assert.match(app,/if\(needsConflictDialog\)await showTeacherSaveConflict\(id\)/);
+ assert.match(app,/needsConflictDialog=interactive;/);
+ assert.match(app,/return saveTeacher\(b\.dataset\.save,true\)/);
+ assert.match(app,/if\(state\.conflicts\[id\]\)\{if\(interactive\)await showTeacherSaveConflict\(id\)/);
+});
+
 test('teacher sync auto-retry refuses server deletions, duplicate names and excessive names',()=>{
  const src=teacherSyncTestCode();const ctx={};runInNewContext(src,ctx);
  assert.equal(runInNewContext("isSafeTeacherAppend(['A','B'],['A','B','C'],['A','B','C','D','E'])",ctx),true);
