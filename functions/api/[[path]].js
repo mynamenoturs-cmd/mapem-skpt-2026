@@ -301,7 +301,7 @@ export async function onRequest({request,env}){
   if(path==='admin/category-assignments'&&request.method==='POST'){
    requireRole(user,'admin');const b=await reqBody(request),email=adminTeacherEmail(b.email);
    const tahap=b.tahap===undefined?0:Number(b.tahap);if(![0,1,2].includes(tahap))return fail('Tahap tugasan tidak sah.');const ids=b.categoryIds;if(!Array.isArray(ids)||!ids.length||ids.length>CATEGORIES.length-1||new Set(ids).size!==ids.length||ids.some(id=>!CATEGORIES.some(c=>c.id===id&&c.id!=='pbd')))return fail('Pilih tugasan kategori yang sah.');
-   const stageHasCategory=(category,t)=>t===0||(category.years||Object.keys(category.quota&&typeof category.quota==='object'?category.quota:{})).some(y=>t===1?Number(y)<=3:Number(y)>=4&&Number(y)<=5);
+   const stageHasCategory=(category,t)=>{if(t===0)return true;const years=category.years||Object.keys(category.quota&&typeof category.quota==='object'?category.quota:{});return years.length===0||years.some(y=>t===1?Number(y)<=3:Number(y)>=4&&Number(y)<=5);};
    if(ids.some(id=>!stageHasCategory(CATEGORIES.find(c=>c.id===id),tahap)))return fail('Kategori yang dipilih tidak sesuai dengan tahap tugasan.',400);
    // One school award: assigning either group always grants both groups of Cerdas PLaN.
    const assignIds=ids.some(id=>id==='plan'||id==='plan-pemulihan')?[...new Set([...ids,'plan','plan-pemulihan'])]:ids;
