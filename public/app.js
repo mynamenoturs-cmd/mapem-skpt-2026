@@ -24,7 +24,7 @@ function closeDrawer(){if($('workspace-scroll'))$('workspace-scroll').inert=fals
 menuBtn.onclick=()=>{const open=!document.body.classList.contains('drawer-open');document.body.classList.toggle('drawer-open',open);menuBtn.setAttribute('aria-expanded',String(open));if($('drawer-shade'))$('drawer-shade').hidden=!open;if($('workspace-scroll'))$('workspace-scroll').inert=open;if(open)$('sidebar-close')?.focus();};
 document.addEventListener('keydown',e=>{if(e.key==='Tab'&&document.body.classList.contains('drawer-open')){const nodes=[...$('app-sidebar').querySelectorAll('button')].filter(b=>b.offsetParent!==null);if(e.shiftKey&&document.activeElement===nodes[0]){e.preventDefault();nodes.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===nodes.at(-1)){e.preventDefault();nodes[0].focus();}}if(e.key==='Escape'&&document.body.classList.contains('drawer-open')){closeDrawer();menuBtn.focus();}});
 function updateTeacherSummary(){const data=state.teacherData;if(!data)return;let total=0,filled=0;for(const cat of data.categories){const n=textareaList(cat.id).length;total+=n;if(n)filled++;const count=$('count-'+cat.id);if(count)count.textContent=n+' nama';}if($('teacher-total'))$('teacher-total').textContent=total;if($('teacher-progress'))$('teacher-progress').textContent=filled+' / '+data.categories.length;if($('teacher-bar'))$('teacher-bar').style.width=(100*filled/(data.categories.length||1))+'%';}
-async function closeEditor(dialog,id){const button=dialog.querySelector('[data-close-editor]');button.disabled=true;try{if(state.teacherData.class.status==='draft'){clearTimeout(state.timers[id]);while(state.saving[id])await new Promise(r=>setTimeout(r,120));await saveTeacher(id);while(state.saving[id])await new Promise(r=>setTimeout(r,120));if(JSON.stringify(textareaList(id))!==JSON.stringify(state.teacherData.drafts[id]?.names||[]))throw Error(($('save-'+id)?.textContent||'Simpanan belum berjaya. Cuba simpan semula sebelum menutup.').replace(/^Gagal: /,''));}dialog.close();updateTeacherSummary();}catch(e){msg(e.message);}finally{button.disabled=false;}}
+async function closeEditor(dialog,id){const button=dialog.querySelector('[data-close-editor]');button.disabled=true;try{if(state.teacherData.class.status==='draft'){clearTimeout(state.timers[id]);while(state.saving[id])await new Promise(r=>setTimeout(r,120));await saveTeacher(id,true);while(state.saving[id])await new Promise(r=>setTimeout(r,120));if(JSON.stringify(textareaList(id))!==JSON.stringify(state.teacherData.drafts[id]?.names||[]))throw Error(($('save-'+id)?.textContent||'Simpanan belum berjaya. Cuba simpan semula sebelum menutup.').replace(/^Gagal: /,''));}dialog.close();updateTeacherSummary();}catch(e){msg(e.message);}finally{button.disabled=false;}}
 function openReview(){const data=state.teacherData;if(!data)return;let dialog=$('review-dialog');if(dialog)dialog.remove();dialog=document.createElement('dialog');dialog.id='review-dialog';dialog.className='app-dialog';const locked=data.class.status==='submitted';dialog.innerHTML=`<div class="dialog-heading"><div><span class="eyebrow">SEMAKAN AKHIR</span><h2>Senarai kelas ${esc(data.class.year+' '+data.class.name)}</h2></div><button class="icon-btn" id="review-close" aria-label="Tutup semakan">×</button></div><div class="dialog-body"><p class="muted">Semak semua kategori sebelum menghantar. ${data.class.year===3?'Empat kategori khas ialah pencalonan Tahun 3 sahaja dan tidak diterbitkan secara automatik.':'Tahun 1 dan 2 hanya mengisi PBD.'} PBD mesti mempunyai tepat 5 nama.</p>${data.categories.map(c=>{const names=textareaList(c.id);return `<div class="review-category"><h3>${esc(c.nomination?'Pencalonan: '+c.name:c.name)} <span class="status draft">${names.length} nama</span></h3>${names.length?`<ol class="name-list">${names.map(n=>`<li>${esc(n)}</li>`).join('')}</ol>`:'<p class="muted">Belum diisi</p>'}</div>`;}).join('')}<div class="notice">${locked?'Senarai sudah dihantar. Hubungi urus setia untuk membuka semula.':'Selepas dihantar, pengisian dikunci sehingga dibuka semula oleh urus setia.'}</div></div><div class="dialog-actions"><button class="btn btn-outline" id="review-back">Kembali semak</button><button class="btn btn-green" id="confirm-submit" ${locked?'disabled':''}>${locked?'Telah dihantar':'Sahkan & hantar'}</button></div>`;document.body.append(dialog);const close=()=>{dialog.close();dialog.remove();};$('review-close').onclick=close;$('review-back').onclick=close;dialog.addEventListener('close',()=>dialog.remove(),{once:true});$('confirm-submit').onclick=async()=>{const btn=$('confirm-submit');btn.disabled=true;btn.textContent='Menyimpan & menghantar...';try{await finishSave();await api('teacher/submit','POST',{});close();msg('Senarai akhir berjaya dihantar.');await showTeacher();}catch(e){msg(e.message);btn.disabled=false;btn.textContent='Cuba hantar semula';}};dialog.showModal();}
 window.addEventListener('beforeunload',e=>{if(state.teacherData?.class.status!=='draft'||!$('award-section'))return;const dirty=state.teacherData.categories.some(c=>state.saving[c.id]||JSON.stringify(textareaList(c.id))!==JSON.stringify(state.teacherData.drafts[c.id]?.names||[]));if(dirty){e.preventDefault();e.returnValue='';}});
 
@@ -67,6 +67,19 @@ function isSafeTeacherAppend(base,server,local,max=5){
  const norm=a=>String(a).trim().replace(/\s+/g,' ').toLocaleLowerCase('ms');
  const prefix=(x,y)=>Array.isArray(x)&&Array.isArray(y)&&x.length<=y.length&&x.every((n,i)=>norm(n)===norm(y[i]));
  return prefix(base,server)&&prefix(server,local)&&local.length<=max&&new Set(local.map(norm)).size===local.length;
+}
+function isSafeTeacherContinuation(base,server,local,max=5){
+ // Safe continuation: the server added a *partial final name* after our known base,
+ // and this form has only finished that same name. Earlier names must match.
+ // Example: DB 'NUR', textarea 'NUR INA'. A different person's edit is never merged.
+ const norm=a=>String(a).trim().replace(/\s+/g,' ').toLocaleLowerCase('ms');
+ if(!Array.isArray(base)||!Array.isArray(server)||!Array.isArray(local)||
+    server.length<=base.length||server.length>local.length||local.length>max||
+    new Set(local.map(norm)).size!==local.length)return false;
+ if(!base.every((name,i)=>norm(server[i])===norm(name)))return false;
+ if(!server.slice(0,-1).every((name,i)=>norm(local[i])===norm(name)))return false;
+ const last=norm(server[server.length-1]),completed=norm(local[server.length-1]);
+ return last.length>=2&&completed.length>last.length&&completed.startsWith(last);
 }
 function teacherConflictStatus(id,text){saveInfo(id,text,'err');}
 async function getLatestTeacherDraft(id){
@@ -124,10 +137,10 @@ async function showTeacherSaveConflict(id){
  };
  dialog.showModal();
 }
-async function saveTeacher(id){
+async function saveTeacher(id,interactive=false){
  const data=state.teacherData;
  if(!data||data.class.status!=='draft')return false;
- if(state.conflicts[id]){await showTeacherSaveConflict(id);return false;}
+ if(state.conflicts[id]){if(interactive)await showTeacherSaveConflict(id);else teacherConflictStatus(id,'Ada perubahan serentak. Nama anda kekal — tekan Simpan sekarang untuk semak.');return false;}
  if(state.saving[id]){state.pendingEdit[id]=true;return false;}
  let latest=textareaList(id);
  let previous=data.drafts[id]||{names:[],version:0};
@@ -161,14 +174,14 @@ async function saveTeacher(id){
      break;
     }
     const limit=data.categories.find(c=>c.id===id)?.classLimit||5;
-    if(attempt===0&&isSafeTeacherAppend(previous.names,server.names,currentLocal,limit)){
+    if(attempt===0&&(isSafeTeacherAppend(previous.names,server.names,currentLocal,limit)||isSafeTeacherContinuation(previous.names,server.names,currentLocal,limit))){
      data.drafts[id]=server;previous=server;latest=currentLocal;
      saveInfo(id,'Menyelaraskan tambahan nama...');
      continue;
     }
     state.conflicts[id]={remote:server};
-    teacherConflictStatus(id,'Perlu semak perubahan. Nama yang ditaip tidak hilang.');
-    needsConflictDialog=true;
+    teacherConflictStatus(id,'Data berbeza dalam database. Nama anda kekal — tekan Simpan sekarang untuk semak.');
+    needsConflictDialog=interactive;
     break;
    }
   }
@@ -180,7 +193,7 @@ async function saveTeacher(id){
   if(needsConflictDialog)await showTeacherSaveConflict(id);
   else if(state.pendingEdit[id]&&!state.conflicts[id]){
    clearTimeout(state.timers[id]);
-   state.timers[id]=setTimeout(()=>saveTeacher(id),220);
+   state.timers[id]=setTimeout(()=>saveTeacher(id),2400);
   }
  }
  return success;
@@ -193,7 +206,7 @@ async function finishSave(){
   if(state.conflicts[id]){await showTeacherSaveConflict(id);throw Error('Semak konflik simpanan dahulu; nama yang ditaip masih berada dalam borang.');}
   const before=state.teacherData.drafts[id]||{names:[]};
   if(!sameNames(textareaList(id),before.names)){
-   await saveTeacher(id);
+   await saveTeacher(id,true);
    while(state.saving[id])await new Promise(r=>setTimeout(r,120));
    if(!sameNames(textareaList(id),state.teacherData.drafts[id]?.names||[]))
     throw Error('Ada nama yang belum berjaya disimpan. Semak status simpanan sebelum menghantar.');
@@ -205,7 +218,7 @@ mount(hero('Kelas '+c.year+' '+c.name,c.year===3?'Isi PBD dan empat pencalonan T
 const store=document.createElement('div');store.id='award-dialogs';store.innerHTML=result.categories.map(cat=>{const d=result.drafts[cat.id]||{names:[],version:0};return `<dialog class="app-dialog" id="dialog-${esc(cat.id)}" aria-labelledby="title-${esc(cat.id)}"><div class="dialog-heading"><div><span class="eyebrow">${esc(c.year+' '+c.name)} · PENCALONAN</span><h2 id="title-${esc(cat.id)}">${esc(cat.name)}</h2></div><span class="status ${locked?'submitted':'draft'}">${locked?'Dikunci':'Draf'}</span></div><div class="dialog-body">${cat.note?`<div class="notice">${esc(cat.note)}</div>`:''}<p class="editor-guide">Satu nama penuh pada setiap baris. Untuk memadam, buang baris nama berkenaan.</p><div class="field"><label for="txt-${esc(cat.id)}">${cat.nomination?'Nama calon':'Nama penerima PBD'}</label><textarea id="txt-${esc(cat.id)}" data-award="${esc(cat.id)}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-gramm="false" ${locked?'disabled':''} placeholder="Taip nama penuh murid...">${esc(listToText(d))}</textarea></div><div class="editing"><span class="save-status" id="save-${esc(cat.id)}" role="status" aria-live="polite">${locked?'Pengisian dikunci':'Semua perubahan disimpan secara automatik'}</span><button class="btn btn-outline btn-small" data-save="${esc(cat.id)}" ${locked?'disabled':''}>Simpan sekarang</button></div></div><div class="dialog-actions"><span class="hint">${locked?'Hanya urus setia boleh membuka semula.':'Tunggu status Disimpan sebelum menutup.'}</span><button class="btn" data-close-editor="${esc(cat.id)}">Selesai</button></div></dialog>`;}).join('');root.append(store);
  document.querySelectorAll('[data-open-award]').forEach(b=>b.onclick=()=>{$('dialog-'+b.dataset.openAward).showModal();});
  document.querySelectorAll('[data-close-editor]').forEach(b=>{const id=b.dataset.closeEditor,dialog=$('dialog-'+id);b.onclick=()=>closeEditor(dialog,id);dialog.addEventListener('cancel',e=>{e.preventDefault();closeEditor(dialog,id);});});
- document.querySelectorAll('[data-award]').forEach(ta=>ta.oninput=()=>{const id=ta.dataset.award;updateTeacherSummary();saveInfo(id,'Menunggu simpan...');clearTimeout(state.timers[id]);state.timers[id]=setTimeout(()=>saveTeacher(id),800);});document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>saveTeacher(b.dataset.save));
+ document.querySelectorAll('[data-award]').forEach(ta=>ta.oninput=()=>{const id=ta.dataset.award;updateTeacherSummary();clearTimeout(state.timers[id]);if(state.conflicts[id]){teacherConflictStatus(id,'Suntingan anda kekal. Tekan Simpan sekarang untuk semak perubahan.');return;}saveInfo(id,'Sedang menaip · simpan automatik selepas berhenti seketika...');state.timers[id]=setTimeout(()=>saveTeacher(id),2400);});document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>{clearTimeout(state.timers[b.dataset.save]);return saveTeacher(b.dataset.save,true);});
  $('final-submit').onclick=openReview;updateTeacherSummary();
 }
 
