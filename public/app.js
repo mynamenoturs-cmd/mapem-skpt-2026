@@ -1,10 +1,10 @@
 (()=>{'use strict';
 const root=document.querySelector('#root'),toast=document.querySelector('#toast'),chip=document.querySelector('#role-chip'),logoutBtn=document.querySelector('#logout'),installBtn=document.querySelector('#install'),viewBtn=document.querySelector('#view');
-const state={me:null,mode:'admin',tab:'classes',year:0,tahap:1,viewerTahap:1,overview:null,selectedClass:'',workCategory:'',workClass:'',workDirty:false,eventDirty:false,activeSpecial:'',classDetails:null,timers:{},saving:{},pendingEdit:{},drafts:null,teacherData:null,installEvent:null};
+const state={me:null,mode:'admin',tab:'classes',year:0,tahap:1,viewerTahap:1,overview:null,selectedClass:'',workCategory:'',workClass:'',workDirty:false,eventDirty:false,activeSpecial:'',classDetails:null,timers:{},saving:{},pendingEdit:{},drafts:null,teacherData:null,installEvent:null,conflicts:{}};
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=id=>document.getElementById(id);
 const msg=s=>{const dialog=document.querySelector('dialog[open]');if(dialog){let notice=dialog.querySelector('.dialog-message');if(!notice){notice=document.createElement('div');notice.className='notice warning dialog-message';notice.setAttribute('role','status');dialog.querySelector('.dialog-body').prepend(notice);}notice.textContent=s;}toast.textContent=s;toast.classList.add('show');clearTimeout(msg.timer);msg.timer=setTimeout(()=>toast.classList.remove('show'),4500);};
-async function api(path,method='GET',body){const opt={method,credentials:'same-origin',headers:{Accept:'application/json'}};if(body!==undefined){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body);}let response;try{response=await fetch('/api/'+path,opt);}catch{throw Error('Sambungan terputus. Sila semak Internet.');}if(!response.ok){const r=await response.json().catch(()=>({}));throw Error(r.error||'Ralat '+response.status);}return path.startsWith('admin/export')&&!path.includes('format=json')?response.blob():response.json();}
+async function api(path,method='GET',body){const opt={method,credentials:'same-origin',headers:{Accept:'application/json'}};if(body!==undefined){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body);}let response;try{response=await fetch('/api/'+path,opt);}catch{throw Error('Sambungan terputus. Sila semak Internet.');}if(!response.ok){const r=await response.json().catch(()=>({}));const err=new Error(r.error||'Ralat '+response.status);err.status=response.status;throw err;}return path.startsWith('admin/export')&&!path.includes('format=json')?response.blob():response.json();}
 function hero(title,description,kicker='MAJLIS APRESIASI PRESTASI MURID'){return `<section class="hero" aria-label="Banner rasmi MaPeM SKPT 2026"><span class="hero-sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div class="hero-copy"><span class="eyebrow"><span class="eyebrow-dot"></span>${esc(kicker)}</span><h1>${esc(title)}</h1><p>${esc(description)}</p><span class="sub"><span aria-hidden="true">✦</span> MaPeM SKPT 2026 · Tahap 1 &amp; 2 · Tahun 1–5</span></div></section>`;}
 
 const icons={home:'◈',classes:'▦',teachers:'♙',admins:'♜',announcement:'◉',event:'◷',tasks:'♙',work:'✧',special:'✧',quotas:'◷',titles:'✎',awards:'♜',submit:'✓',published:'☷',audit:'◴'};
@@ -62,9 +62,145 @@ function openRecipient(person,event){
 }
 function listToText(x){return (x?.names||[]).join('\n');}function textareaList(id){return ($('txt-'+id)?.value||'').split(/\r?\n/).map(x=>x.trim().replace(/\s+/g,' ')).filter(Boolean);}
 function saveInfo(id,msgValue,status){const label=$('save-'+id);if(label){label.textContent=msgValue;label.className='save-status '+(status||'');if(status==='ok'){label.closest('dialog')?.querySelector('.dialog-message')?.remove();toast.classList.remove('show');}}}
-async function saveTeacher(id){const data=state.teacherData;if(!data||data.class.status!=='draft')return;if(state.saving[id]){state.pendingEdit[id]=true;return;}const latest=textareaList(id),previous=data.drafts[id]||{names:[],version:0};if(JSON.stringify(latest)===JSON.stringify(previous.names)){saveInfo(id,'✓ Disimpan','ok');return;}state.saving[id]=true;state.pendingEdit[id]=false;saveInfo(id,'Menyimpan...');try{const r=await api('teacher/save','POST',{categoryId:id,version:previous.version,names:latest});data.drafts[id]={names:latest,version:r.version};saveInfo(id,'✓ Disimpan automatik','ok');}catch(e){saveInfo(id,'Gagal: '+e.message,'err');msg(e.message);}finally{state.saving[id]=false;if(state.pendingEdit[id])state.timers[id]=setTimeout(()=>saveTeacher(id),170);}}
-async function finishSave(){for(const id of Object.keys(state.timers))clearTimeout(state.timers[id]);for(const c of state.teacherData.categories){const id=c.id;while(state.saving[id])await new Promise(r=>setTimeout(r,120));const before=state.teacherData.drafts[id]||{names:[]};if(JSON.stringify(textareaList(id))!==JSON.stringify(before.names)){await saveTeacher(id);while(state.saving[id])await new Promise(r=>setTimeout(r,120));if(JSON.stringify(textareaList(id))!==JSON.stringify(state.teacherData.drafts[id]?.names||[]))throw Error('Ada nama yang belum berjaya disimpan.');}}}
-async function showTeacher(){let result;try{result=await api('teacher/class');}catch(e){errorPage(e.message);return;}if(state.me.role==='admin')state.mode='class';state.teacherData=result;state.pendingEdit={};state.saving={};const c=result.class,locked=c.status==='submitted',total=Object.values(result.drafts).reduce((sum,v)=>sum+v.names.length,0);
+function sameNames(a,b){return JSON.stringify(a||[])===JSON.stringify(b||[]);}
+function isSafeTeacherAppend(base,server,local,max=5){
+ const norm=a=>String(a).trim().replace(/\s+/g,' ').toLocaleLowerCase('ms');
+ const prefix=(x,y)=>Array.isArray(x)&&Array.isArray(y)&&x.length<=y.length&&x.every((n,i)=>norm(n)===norm(y[i]));
+ return prefix(base,server)&&prefix(server,local)&&local.length<=max&&new Set(local.map(norm)).size===local.length;
+}
+function teacherConflictStatus(id,text){saveInfo(id,text,'err');}
+async function getLatestTeacherDraft(id){
+ const response=await api('teacher/class');
+ if(response.class.id!==state.teacherData?.class.id)throw Error('Penugasan kelas telah berubah. Jangan tutup borang; salin nama sebelum memuat semula.');
+ return {draft:response.drafts[id]||{names:[],version:0},class:response.class};
+}
+async function showTeacherSaveConflict(id){
+ const conflict=state.conflicts[id];
+ if(!conflict)return;
+ if($('teacher-conflict-dialog')){const existing=$('teacher-conflict-dialog');if(!existing.open)existing.showModal();return;}
+ const dialog=document.createElement('dialog');
+ dialog.id='teacher-conflict-dialog';dialog.className='app-dialog teacher-conflict-dialog';
+ const server=conflict.remote,local=textareaList(id),max=state.teacherData.categories.find(c=>c.id===id)?.classLimit||5;
+ dialog.innerHTML=`<div class="dialog-heading"><div><span class="eyebrow">ELAK DATA DITINDIH</span><h2>Ada perubahan pada senarai ini</h2></div><button type="button" class="icon-btn" id="teacher-conflict-close" aria-label="Tutup">×</button></div><div class="dialog-body"><div class="notice warning">Sistem mempunyai versi nama yang lebih baharu. Nama yang anda taip <strong>masih kekal dalam borang</strong>. Semak sebelum memilih tindakan.</div><div class="teacher-sync-compare"><div><strong>Nama dalam database (${server.names.length})</strong><ol>${server.names.map(n=>`<li>${esc(n)}</li>`).join('')}</ol></div><div><strong>Nama yang ditaip (${local.length})</strong><ol>${local.map(n=>`<li>${esc(n)}</li>`).join('')}</ol></div></div><p class="hint">Kuota bagi kategori ini: ${max} orang. Simpanan akan disemak semula supaya perubahan baharu pengguna lain tidak ditindih secara senyap.</p><p id="teacher-conflict-msg" class="save-status" role="status"></p></div><div class="dialog-actions teacher-conflict-actions"><button type="button" id="teacher-conflict-copy" class="btn btn-outline">Salin nama saya</button><button type="button" id="teacher-conflict-stored" class="btn btn-outline">Guna nama tersimpan</button><button type="button" id="teacher-conflict-mine" class="btn btn-green">Simpan nama saya</button></div>`;
+ document.body.append(dialog);
+ const status=$('teacher-conflict-msg');
+ const close=()=>dialog.close();
+ $('teacher-conflict-close').onclick=close;
+ dialog.addEventListener('close',()=>dialog.remove(),{once:true});
+ $('teacher-conflict-copy').onclick=async()=>{
+  const names=textareaList(id).join('\n');
+  try{await navigator.clipboard.writeText(names);status.textContent='Nama yang ditaip berjaya disalin.';}
+  catch{status.textContent='Pilih teks dalam kotak nama asal, kemudian salin secara manual.';}
+ };
+ $('teacher-conflict-stored').onclick=async()=>{
+  if(!confirm('Gantikan nama yang ditaip dengan senarai dari database? Perubahan belum disimpan akan hilang.'))return;
+  const button=$('teacher-conflict-stored');button.disabled=true;
+  try{
+   const fresh=await getLatestTeacherDraft(id);
+   state.teacherData.drafts[id]=fresh.draft;
+   $('txt-'+id).value=fresh.draft.names.join('\n');
+   delete state.conflicts[id];state.pendingEdit[id]=false;
+   saveInfo(id,'✓ Senarai terkini dari database dipaparkan','ok');
+   updateTeacherSummary();dialog.close();
+  }catch(e){status.textContent=e.message;button.disabled=false;}
+ };
+ $('teacher-conflict-mine').onclick=async()=>{
+  const selected=textareaList(id);
+  if(selected.length>max){status.textContent='Maksimum '+max+' nama. Sila semak senarai sebelum menyimpan.';return;}
+  if(!confirm('Simpan '+selected.length+' nama yang ditaip sebagai senarai baharu? Nama dalam database yang tiada pada senarai ini mungkin digantikan.'))return;
+  const button=$('teacher-conflict-mine');button.disabled=true;status.textContent='Mengesahkan versi terkini dan menyimpan...';
+  try{
+   const fresh=await getLatestTeacherDraft(id);
+   if(fresh.class.status!=='draft')throw Error('Senarai kelas sudah dihantar. Minta Admin membuka semula pengisian.');
+   if(!sameNames(fresh.draft.names,server.names)||fresh.draft.version!==server.version){
+    state.conflicts[id]={remote:fresh.draft};status.textContent='Data berubah lagi. Tutup mesej ini dan tekan Simpan untuk menyemak versi terbaru.';return;
+   }
+   state.teacherData.drafts[id]=fresh.draft;
+   delete state.conflicts[id];
+   dialog.close();
+   await saveTeacher(id);
+  }catch(e){status.textContent=e.message;}
+  finally{button.disabled=false;}
+ };
+ dialog.showModal();
+}
+async function saveTeacher(id){
+ const data=state.teacherData;
+ if(!data||data.class.status!=='draft')return false;
+ if(state.conflicts[id]){await showTeacherSaveConflict(id);return false;}
+ if(state.saving[id]){state.pendingEdit[id]=true;return false;}
+ let latest=textareaList(id);
+ let previous=data.drafts[id]||{names:[],version:0};
+ if(sameNames(latest,previous.names)){saveInfo(id,'✓ Disimpan','ok');return true;}
+ state.saving[id]=true;state.pendingEdit[id]=false;
+ saveInfo(id,'Menyimpan...');
+ let success=false;
+ let needsConflictDialog=false;
+ try{
+  for(let attempt=0;attempt<2;attempt++){
+   try{
+    const saved=await api('teacher/save','POST',{categoryId:id,version:previous.version,names:latest});
+    data.drafts[id]={names:latest,version:saved.version};
+    success=true;
+    if(sameNames(textareaList(id),latest)){
+     saveInfo(id,'✓ '+latest.length+' nama disimpan','ok');
+    }else{
+     state.pendingEdit[id]=true;
+     saveInfo(id,'Perubahan terbaru menunggu simpan...');
+    }
+    break;
+   }catch(err){
+    if(err.status!==409)throw err;
+    const remoteData=await getLatestTeacherDraft(id);
+    const server=remoteData.draft;
+    if(remoteData.class.status!=='draft')throw Error('Senarai sudah dihantar. Hubungi Admin untuk membuka semula.');
+    const currentLocal=textareaList(id);
+    if(sameNames(currentLocal,server.names)){
+     data.drafts[id]=server;success=true;
+     saveInfo(id,'✓ '+server.names.length+' nama telah tersimpan','ok');
+     break;
+    }
+    const limit=data.categories.find(c=>c.id===id)?.classLimit||5;
+    if(attempt===0&&isSafeTeacherAppend(previous.names,server.names,currentLocal,limit)){
+     data.drafts[id]=server;previous=server;latest=currentLocal;
+     saveInfo(id,'Menyelaraskan tambahan nama...');
+     continue;
+    }
+    state.conflicts[id]={remote:server};
+    teacherConflictStatus(id,'Perlu semak perubahan. Nama yang ditaip tidak hilang.');
+    needsConflictDialog=true;
+    break;
+   }
+  }
+ }catch(err){
+  saveInfo(id,'Gagal: '+err.message,'err');
+  msg(err.message);
+ }finally{
+  state.saving[id]=false;
+  if(needsConflictDialog)await showTeacherSaveConflict(id);
+  else if(state.pendingEdit[id]&&!state.conflicts[id]){
+   clearTimeout(state.timers[id]);
+   state.timers[id]=setTimeout(()=>saveTeacher(id),220);
+  }
+ }
+ return success;
+}
+async function finishSave(){
+ for(const id of Object.keys(state.timers))clearTimeout(state.timers[id]);
+ for(const c of state.teacherData.categories){
+  const id=c.id;
+  while(state.saving[id])await new Promise(r=>setTimeout(r,120));
+  if(state.conflicts[id]){await showTeacherSaveConflict(id);throw Error('Semak konflik simpanan dahulu; nama yang ditaip masih berada dalam borang.');}
+  const before=state.teacherData.drafts[id]||{names:[]};
+  if(!sameNames(textareaList(id),before.names)){
+   await saveTeacher(id);
+   while(state.saving[id])await new Promise(r=>setTimeout(r,120));
+   if(!sameNames(textareaList(id),state.teacherData.drafts[id]?.names||[]))
+    throw Error('Ada nama yang belum berjaya disimpan. Semak status simpanan sebelum menghantar.');
+  }
+ }
+}
+async function showTeacher(){let result;try{result=await api('teacher/class');}catch(e){errorPage(e.message);return;}if(state.me.role==='admin')state.mode='class';state.teacherData=result;state.pendingEdit={};state.saving={};state.conflicts={};const c=result.class,locked=c.status==='submitted',total=Object.values(result.drafts).reduce((sum,v)=>sum+v.names.length,0);
 mount(hero('Kelas '+c.year+' '+c.name,c.year===3?'Isi PBD dan empat pencalonan Tahun 3. Pilih kategori untuk bermula.':'Isi PBD sahaja: tepat 5 nama murid bagi kelas ini, '+(c.year<=3?'Tahap 1':'Tahap 2')+'.','RUANG KERJA GURU KELAS')+`<div class="teacher-panel"><section class="teacher-overview" aria-label="Ringkasan kelas"><div class="metric"><small>Nama direkod</small><b id="teacher-total">${total}</b><small>${c.year===3?'PBD dan pencalonan Tahun 3':'Penerima PBD'}</small></div><div class="metric"><small>Kategori berisi</small><b id="teacher-progress">0 / ${result.categories.length}</b><div class="bar"><div class="fill" id="teacher-bar"></div></div></div><div class="metric"><small>Status kelas</small><b class="metric-status">${locked?'Dihantar':'Draf'}</b><small>${locked?'Pengisian dikunci':'Masih boleh disunting'}</small></div></section><div class="save-notice ${locked?'locked':''}"><span aria-hidden="true">${locked?'✓':'↻'}</span><span>${locked?'Senarai akhir diterima. Hubungi urus setia jika pembetulan diperlukan.':'Autosave aktif. Buka kategori untuk menambah, mengubah atau memadam nama.'}</span></div><section id="award-section" class="award-section"><div class="section-title"><div><span class="section-kicker">${c.year===3?'PBD & PENCALONAN TAHUN 3':'PENGISIAN PBD'}</span><h2>Kategori anugerah</h2></div><span class="status draft">${result.categories.length} kategori</span></div><div class="award-grid">${result.categories.map((cat,i)=>{const d=result.drafts[cat.id]||{names:[],version:0};const quota=cat.scope==='year'?cat.quota?.[c.year]:cat.quota;return `<button class="award-card" data-open-award="${esc(cat.id)}" aria-haspopup="dialog"><span class="award-icon" aria-hidden="true">${['♜','✧','◈','❋','★','✦'][i%6]}</span><span class="award-copy"><strong>${esc(cat.nomination?'Pencalonan: '+cat.name:cat.name)}</strong><small>${cat.nomination?'Pencalonan Tahun 3 · 2 penerima akhir':cat.classLimit?'5 murid setiap kelas':quota==null?'Kuota belum ditetapkan':'Kuota keseluruhan: '+quota+' penerima'}</small></span><span class="award-card-bottom"><span id="count-${esc(cat.id)}" class="status draft">${d.names.length} nama</span><span class="award-action">${locked?'Lihat':'Isi nama'} <span aria-hidden="true">↗</span></span></span></button>`;}).join('')}</div></section><div class="submission-bar"><div><strong>${locked?'Senarai telah dihantar':'Sedia untuk menghantar?'}</strong><small>PBD: tepat 5 nama.${c.year===3?' Empat kategori lain ialah pencalonan Tahun 3 sahaja.':''}</small></div><button class="btn ${locked?'btn-outline':'btn-green'}" id="final-submit">${locked?'Lihat senarai akhir':'Semak & hantar →'}</button></div></div>`,'home');
 const store=document.createElement('div');store.id='award-dialogs';store.innerHTML=result.categories.map(cat=>{const d=result.drafts[cat.id]||{names:[],version:0};return `<dialog class="app-dialog" id="dialog-${esc(cat.id)}" aria-labelledby="title-${esc(cat.id)}"><div class="dialog-heading"><div><span class="eyebrow">${esc(c.year+' '+c.name)} · PENCALONAN</span><h2 id="title-${esc(cat.id)}">${esc(cat.name)}</h2></div><span class="status ${locked?'submitted':'draft'}">${locked?'Dikunci':'Draf'}</span></div><div class="dialog-body">${cat.note?`<div class="notice">${esc(cat.note)}</div>`:''}<p class="editor-guide">Satu nama penuh pada setiap baris. Untuk memadam, buang baris nama berkenaan.</p><div class="field"><label for="txt-${esc(cat.id)}">${cat.nomination?'Nama calon':'Nama penerima PBD'}</label><textarea id="txt-${esc(cat.id)}" data-award="${esc(cat.id)}" ${locked?'disabled':''} placeholder="Taip nama penuh murid...">${esc(listToText(d))}</textarea></div><div class="editing"><span class="save-status" id="save-${esc(cat.id)}" role="status" aria-live="polite">${locked?'Pengisian dikunci':'Semua perubahan disimpan secara automatik'}</span><button class="btn btn-outline btn-small" data-save="${esc(cat.id)}" ${locked?'disabled':''}>Simpan sekarang</button></div></div><div class="dialog-actions"><span class="hint">${locked?'Hanya urus setia boleh membuka semula.':'Tunggu status Disimpan sebelum menutup.'}</span><button class="btn" data-close-editor="${esc(cat.id)}">Selesai</button></div></dialog>`;}).join('');root.append(store);
  document.querySelectorAll('[data-open-award]').forEach(b=>b.onclick=()=>{$('dialog-'+b.dataset.openAward).showModal();});
