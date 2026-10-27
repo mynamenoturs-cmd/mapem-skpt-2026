@@ -169,3 +169,16 @@ footer{background:#38091b;border-top-color:#bf94534a}.footer{color:#d2b39b}.hero
 @media(max-width:780px){.announcement-manage-item{flex-direction:column;padding:18px}.announcement-manage-actions{max-width:none;width:100%;justify-content:flex-start}.announcement-manage-actions .btn{flex:0 0 auto}.announcement-dashboard-stats{gap:9px}.announcement-dashboard-stats>div{padding:13px}}
 @media(max-width:420px){.announcement-dashboard-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.announcement-dashboard-stats>div{padding:11px 8px;border-radius:11px}.announcement-dashboard-stats b{font-size:21px}.announcement-dashboard-stats small{font-size:9px}.announcement-manage-item h3{font-size:15px}.announcement-manage-actions{gap:5px}.announcement-manage-actions .btn{padding:8px;font-size:10px}.announcement-head time{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.announcement-feed .portal-announcement{transition:none}.announcement-feed .portal-announcement:hover{transform:none}}
+
+
+/* Recover from concurrent teacher/administrator edits without losing typed PBD names. */
+.teacher-conflict-dialog{width:min(95vw,740px);max-height:90vh}
+.teacher-conflict-dialog .dialog-body{max-height:65vh;overflow-y:auto}
+.teacher-sync-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:15px 0}
+.teacher-sync-compare>div{min-width:0;padding:15px;border:1px solid #e8d8ba;background:#fffdf9;border-radius:12px}
+.teacher-sync-compare strong{color:#642941;font-size:13px}
+.teacher-sync-compare ol{padding-left:23px;margin:13px 0 0;font-size:12px;line-height:1.8}
+.teacher-sync-compare li{margin-bottom:7px;overflow-wrap:anywhere}
+.teacher-conflict-actions{gap:8px;flex-wrap:wrap}
+.teacher-conflict-actions .btn{font-size:12px}
+@media(max-width:640px){.teacher-sync-compare{grid-template-columns:1fr}.teacher-conflict-dialog .dialog-body{max-height:54vh}.teacher-conflict-actions{display:flex;flex-direction:column}.teacher-conflict-actions .btn{width:100%}}
