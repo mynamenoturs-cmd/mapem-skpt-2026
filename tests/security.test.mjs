@@ -400,20 +400,21 @@ test('migration preserves pre-existing Cerdas PLaN specialist access across subg
  assert.deepEqual(grant.map(x=>x.category_id),['plan','plan-pemulihan']);assert(grant.every(x=>x.tahap===0));
 });
 
-test('UASA is exactly 10 per year 3, 4, 5, with no Year 1 or 2 awards',async()=>{
+test('UASA awards allow exactly 10 recipients per year 1 through 5, across classes and exports',async()=>{
  const {env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com');
+ const cat=CATEGORIES.find(c=>c.id==='uasa');
+ assert.deepEqual(cat.years,[1,2,3,4,5]);
+ assert.deepEqual(cat.quota,{1:10,2:10,3:10,4:10,5:10});
  const send=(classId,list)=>call(env,'admin/special/save',{cookie:admin,method:'POST',body:{classId,categoryId:'uasa',names:list,version:0}});
  const list=y=>Array.from({length:10},(_,i)=>'UASA Murid '+y+' '+(i+1));
- for(const y of [3,4,5]){
+ for(const y of [1,2,3,4,5]){
   assert.equal((await send(y+'-crystal',list(y))).status,200);
   assert.equal((await send(y+'-diamond',['UASA Murid Tambahan '+y])).status,409);
+  const exported=await json(await call(env,'admin/export?format=json&year='+y,{cookie:admin}));
+  assert.equal(exported.rows.filter(r=>r.categoryId==='uasa').length,10);
  }
- assert.equal((await send('1-crystal',['Tidak Layak'])).status,403);
- assert.equal((await send('2-crystal',['Tidak Layak'])).status,403);
- const year4=await json(await call(env,'admin/export?format=json&year=4',{cookie:admin}));
- const year5=await json(await call(env,'admin/export?format=json&year=5',{cookie:admin}));
- assert.equal(year4.rows.filter(r=>r.categoryId==='uasa').length,10);
- assert.equal(year5.rows.filter(r=>r.categoryId==='uasa').length,10);
+ const all=await json(await call(env,'admin/export?format=json&tahap=1',{cookie:admin}));
+ assert.equal(all.rows.filter(r=>r.categoryId==='uasa').length,30);
 });
 test('each subject has its own annual quota: five per year across Tahap 1 and Tahap 2, including Sejarah only Tahap 2',async()=>{
  const {env,addLogin}=fixture(),admin=await addLogin('admin@gmail.com');
