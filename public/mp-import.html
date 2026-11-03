@@ -10,7 +10,7 @@
 <main><section class="card">
 <h2>Import senarai calon</h2>
 <p class="help">Fail JSON saringan akan disemak dengan draf anugerah semasa dalam portal. Data hanya disimpan apabila Pentadbir menekan butang simpan.</p>
-<p class="warning">Keutamaan ialah murid yang belum mendapat anugerah lain. Jika nama bertindih dengan PBD, UASA atau anugerah lain dalam MaPeM, sistem akan memaparkan amaran. Kelas yang sudah diterbitkan tidak boleh diubah.</p>
+<p class="warning">Keutamaan ialah 5 markah tertinggi bagi setiap subjek dan tahun. Hanya jika markah seri pada sempadan kuota, pilih murid yang belum menerima anugerah. Murid bermarkah lebih tinggi tetap layak walaupun sudah menerima PBD, UASA atau anugerah mata pelajaran lain. Portal akan memaparkan amaran pertindihan. Kelas yang sudah diterbitkan tidak boleh diubah.</p>
 <p id="login" class="help">Menyemak sesi log masuk...</p>
 <label for="file"><strong>Pilih fail JSON Mata Pelajaran Terbaik</strong></label><input id="file" type="file" accept=".json,application/json" disabled>
 <div class="row"><button id="preview" disabled>1. Pratonton &amp; semak</button><button id="save" disabled>2. Simpan 90 nama sebagai draf</button><button id="reset" class="secondary">Kosongkan</button></div>
@@ -49,15 +49,15 @@ const pair=String(r.classId||'').match(/^([123])-(amber|crystal|diamond|emerald|
 const sub=String(r.categoryId||'').match(/^subjek-(bm|bi|mt|sn|pai|pm)$/);
 if(!pair||!sub||!Array.isArray(r.names)||!r.names.length||r.names.length>5)throw Error('Kelas/subjek atau kuota tidak sah.');
 for(const name of r.names){
-n++;const k=pair[1]+'|'+String(name).trim().toLowerCase();
-if(seen.has(k))throw Error('Nama calon berulang: '+name);seen.add(k);
+n++;const k=pair[1]+'|'+sub[1]+'|'+pair[2]+'|'+String(name).trim().toLowerCase();
+if(seen.has(k))throw Error('Nama berulang dalam kelas dan subjek yang sama: '+name);seen.add(k);
 const tr=document.createElement('tr');for(const v of [pair[1],label[sub[1]],pair[2].toUpperCase(),name]){
 const td=document.createElement('td');td.textContent=v;tr.append(td);
 }$('rows').append(tr);}
 const labelKey=pair[1]+'-'+sub[1];count[labelKey]=(count[labelKey]||0)+r.names.length;
 }
 if(n!==90||Object.keys(count).length!==18||Object.values(count).some(x=>x!==5))throw Error('Saringan tidak lengkap: 90 nama, lima bagi setiap subjek/tahun diperlukan.');
-importData=x;$('previewCard').hidden=false;$('summary').textContent='90 penerima daripada 18 kategori. Belum disimpan ke portal.';
+importData=x;$('previewCard').hidden=false;$('summary').textContent='90 tempat anugerah daripada 18 kategori. Murid sama boleh memenangi lebih satu subjek jika markahnya berada dalam 5 tertinggi. Belum disimpan ke portal.';
 $('preview').disabled=!authenticated;status('Fail disahkan secara tempatan. Tekan pratonton untuk menyemak nama dengan pangkalan data.');
 }catch(e){clear();status(e.message,'error');}
 };
@@ -72,8 +72,8 @@ if(review.overlaps?.length){
  for(const x of review.overlaps){const p=document.createElement('p');p.textContent=x.classId.toUpperCase()+' · '+x.name+' · '+x.subject+' juga dalam '+x.otherAwards.join(', ');$('conflicts').append(p);}
 }
 if(review.locked?.length)status('Import disekat: '+review.locked.length+' kelas telah diterbitkan ('+review.locked.join(', ')+'). Tarik balik penerbitan sebelum import.','error');
-else if(review.overlaps?.length)status('Pratonton siap. '+review.overlaps.length+' murid sudah tersenarai anugerah lain. Anda boleh membetulkan fail atau mengesahkan pengecualian secara nyata.','error');
-else status('✓ Tiada pertindihan dengan draf anugerah lain! '+review.changes.length+' kelas/subjek akan dikemas kini.','success');
+else if(review.overlaps?.length)status('Pratonton siap. '+review.overlaps.length+' pertindihan dengan anugerah lain; markah 5 tertinggi tetap layak. Semak dan sahkan sebelum menyimpan. '+review.uniqueStudents+' murid berbeza bagi 90 tempat.','error');
+else status('✓ '+review.uniqueStudents+' murid berbeza mengisi 90 tempat; '+review.changes.length+' kelas/subjek akan dikemas kini.','success');
 $('save').disabled=!!review.locked?.length;
 }catch(e){status(e.message,'error');}finally{$('preview').disabled=false;}
 };
