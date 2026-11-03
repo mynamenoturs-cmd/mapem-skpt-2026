@@ -22,21 +22,19 @@ async function admin(request,env){
 }
 function parse(body,classes){
  if(body?.schemaVersion!==1||body?.award!=='matapelajaran'||!['preview','commit'].includes(body.mode)||!Array.isArray(body.records))throw{status:400,message:'Format import Mata Pelajaran tidak sah.'};
- const allowed=new Map(classes.map(x=>[x.id,x])),desired=new Map(),byYearSub=new Map(),seen=new Set();
+ const allowed=new Map(classes.map(x=>[x.id,x])),desired=new Map(),byYearSub=new Map();let selectedCount=0;
  for(const r of body.records){
   if(!r||!allowed.has(r.classId)||!subjects.includes(r.categoryId)||desired.has(k(r.classId,r.categoryId)))throw{status:400,message:'Kelas atau subjek tidak sah/berulang.'};
   if(!Array.isArray(r.names)||r.names.length<1||r.names.length>5)throw{status:400,message:'Jumlah nama pada kelas/subjek tidak sah.'};
   const names=r.names.map(norm),year=allowed.get(r.classId).year;
   if(names.some(n=>n.length<2||n.length>160||/[<>]/.test(n))||new Set(names.map(low)).size!==names.length)throw{status:400,message:'Nama murid tidak sah.'};
-  for(const name of names){
-   const identity=year+'|'+low(name);
-   if(seen.has(identity))throw{status:400,message:'Nama murid berulang antara anugerah MP: '+name};
-   seen.add(identity);
-  }
+  // The same highest-scoring student may rightfully win more than one subject.
+  // Only duplicates within the same class/subject list are invalid (checked above).
+  selectedCount+=names.length;
   desired.set(k(r.classId,r.categoryId),names);
   const label=year+'|'+r.categoryId;byYearSub.set(label,(byYearSub.get(label)||0)+names.length);
  }
- if(seen.size!==90)throw{status:400,message:'Diperlukan 90 nama calon unik.'};
+ if(selectedCount!==90)throw{status:400,message:'Diperlukan 90 slot penerima (5 bagi setiap subjek/tahun).'};
  for(const year of [1,2,3])for(const s of subjects)if(byYearSub.get(year+'|'+s)!==5)throw{status:400,message:'Kuota 5 tidak dipenuhi: '+year+' '+s};
  return desired;
 }
@@ -75,7 +73,10 @@ export async function onRequestPost({request,env}){
    const cats=awarded.get(record.classId+'|'+low(name));
    if(cats)overlaps.push({classId:record.classId,name,subject:record.categoryId,otherAwards:[...cats]});
   }
-  if(body.mode==='preview')return respond({ok:true,recipients:90,categories:18,classes:26,changes,expectedVersions:versions,locked,overlaps});
+  const identityFrequency=new Map();
+  for(const record of body.records)for(const name of record.names){const identity=record.classId+'|'+low(name);identityFrequency.set(identity,(identityFrequency.get(identity)||0)+1);}
+  const repeatedSubjectStudents=[...identityFrequency.values()].filter(n=>n>1).length;
+  if(body.mode==='preview')return respond({ok:true,recipients:90,uniqueStudents:identityFrequency.size,repeatedSubjectStudents,categories:18,classes:26,changes,expectedVersions:versions,locked,overlaps});
   if(locked.length)throw{status:423,message:'Terdapat kelas sudah diterbitkan: '+locked.join(', ')+'. Tarik balik penerbitan sebelum import.'};
   if(overlaps.length&&!body.allowOverlaps)throw{status:409,message:overlaps.length+' murid sudah menerima kategori anugerah lain. Semak pertindihan atau sahkan pengecualian.'};
   if(body.confirm!==true||!body.expectedVersions||typeof body.expectedVersions!=='object'||Array.isArray(body.expectedVersions))throw{status:400,message:'Pratonton dan sahkan sebelum import.'};

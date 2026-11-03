@@ -30,16 +30,21 @@ const r=await onRequestPost({request,env});return {status:r.status,result:await 
 }
 return {db,call,data,cookie};
 }
-test('MP importer requires admin and enforces 5 each subject/year with no repeating student',async()=>{
+test('MP importer requires admin and enforces 5 per subject/year while allowing legitimate cross-subject winners',async()=>{
 const t=await fixture();
 assert.equal((await t.call({...t.data,mode:'preview'},'invalid')).status,401);
 assert.equal((await t.call({...t.data,mode:'preview'},t.cookie,'https://evil.example')).status,403);
 const missing=structuredClone(t.data);missing.records.pop();
 assert.equal((await t.call({...missing,mode:'preview'})).status,400);
-const duplicate=structuredClone(t.data);duplicate.records[1].names[0]=duplicate.records[0].names[0];
-assert.equal((await t.call({...duplicate,mode:'preview'})).status,400);
+const repeat=structuredClone(t.data);repeat.records[5].names[0]=repeat.records[0].names[0];
+assert.equal(repeat.records[5].classId,repeat.records[0].classId);
+const repeatedPreview=await t.call({...repeat,mode:'preview'});
+assert.equal(repeatedPreview.status,200);
+assert.equal(repeatedPreview.result.recipients,90);
+assert.equal(repeatedPreview.result.uniqueStudents,89);
+assert.equal(repeatedPreview.result.repeatedSubjectStudents,1);
 const p=await t.call({...t.data,mode:'preview'});assert.equal(p.status,200);
-assert.equal(p.result.recipients,90);assert.equal(p.result.categories,18);
+assert.equal(p.result.recipients,90);assert.equal(p.result.uniqueStudents,90);assert.equal(p.result.categories,18);
 assert.equal(p.result.changes.length,90);
 assert.equal((await t.call({...t.data,mode:'commit',confirm:true,expectedVersions:{}})).status,409);
 assert.equal(t.db.prepare('SELECT count(*) n FROM drafts').get().n,0);
