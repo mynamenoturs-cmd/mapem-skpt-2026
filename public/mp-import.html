@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ms"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>Import Mata Pelajaran Terbaik — MaPeM SKPT 2026</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f8f3e9;color:#351b26}*{box-sizing:border-box}body{margin:0}header{background:#641528;color:white;padding:18px}header div,main{max-width:980px;margin:auto}header a{color:#f3c77d;text-decoration:none}main{padding:20px 15px 44px}h1{font-size:1.7rem}h2{font-size:1.18rem}.card{background:white;padding:18px;border:1px solid #e5dbc9;border-radius:14px;margin-bottom:18px;box-shadow:0 2px 14px #60203012}.help{color:#655c5b;line-height:1.6}.warning{padding:12px;border-radius:8px;background:#fff2de;border-left:5px solid #b1781f}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}button{border:0;border-radius:9px;background:#641528;color:white;padding:11px 17px;font:inherit;cursor:pointer;font-weight:650}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#eee1d1;color:#341725}.success{color:#12643f}.error{color:#a02135}.scroll{overflow:auto;max-height:460px}table{border-collapse:collapse;width:100%;min-width:630px}th,td{border-bottom:1px solid #e8dece;padding:9px;text-align:left;font-size:.9rem}th{background:#f1e0c7;position:sticky;top:0}input[type=file]{display:block;width:100%;padding:15px 0;font:inherit}label{display:block;margin:10px 0}#status{white-space:pre-wrap}#conflicts{max-height:220px;overflow-y:auto}footer{text-align:center;padding:25px;color:#867673}
+</style></head>
+<body><header><div><a href="/">← Portal MaPeM</a><h1>Import 5 Terbaik Mata Pelajaran</h1><p>6 subjek × 3 tahun × 5 penerima = 90 calon</p></div></header>
+<main><section class="card">
+<h2>Import senarai calon</h2>
+<p class="help">Fail JSON saringan akan disemak dengan draf anugerah semasa dalam portal. Data hanya disimpan apabila Pentadbir menekan butang simpan.</p>
+<p class="warning">Keutamaan ialah murid yang belum mendapat anugerah lain. Jika nama bertindih dengan PBD, UASA atau anugerah lain dalam MaPeM, sistem akan memaparkan amaran. Kelas yang sudah diterbitkan tidak boleh diubah.</p>
+<p id="login" class="help">Menyemak sesi log masuk...</p>
+<label for="file"><strong>Pilih fail JSON Mata Pelajaran Terbaik</strong></label><input id="file" type="file" accept=".json,application/json" disabled>
+<div class="row"><button id="preview" disabled>1. Pratonton &amp; semak</button><button id="save" disabled>2. Simpan 90 nama sebagai draf</button><button id="reset" class="secondary">Kosongkan</button></div>
+<p id="status" class="help" role="status" aria-live="polite">Belum memuatkan fail.</p>
+</section><section class="card" id="conflictCard" hidden>
+<h2>Semakan pertindihan anugerah</h2><p id="conflictCount"></p><div id="conflicts"></div>
+<label><input type="checkbox" id="override"> Saya telah menyemak pertindihan dengan penyelaras dan mahu teruskan walaupun ada nama berulang.</label>
+</section><section class="card" id="previewCard" hidden><h2>Senarai calon mata pelajaran</h2><p id="summary"></p><div class="scroll"><table><thead><tr><th>Tahun</th><th>Subjek</th><th>Kelas</th><th>Nama Murid</th></tr></thead><tbody id="rows"></tbody></table></div></section></main>
+<footer>MaPeM SKPT 2026 · Powered by Cikgu Wanwan</footer>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+let importData=null,review=null,authenticated=false;
+const label={bm:'Bahasa Melayu',bi:'Bahasa Inggeris',mt:'Matematik',sn:'Sains',pai:'Pendidikan Islam',pm:'Pendidikan Moral'};
+function status(message,cls='help'){$('status').textContent=message;$('status').className=cls;}
+function clear(){importData=null;review=null;$('file').value='';$('rows').replaceChildren();$('conflicts').replaceChildren();$('previewCard').hidden=true;$('conflictCard').hidden=true;$('preview').disabled=true;$('save').disabled=true;status('Belum memuatkan fail.');}
+$('reset').onclick=clear;
+async function api(body){
+const r=await fetch('/api/admin/mp/bulk',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body)});
+const x=await r.json().catch(()=>({}));if(!r.ok)throw Error(x.error||'Ralat '+r.status);return x;
+}
+async function who(){
+try{const r=await fetch('/api/me',{credentials:'same-origin',cache:'no-store'});const x=await r.json();
+authenticated=r.ok&&x.user?.role==='admin';
+$('login').textContent=authenticated?'✓ Log masuk sebagai pentadbir.':'Sila log masuk sebagai pentadbir melalui portal MaPeM.';
+$('file').disabled=!authenticated;}catch{$('login').textContent='Sesi tidak dapat disahkan.';}
+}
+$('file').onchange=async event=>{
+const f=event.target.files?.[0];clear();if(!f)return;
+try{
+if(f.size>65000)throw Error('Fail JSON terlalu besar.');
+const x=JSON.parse(await f.text());if(x.schemaVersion!==1||x.award!=='matapelajaran'||!Array.isArray(x.records))throw Error('Fail tidak sepadan dengan format Mata Pelajaran Terbaik.');
+const count={};let n=0;const seen=new Set();
+for(const r of x.records){
+const pair=String(r.classId||'').match(/^([123])-(amber|crystal|diamond|emerald|jade|pearl|ruby|sapphire|topaz)$/);
+const sub=String(r.categoryId||'').match(/^subjek-(bm|bi|mt|sn|pai|pm)$/);
+if(!pair||!sub||!Array.isArray(r.names)||!r.names.length||r.names.length>5)throw Error('Kelas/subjek atau kuota tidak sah.');
+for(const name of r.names){
+n++;const k=pair[1]+'|'+String(name).trim().toLowerCase();
+if(seen.has(k))throw Error('Nama calon berulang: '+name);seen.add(k);
+const tr=document.createElement('tr');for(const v of [pair[1],label[sub[1]],pair[2].toUpperCase(),name]){
+const td=document.createElement('td');td.textContent=v;tr.append(td);
+}$('rows').append(tr);}
+const labelKey=pair[1]+'-'+sub[1];count[labelKey]=(count[labelKey]||0)+r.names.length;
+}
+if(n!==90||Object.keys(count).length!==18||Object.values(count).some(x=>x!==5))throw Error('Saringan tidak lengkap: 90 nama, lima bagi setiap subjek/tahun diperlukan.');
+importData=x;$('previewCard').hidden=false;$('summary').textContent='90 penerima daripada 18 kategori. Belum disimpan ke portal.';
+$('preview').disabled=!authenticated;status('Fail disahkan secara tempatan. Tekan pratonton untuk menyemak nama dengan pangkalan data.');
+}catch(e){clear();status(e.message,'error');}
+};
+$('preview').onclick=async()=>{
+if(!importData)return;$('preview').disabled=true;$('save').disabled=true;review=null;$('conflictCard').hidden=true;
+status('Menyemak 90 calon terhadap rekod anugerah MaPeM semasa...');
+try{
+review=await api({...importData,mode:'preview'});
+$('conflicts').replaceChildren();$('override').checked=false;
+if(review.overlaps?.length){
+ $('conflictCard').hidden=false;$('conflictCount').textContent=review.overlaps.length+' pertindihan dikesan. Utamakan semakan sebelum menyimpan.';
+ for(const x of review.overlaps){const p=document.createElement('p');p.textContent=x.classId.toUpperCase()+' · '+x.name+' · '+x.subject+' juga dalam '+x.otherAwards.join(', ');$('conflicts').append(p);}
+}
+if(review.locked?.length)status('Import disekat: '+review.locked.length+' kelas telah diterbitkan ('+review.locked.join(', ')+'). Tarik balik penerbitan sebelum import.','error');
+else if(review.overlaps?.length)status('Pratonton siap. '+review.overlaps.length+' murid sudah tersenarai anugerah lain. Anda boleh membetulkan fail atau mengesahkan pengecualian secara nyata.','error');
+else status('✓ Tiada pertindihan dengan draf anugerah lain! '+review.changes.length+' kelas/subjek akan dikemas kini.','success');
+$('save').disabled=!!review.locked?.length;
+}catch(e){status(e.message,'error');}finally{$('preview').disabled=false;}
+};
+$('save').onclick=async()=>{
+if(!importData||!review||review.locked?.length)return;
+const n=review.overlaps?.length||0;
+if(n&&!$('override').checked){status('Tandakan pengesahan pertindihan atau betulkan fail calon terlebih dahulu.','error');return;}
+if(!confirm('Simpan 90 penerima Mata Pelajaran Terbaik sebagai DRAF? Rekod mata pelajaran sedia ada akan diselaraskan; anugerah lain tidak diubah.'))return;
+$('save').disabled=true;$('preview').disabled=true;
+try{const x=await api({...importData,mode:'commit',confirm:true,expectedVersions:review.expectedVersions,allowOverlaps:n>0&&$('override').checked});
+status('✓ Berjaya! 90 nama disimpan sebagai draf. '+x.changed+' rekod kelas/subjek diselaraskan. Tiada nama diterbitkan secara automatik.','success');review=null;
+}catch(e){status(e.message,'error');review=null;$('preview').disabled=false;}
+};
+who();
+</script></body></html>
