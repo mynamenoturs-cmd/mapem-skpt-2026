@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ms"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>Import UASA Tahap 1 — MaPeM SKPT 2026</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f8f3e9;color:#371820}*{box-sizing:border-box}body{margin:0}header{background:linear-gradient(110deg,#461022,#711932);color:white;padding:16px 20px}header div,main{max-width:980px;margin:0 auto}header a{color:#f5cf86;text-decoration:none;font-weight:700}h1{font-size:clamp(1.4rem,3vw,2rem);margin:12px 0 6px}h2{font-size:1.2rem}p{line-height:1.55}main{padding:20px 15px 50px}.card{background:white;border:1px solid #e4d6bd;border-radius:14px;margin-bottom:18px;padding:18px;box-shadow:0 3px 14px #6b1b3212}.muted{color:#705f63;font-size:.93rem}.warning{border-left:5px solid #b57713;background:#fff6e5;padding:12px;border-radius:6px}.error{color:#9b2633}.success{color:#186044}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}button{border:0;border-radius:9px;padding:11px 18px;font:inherit;cursor:pointer;font-weight:650;background:#64162f;color:white}button:disabled{cursor:not-allowed;opacity:.45}button.secondary{background:#e9dcc7;color:#3d2030}input[type=file]{width:100%;padding:16px 0;font:inherit}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:580px}th,td{text-align:left;border-bottom:1px solid #eadfcf;padding:9px;font-size:.89rem;vertical-align:top}th{background:#f3e6d1}#status{white-space:pre-wrap}footer{text-align:center;padding:25px;color:#846d68}
+</style></head>
+<body>
+<header><div><a href="/">← Kembali ke portal MaPeM</a><h1>Import 10 Terbaik UASA — Tahap 1</h1><p>26 kelas · 30 penerima · akses Pentadbir sahaja</p></div></header>
+<main>
+<section class="card">
+<h2>Import secara selamat</h2>
+<p>Gunakan fail JSON saringan UASA yang telah disediakan. Semak senarai dan simpan sebagai <strong>draf</strong> dalam MaPeM. Kategori anugerah lain tidak diubah.</p>
+<p class="warning"><strong>Perhatian:</strong> Calon Tahun 1 Diamond masih memerlukan pengesahan markah Matematik. Import tidak menerbitkan nama secara automatik. Jika ada kelas yang telah diterbitkan, import akan disekat sehingga pentadbir menarik balik penerbitan kelas tersebut.</p>
+<p id="who" class="muted" role="status">Menyemak sesi Pentadbir...</p>
+<label for="file"><strong>Pilih fail import JSON</strong></label>
+<input id="file" type="file" accept=".json,application/json" disabled>
+<div class="row"><button id="preview" disabled>1. Pratonton &amp; semak</button><button id="commit" disabled>2. Simpan 30 nama ke portal</button><button id="reset" class="secondary">Kosongkan</button></div>
+<p id="status" class="muted" role="status" aria-live="polite">Tiada data dimuatkan.</p>
+</section>
+<section class="card" id="results" hidden><h2>Senarai untuk disimpan</h2><p id="summary" class="muted"></p>
+<div class="scroll"><table><thead><tr><th>Tahun</th><th>Kelas</th><th>Nama murid</th><th>Jenis tempat</th></tr></thead><tbody id="rows"></tbody></table></div></section>
+</main><footer>MaPeM SKPT 2026 · Data murid tidak dimasukkan dalam GitHub</footer>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+let payload=null,preview=null,authorized=false;
+function status(m,cls='muted'){$('status').textContent=m;$('status').className=cls;}
+async function call(body){
+ const r=await fetch('/api/admin/uasa/bulk',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(body)});
+ const v=await r.json().catch(()=>({}));if(!r.ok)throw Error(v.error||'Ralat '+r.status);return v;
+}
+async function login(){
+ try{const r=await fetch('/api/me',{credentials:'same-origin',cache:'no-store'});const x=await r.json();
+ authorized=r.ok&&x.user?.role==='admin';$('who').textContent=authorized?'✓ Sesi pentadbir disahkan.':'Akses pentadbir diperlukan. Sila log masuk melalui portal utama.';
+ $('file').disabled=!authorized;}catch{$('who').textContent='Gagal mengesahkan sesi. Sila log masuk melalui portal utama.';}
+}
+function reset(){payload=null;preview=null;$('file').value='';$('preview').disabled=true;$('commit').disabled=true;$('results').hidden=true;$('rows').replaceChildren();status('Tiada data dimuatkan.');}
+$('reset').onclick=reset;
+$('file').onchange=async e=>{
+ const f=e.target.files?.[0];reset();if(!f)return;
+ try{
+  if(f.size>50000)throw Error('Fail terlalu besar.');
+  const data=JSON.parse(await f.text());
+  if(data?.schemaVersion!==1||data?.award!=='uasa'||!Array.isArray(data.records))throw Error('Fail bukan format import UASA yang disokong.');
+  const seen=new Set(),byYear={1:0,2:0,3:0};let total=0;
+  for(const r of data.records){
+   const parts=String(r.classId||'').match(/^([123])-(amber|crystal|diamond|emerald|jade|pearl|ruby|sapphire|topaz)$/);
+   if(!parts||seen.has(r.classId)||!Array.isArray(r.names)||r.names.length<1)throw Error('Kelas atau senarai nama tidak sah.');
+   seen.add(r.classId);for(let i=0;i<r.names.length;i++){
+    const tr=document.createElement('tr');for(const v of [parts[1],parts[2].toUpperCase(),String(r.names[i]),i?'Kuota tambahan':'Wakil kelas']){
+     const td=document.createElement('td');td.textContent=v;tr.append(td);
+    }$('rows').append(tr);total++;byYear[parts[1]]++;
+   }
+  }
+  if(data.records.length!==26||total!==30||byYear[1]!==10||byYear[2]!==10||byYear[3]!==10)throw Error('Fail mesti mengandungi 26 kelas dan 10 nama bagi setiap tahun.');
+  payload=data;$('summary').textContent='26 kelas / 30 nama (Tahun 1: 10, Tahun 2: 10, Tahun 3: 10).';
+  $('results').hidden=false;$('preview').disabled=!authorized;status('Fail tersedia untuk pratonton. Portal belum diubah.');
+ }catch(err){reset();status(err.message,'error');}
+};
+$('preview').onclick=async()=>{
+ if(!payload)return;preview=null;$('commit').disabled=true;$('preview').disabled=true;
+ status('Menyemak kuota, versi dan penerbitan sedia ada...');
+ try{preview=await call({...payload,mode:'preview'});
+  if(preview.locked.length)status('Import disekat. Kelas diterbitkan: '+preview.locked.join(', ')+'. Tarik balik penerbitan melalui Pengurusan kelas dahulu.','error');
+  else{status('Pratonton berjaya. '+preview.changed.length+' kelas akan dikemas kini. Tekan Simpan setelah menyemak 30 nama.','success');$('commit').disabled=false;}
+ }catch(e){status(e.message,'error');}finally{$('preview').disabled=false;}
+};
+$('commit').onclick=async()=>{
+ if(!payload||!preview||preview.locked.length)return;
+ if(!confirm('Simpan '+preview.changed.length+' kelas UASA sebagai draf? Nama UASA sedia ada akan digantikan. Calon Tahun 1 Diamond masih sementara.'))return;
+ $('commit').disabled=true;$('preview').disabled=true;status('Menyimpan secara transaksi...');
+ try{const x=await call({...payload,mode:'commit',confirm:true,expectedVersions:preview.expectedVersions});
+  status('✓ Berjaya! '+x.saved+' nama UASA disimpan bagi '+x.classes+' kelas. Nama belum diterbitkan. Semak dalam Pemilihan & pengisian.','success');preview=null;
+ }catch(e){status(e.message,'error');preview=null;$('preview').disabled=false;}
+};
+login();
+</script></body></html>
