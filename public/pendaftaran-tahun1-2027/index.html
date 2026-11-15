@@ -355,7 +355,7 @@
       const ITERATIONS = 240000;
       let vault = null, vaultKey = null, students = [], activeClass = 'Semua';
       let editId = null, hideSensitive = true, pendingSave = Promise.resolve(), toastTimer;
-      let cloudMode = false, cloudInfo = null;
+      let cloudMode = false, cloudInfo = null, importRows = null, importing = false;
       const $ = id => document.getElementById(id);
       const enc = new TextEncoder(), dec = new TextDecoder();
       const esc = s => String(s ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -477,6 +477,10 @@
         for(const id of ['backupBtn','restoreBtn','lockBtn','changePasswordBtn','openCloudBtn'])$(id).hidden=cloudMode;
         $('cloudExitBtn').hidden=!cloudMode;
         $('accessBtn').hidden=!cloudMode||cloudInfo?.role!=='admin';
+        $('adminBtn').hidden=!cloudMode||cloudInfo?.canManageAdmins!==true;
+        $('refreshBtn').hidden=!cloudMode;
+        $('sideNote').innerHTML=cloudMode?'☁ <strong>Cloudflare D1</strong><br>Rekod disimpan berpusat dan hanya guru yang diluluskan boleh mengakses kelas masing-masing.':'🔐 <strong>Mod setempat</strong><br>Rekod hanya boleh diakses pada peranti ini dengan kata laluan. Buat sandaran berkala.';
+        document.querySelectorAll('#classNav .class-btn').forEach(b=>{b.hidden=!!cloudMode&&cloudInfo?.role!=='admin'&&b.dataset.class!==cloudInfo.kelas;});
         $('footerText').textContent=cloudMode?'Mod Cloudflare D1: hanya pengguna Google yang diluluskan boleh mengakses rekod; sambungan HTTPS diperlukan.':'Mod Setempat: rekod disulitkan menggunakan kata laluan dan tersimpan dalam pelayar ini sahaja.';
       }
       function openChange(){
@@ -537,6 +541,93 @@
         if(!confirm('Batalkan akses pendaftaran 2027 bagi '+email+'?'))return;
         try{await cloudApi('access/revoke',{email});await openAccess();toast('Akses guru telah dibatalkan.');}
         catch(e){toast(e.message);}
+      }
+      function downloadExcelTemplate(){
+        const kelas=cloudMode&&cloudInfo.role!=='admin'?cloudInfo.kelas:activeClass;
+        const blob=createExcelTemplate(kelas==='Semua'?'':kelas);
+        download(blob,blob.type,'Templat-Pendaftaran-Tahun1-2027-'+(kelas==='Semua'?'9-Kelas':kelas)+'.xlsx');
+        toast('Templat Excel berjaya dijana.');
+      }
+      function openImport(){
+        if(importing)return;
+        importRows=null;$('importFile').value='';
+        $('importStatus').textContent='Pilih fail Excel atau CSV untuk membuat pratonton.';
+        $('importErrors').hidden=true;$('importPreview').hidden=true;$('commitImportBtn').disabled=true;
+        $('importOverlay').hidden=false;
+      }
+      function closeImport(){
+        if(importing)return;
+        $('importOverlay').hidden=true;importRows=null;$('importFile').value='';
+      }
+      async function previewImport(){
+        const file=$('importFile').files[0];
+        importRows=null;$('commitImportBtn').disabled=true;
+        $('importErrors').hidden=true;$('importPreview').hidden=true;
+        if(!file){$('importStatus').textContent='Pilih fail Excel atau CSV.';return;}
+        $('importStatus').textContent='Membaca fail dan menyemak lajur...';
+        try{
+          const table=await readTable(file);
+          const defaultClass=cloudMode&&cloudInfo.role!=='admin'?cloudInfo.kelas:activeClass;
+          const result=mapImportRows(table,{defaultClass,allowedClass:cloudMode&&cloudInfo.role!=='admin'?cloudInfo.kelas:null});
+          const current=new Set(students.map(r=>String(r.idMurid).toLocaleLowerCase('ms')));
+          const existing=result.records.filter(r=>current.has(r.idMurid.toLocaleLowerCase('ms'))).length;
+          importRows=result.records;
+          $('importStatus').textContent=result.nonEmpty+' baris dibaca. '+result.records.length+' rekod sah; '+existing+' ID sudah wujud dan akan dilangkau; '+result.errors.length+' baris bermasalah.';
+          $('importErrors').hidden=!result.errors.length;
+          $('importErrors').textContent=result.errors.slice(0,20).map(x=>'Baris '+x.row+': '+x.message).join('\n')+(result.errors.length>20?'\n...dan '+(result.errors.length-20)+' lagi.':'');
+          $('importPreviewBody').innerHTML=result.records.slice(0,8).map((r,i)=>'<tr><td>'+esc(i+2)+'</td><td>'+esc(r.idMurid)+'</td><td>'+esc(r.namaMurid)+'</td><td>'+esc(r.kelas)+'</td><td>'+esc(r.pra)+'</td></tr>').join('');
+          $('importPreview').hidden=!result.records.length;
+          $('commitImportBtn').disabled=!result.records.length||!!result.errors.length;
+          if(result.errors.length)toast('Sila betulkan baris bermasalah sebelum import.');
+        }catch(e){$('importStatus').textContent='Gagal baca fail: '+e.message;toast('Fail tidak dapat dibaca.');}
+      }
+      async function commitImport(){
+        if(importing||!importRows?.length)return;
+        if(!confirm('Import '+importRows.length+' rekod ke '+(cloudMode?'Cloudflare D1':'storan setempat')+'? ID sedia ada akan dilangkau.'))return;
+        importing=true;$('commitImportBtn').disabled=true;$('closeImport').disabled=true;$('cancelImport').disabled=true;
+        let inserted=0,skipped=0,processed=0;
+        try{
+          if(cloudMode){
+            // Server revalidates and enforces the class grant on every import batch.
+            for(let pos=0;pos<importRows.length;pos+=25){
+              const batch=importRows.slice(pos,pos+25);
+              const result=await cloudApi('students/import',{records:batch});
+              inserted+=result.inserted;skipped+=result.skipped;processed+=batch.length;
+              $('importStatus').textContent='Cloudflare: '+processed+'/'+importRows.length+' rekod diproses...';
+            }
+            await loadCloudStudents();
+          }else{
+            await pendingSave;
+            const before=students.slice(),seen=new Set(before.map(s=>s.idMurid.toLocaleLowerCase('ms')));
+            try{
+              const stamp=new Date().toISOString();
+              for(const record of importRows){
+                const id=record.idMurid.toLocaleLowerCase('ms');
+                if(seen.has(id)){skipped++;continue;}
+                seen.add(id);students.push({...record,uid:uid(),createdAt:stamp,updatedAt:stamp});inserted++;
+              }
+              await queueSave();
+            }catch(e){students=before;throw e;}
+          }
+          render();
+          $('importStatus').textContent='Import selesai: '+inserted+' murid baharu, '+skipped+' ID sedia ada dilangkau.';
+          importRows=null;
+          toast('Berjaya: '+inserted+' murid ditambah, '+skipped+' dilangkau.');
+        }catch(e){
+          $('importStatus').textContent='Import terhenti selepas '+processed+' rekod. '+inserted+' ditambah, '+skipped+' dilangkau. '+e.message+' Boleh cuba semula kerana ID sedia ada akan dilangkau.';
+          try{if(cloudMode){await loadCloudStudents();render();}}catch{}
+          toast('Import belum lengkap. Sila cuba semula.');
+        }finally{
+          importing=false;$('closeImport').disabled=false;$('cancelImport').disabled=false;
+          $('commitImportBtn').disabled=!importRows?.length;
+        }
+      }
+      async function refreshCloud(){
+        if(!cloudMode)return;
+        $('refreshBtn').disabled=true;
+        try{await loadCloudStudents();render();toast('Senarai terkini telah dimuatkan.');}
+        catch(e){toast(e.message);}
+        finally{$('refreshBtn').disabled=false;}
       }
       function countFor(c) { return students.filter(s=>c==='Semua'||s.kelas===c).length; }
       function filtered() {
