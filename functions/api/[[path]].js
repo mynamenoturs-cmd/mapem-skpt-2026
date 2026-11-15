@@ -259,7 +259,7 @@ export async function onRequest({request,env}){
   if(path==='me'&&request.method==='GET')return JSON_RESPONSE(user?{authenticated:true,user}:{authenticated:false});
   if(path==='logout'&&request.method==='POST'){const sid=cookies(request)[SESSION_COOKIE];if(sid)await env.DB.prepare('DELETE FROM sessions WHERE id_hash=?').bind(await sha256(sid)).run();return JSON_RESPONSE({ok:true},200,{'Set-Cookie':cookie(SESSION_COOKIE,'',0)});}
   if(!user)return fail('Sila log masuk menggunakan Google.',401);
-  if(path.startsWith('registration2027/'))return handleRegistration2027({request,env,user,path});
+  if(path.startsWith('registration2027/'))return await handleRegistration2027({request,env,user,path});
   if(path==='published'&&request.method==='GET'){
    const r=await env.DB.prepare('SELECT p.class_id,p.snapshot_json,p.published_at,c.year,c.name AS class_name FROM publications p JOIN classes c ON c.id=p.class_id WHERE c.year BETWEEN 1 AND 5 ORDER BY c.year,c.name').all();
    return JSON_RESPONSE({categories:await categoryCatalog(env),classes:(r.results||[]).map(x=>({classId:x.class_id,year:x.year,className:x.class_name,publishedAt:x.published_at,awards:Object.fromEntries(Object.entries(JSON.parse(x.snapshot_json)).filter(([id])=>{const cat=CATEGORIES.find(c=>c.id===id);return cat&&(!cat.years||cat.years.includes(x.year));}))}))});
