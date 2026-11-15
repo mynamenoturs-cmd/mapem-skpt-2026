@@ -115,6 +115,9 @@ jobs:
         run: |
           set -euo pipefail
           rm -f .wrangler-ci.toml
+          # Historical registration link shares these assets; do not change MaPeM data.
+          base64 --decode public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027.avif.base64 > public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027.avif
+          echo "596a131d14c01b105b0d8cfa8016b0b996d646db27f3763b95b075c8e5f7f0f9  public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027.avif" | sha256sum --check
           npx wrangler pages deploy public --project-name mapem-skpt-2026 --branch main
 
       - name: Semak API selepas deployment
