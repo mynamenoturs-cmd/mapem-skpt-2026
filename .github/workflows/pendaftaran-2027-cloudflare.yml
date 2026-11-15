@@ -36,6 +36,10 @@ jobs:
           mkdir -p .registration-deploy/public .registration-deploy/functions/api
           cp public/pendaftaran-tahun1-2027/index.html .registration-deploy/public/index.html
           cp public/pendaftaran-tahun1-2027/import2027.mjs .registration-deploy/public/import2027.mjs
+          mkdir -p .registration-deploy/public/assets
+          cp public/pendaftaran-tahun1-2027/assets/logo-sekolah.svg .registration-deploy/public/assets/logo-sekolah.svg
+          base64 --decode public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027.avif.base64 > .registration-deploy/public/assets/header-pendaftaran-2027.avif
+          echo "596a131d14c01b105b0d8cfa8016b0b996d646db27f3763b95b075c8e5f7f0f9  .registration-deploy/public/assets/header-pendaftaran-2027.avif" | sha256sum --check
           cp public/pendaftaran-tahun1-2027/_headers .registration-deploy/public/_headers
           cp 'registration-site/functions/api/[[path]].js' '.registration-deploy/functions/api/[[path]].js'
           cp functions/api/_registration2027.js .registration-deploy/functions/api/_registration2027.js
