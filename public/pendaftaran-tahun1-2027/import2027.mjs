@@ -72,7 +72,7 @@ async function unzipContent(buffer){
    local=view.getUint32(offset+42,true);
   const name=decoder.decode(bytes.subarray(offset+46,offset+46+length));
   offset+=46+length+extra+comment;
-  if(!name.startsWith('xl/')||!name.endsWith('.xml'))continue;
+  if(!name.startsWith('xl/')||!(name.endsWith('.xml')||name.endsWith('.rels')))continue;
   if(size>5000000||expanded>12000000)throw Error('Fail Excel terlalu besar.');
   if(view.getUint32(local,true)!==0x04034b50)throw Error('Struktur fail Excel tidak sah.');
   const start=local+30+view.getUint16(local+26,true)+view.getUint16(local+28,true);
