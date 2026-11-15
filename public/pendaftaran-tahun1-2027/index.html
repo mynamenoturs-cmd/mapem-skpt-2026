@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#241739">
+  <meta name="description" content="Sistem pendaftaran murid Tahun 1 sesi 2027 — SK Pekan Telipok.">
+  <title>Pendaftaran Tahun 1 2027 | SK Pekan Telipok</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23241739'/%3E%3Cpath d='M12 21 32 11 52 21 32 31Z' fill='%23F0C36C'/%3E%3Cpath d='M19 30v13q13 10 26 0V30L32 37z' fill='%23fff'/%3E%3C/svg%3E">
+  <style>
+    :root { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #251e32; background: #f7f5fa; font-synthesis: none; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid #bf9aff; outline-offset: 2px; }
+    [hidden] { display: none !important; }
+    .app-shell { min-height: 100vh; }
+    .hero { background: radial-gradient(circle at 87% 0%, #51316b, transparent 43%), linear-gradient(120deg, #22152f 0%, #322047 100%); color: white; position: relative; overflow: hidden; }
+    .hero::after { content: ""; position: absolute; width: 470px; height: 470px; border: 1px solid #ffffff18; border-radius: 50%; right: -170px; top: -280px; box-shadow: 0 0 0 65px #ffffff08, 0 0 0 125px #ffffff06; pointer-events: none; }
+    .hero-inner { max-width: 1440px; margin: 0 auto; padding: 29px 32px 37px; position: relative; z-index: 1; }
+    .brand { display:flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .brand-left { display: flex; align-items: center; gap: 13px; }
+    .mark { width: 45px; height: 45px; flex: 0 0 45px; border-radius: 13px; display:grid; place-items:center; background: linear-gradient(140deg, #fff2c1, #dba847); box-shadow: 0 3px 16px #0003; }
+    .mark svg { width: 28px; height: 28px; fill: #352348; }
+    .brand-school { font-size: 13px; letter-spacing: .105em; text-transform: uppercase; font-weight: 750; }
+    .brand-dept { font-size: 12px; color: #d8cee4; margin-top: 4px; }
+    .brand-actions { display: flex; gap: 8px; }
+    .hero-content { display:flex; justify-content: space-between; align-items:end; gap: 25px; margin-top: 39px; }
+    .eyebrow { color: #f4ca82; letter-spacing: .16em; font-size: 11px; text-transform: uppercase; font-weight: 800; margin-bottom: 11px; }
+    h1 { margin: 0; font-size: clamp(30px, 4.1vw, 47px); line-height: 1.1; letter-spacing: -.045em; }
+    .hero-sub { margin: 13px 0 0; color: #dbd2e6; font-size: 14px; line-height: 1.65; }
+    .year-block { flex-shrink: 0; text-align: right; }
+    .year-block strong { font-size: 62px; letter-spacing: -.06em; line-height: .9; color: #eac276; font-weight: 850; }
+    .year-block small { color: #e6d9e9; display:block; letter-spacing: .21em; font-size: 10px; margin-top: 9px; }
+    .container { max-width: 1440px; padding: 0 32px 52px; margin: -21px auto 0; position: relative; z-index: 2; }
+    .stats { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 13px; margin-bottom: 25px; }
+    .stat { border-radius: 15px; padding: 19px 20px; background: #fff; border: 1px solid #eae4ef; box-shadow: 0 5px 24px #1d0e2a09; }
+    .stat-label { display:block; font-size: 12px; font-weight: 650; color: #71677d; }
+    .stat-value { display:block; font-size: 30px; font-weight: 850; letter-spacing: -.04em; margin-top: 4px; color: #2f2147; font-variant-numeric: tabular-nums; }
+    .stat-foot { display:block; color: #91879a; font-size: 11px; margin-top: 2px; }
+    .layout { display: grid; grid-template-columns: 235px minmax(0,1fr); align-items: start; gap: 21px; }
+    .panel { border: 1px solid #e9e2ed; border-radius: 17px; background: #fff; box-shadow: 0 5px 28px #1b0e2d07; }
+    .class-nav { padding: 15px 10px 11px; }
+    .nav-caption { padding: 8px 11px 12px; font-size: 11px; font-weight: 800; color: #847b8b; text-transform: uppercase; letter-spacing: .13em; }
+    .class-btn { width:100%; display:flex; justify-content: space-between; align-items:center; padding: 12px 13px; background: transparent; border: 0; border-radius: 10px; text-align: left; color: #514761; font-size: 13px; margin: 2px 0; font-weight: 640; }
+    .class-btn .left { display: flex; align-items:center; gap: 10px; }
+    .class-btn .dot { width:9px; height:9px; border-radius: 50%; background: var(--dot, #a49aac); }
+    .class-btn .count { padding: 4px 8px; border-radius: 8px; min-width: 28px; font-size: 12px; font-weight: 800; color: #756b80; background: #f4f1f6; text-align: center; }
+    .class-btn:hover { background: #f8f4fa; }
+    .class-btn.active { color: #4c2869; background: #f0e7f6; }
+    .class-btn.active .count { background: #fff; color: #582e7c; }
+    .side-note { margin: 12px 9px 4px; background: #fff9e9; border: 1px solid #f2dfb2; border-radius: 10px; padding: 12px; color: #735a30; font-size: 11px; line-height: 1.65; }
+    .content-panel { overflow: hidden; }
+    .content-head { padding: 23px 23px 18px; border-bottom: 1px solid #eee8f0; display:flex; justify-content: space-between; align-items:center; gap: 15px; flex-wrap: wrap; }
+    h2 { font-size: 20px; letter-spacing: -.025em; color: #302440; margin: 0 0 5px; }
+    .content-caption { margin: 0; color: #84798d; font-size: 12px; }
+    .toolbar { display:flex; flex-wrap: wrap; gap: 9px; align-items: center; padding: 17px 23px; }
+    .search-wrap { position:relative; flex: 1 1 220px; }
+    .search-wrap svg { width: 16px; height: 16px; position:absolute; top:50%; transform:translateY(-50%); left:13px; color:#847b8b; }
+    input, select, textarea { outline:none; background: #fff; border: 1px solid #ded7e3; border-radius: 10px; padding: 12px 13px; width:100%; font-size: 13px; color:#322841; transition: border .15s, box-shadow .15s; }
+    input:focus, select:focus, textarea:focus { border-color:#8d68a7; box-shadow: 0 0 0 3px #7d55a119; }
+    input::placeholder, textarea::placeholder { color:#9e95a5; }
+    .search-wrap input { padding-left: 37px; }
+    .filter { max-width: 158px; }
+    .btn { min-height: 40px; border-radius: 10px; padding: 10px 15px; border: 1px solid transparent; display:inline-flex; gap: 8px; align-items:center; justify-content:center; font-size: 12px; font-weight: 750; white-space: nowrap; }
+    .btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap:round; stroke-linejoin:round; }
+    .btn-primary { color:white; background: #663e85; box-shadow: 0 3px 8px #663e8520; }
+    .btn-primary:hover { background:#573173; }
+    .btn-ghost { color: #554365; background: #fff; border-color: #e1dbe7; }
+    .btn-ghost:hover { background:#f9f6fb; }
+    .btn-hero { background:#ffffff16; border-color:#ffffff39; color:white; }
+    .btn-hero:hover { background:#ffffff28; }
+    .btn-danger { color:#b03e50; background: #fff4f5; border: 1px solid #f6dadd; }
+    .actions-row { display:flex; flex-wrap:wrap; gap:8px; margin: 0 23px 17px; align-items: center; justify-content:space-between; }
+    .mini-help { font-size:11px; color: #827789; }
+    .action-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+    .table-scroll { overflow:auto; }
+    table { border-collapse: collapse; width:100%; min-width: 1050px; font-size: 12px; }
+    thead th { background:#faf8fb; border-block: 1px solid #efeaf1; color:#796d85; text-align:left; padding: 13px 13px; font-weight: 800; font-size: 11px; letter-spacing: .03em; white-space: nowrap; }
+    tbody td { padding: 14px 13px; border-bottom:1px solid #f0ecf2; vertical-align:top; color: #5b5167; line-height:1.5; }
+    tbody tr:hover { background:#fcfaff; }
+    .student { display:block; color:#2d233d; font-weight:790; font-size:12px; max-width: 205px; }
+    .mono { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+    .class-pill { display:inline-block; padding:4px 9px; border-radius: 8px; color:#614478; background:#f3ecf7; font-size:11px; font-weight:700; }
+    .pra-pill { color:#23774f; background:#e8f6ed; border-radius: 7px; padding: 4px 7px; display:inline-block; font-weight:750; font-size:11px; }
+    .pra-pill.no { background:#f5edf0; color:#9a6275; }
+    .pra-pill.maybe { background:#fbf2dc; color:#8b6a22; }
+    .truncate { max-width: 188px; overflow:hidden; text-overflow:ellipsis; white-space: nowrap; display:block; }
+    .row-actions { display:flex; gap:6px; }
+    .icon-btn { border:1px solid #e9e2ec; background:white; border-radius:8px; width:32px; height:32px; display:inline-grid; place-items:center; font-size: 13px; }
+    .icon-btn:hover { border-color:#b59bc7; background:#faf7fc; }
+    .icon-btn.danger:hover { color:#bb3b4e; background:#fff4f6; border-color:#e8adb6; }
+    .table-bottom { display:flex; justify-content: space-between; align-items:center; gap:12px; padding:14px 22px; color:#8a7e92; font-size: 11px; }
+    .empty { min-height: 235px; display:flex; justify-content:center; align-items:center; flex-direction: column; padding: 33px 20px; text-align:center; gap:8px; }
+    .empty-icon { height:58px; width:58px; display:grid; place-items:center; background:#f3eaf8; border-radius:19px; color:#744a91; font-size:28px; margin-bottom:5px; }
+    .empty strong { color:#382743; }
+    .empty p { color: #8e8298; font-size: 12px; max-width: 350px; line-height: 1.7; margin: 0 0 8px; }
+    footer { color:#968c9d; font-size:11px; line-height: 1.7; text-align:center; padding:27px 12px 0; }
+    .overlay { position:fixed; inset:0; z-index:10; background:#160d22aa; backdrop-filter:blur(3px); display:grid; place-items:center; padding:18px; }
+    .modal { background:white; width:min(680px, 100%); max-height: calc(100dvh - 35px); overflow-y:auto; border-radius:18px; box-shadow:0 25px 75px #160b2440; }
+    .modal-head { padding: 23px 26px 16px; display:flex; justify-content:space-between; align-items:start; gap:15px; border-bottom:1px solid #f0eaf2; }
+    .modal-head h2 { margin-bottom:5px; }
+    .close { background:#f5f1f7; border:0; width:31px; height:31px; display:grid; place-items:center; border-radius:8px; color:#6b5b76; font-size:21px; }
+    .close:hover { background:#eee4f4; }
+    .form-body { padding: 23px 26px 12px; }
+    .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:18px 16px; }
+    .field { display:block; }
+    .field span { display:block; font-size: 12px; color:#554860; font-weight:720; margin-bottom: 8px; }
+    .field em { color:#a52e58; font-style:normal; }
+    .field small { display:block; color:#968b9e; font-size:10px; line-height:1.6; margin-top: 5px; }
+    .field.full { grid-column:1 / -1; }
+    textarea { resize: vertical; min-height: 85px; }
+    .form-foot { border-top:1px solid #f0eaf2; display:flex; justify-content:flex-end; gap:9px; padding:17px 26px 23px; flex-wrap:wrap; }
+    .toast { position: fixed; z-index:40; bottom:25px; left:50%; transform: translateX(-50%); background: #352343; color:white; border:1px solid #73568b; border-radius:12px; padding:13px 18px; box-shadow:0 9px 25px #0004; font-size:12px; line-height:1.5; max-width:min(440px, calc(100vw - 30px)); text-align:center; }
+    .auth-page { min-height:100dvh; display:grid; place-items:center; background:radial-gradient(circle at 88% 20%, #4a2a60, transparent 38%), linear-gradient(140deg,#21142e,#332346); padding:23px; }
+    .auth-card { width:min(470px,100%); background:#fff; padding:32px; border-radius:23px; box-shadow:0 20px 85px #0004; }
+    .auth-card .mark { margin-bottom:20px; }
+    .auth-card h1 { font-size: 27px; color:#30203e; letter-spacing:-.035em; margin-bottom:11px; }
+    .auth-card p { color:#766b80; font-size:13px; line-height:1.75; margin:0 0 23px; }
+    .auth-card .field { margin-bottom:16px; }
+    .auth-card .btn { width:100%; min-height:44px; }
+    .auth-foot { margin-top:20px; padding-top:16px; border-top:1px solid #eee9f0; }
+    .auth-foot p {font-size:11px; margin:0 0 12px; }
+    .auth-link { border:0; background:transparent; color:#6b4589; font-size:12px; text-decoration:underline; padding:4px 0; }
+    .error { background:#fff1f2; color:#a23747; border-radius:8px; padding:11px 12px; margin:5px 0 15px; font-size:12px; }
+    .print-heading {display:none;}
+    @media (max-width:1050px) {
+      .layout { grid-template-columns:1fr; gap:16px; }
+      .class-nav {display:flex; flex-wrap:nowrap; gap:5px; align-items:center; overflow-x:auto; padding:12px; }
+      .nav-caption {white-space:nowrap; padding:8px; }
+      .class-btn { width:auto; flex:0 0 auto; padding:9px 12px; margin:0; gap:9px; }
+      .side-note {display:none;}
+      .stats {gap:10px;}
+    }
+    @media (max-width:680px) {
+      .hero-inner { padding: 19px 17px 39px; }
+      .brand-school {font-size:11px;}
+      .brand-dept {font-size:11px;}
+      .brand-actions { width:100%; justify-content: flex-end; }
+      .hero-content { margin-top:27px; }
+      .year-block { display:none; }
+      .hero-sub {font-size:12px;}
+      .container {padding:0 12px 35px; margin-top:-18px;}
+      .stats {grid-template-columns:repeat(2,minmax(0,1fr)); margin-bottom:15px;}
+      .stat {padding:15px 14px; border-radius:12px;}
+      .stat-value {font-size:25px;}
+      .content-head {padding:19px 15px 13px;}
+      .toolbar {padding:14px;}
+      .search-wrap { flex-basis:100%; }
+      .filter {max-width:none; flex:1;}
+      .toolbar .btn-primary { flex:1; }
+      .actions-row {margin:0 14px 15px; align-items:start; flex-direction:column;}
+      .table-bottom {padding:13px 15px;}
+      .form-grid {grid-template-columns:1fr; gap:15px;}
+      .field.full {grid-column:auto;}
+      .form-body {padding:17px;}
+      .form-foot {padding:14px 17px 18px;}
+      .modal-head {padding:18px 17px 15px;}
+      .auth-card {padding:25px 20px;}
+    }
+    @media print {
+      @page {size:A4 landscape; margin: 11mm; }
+      body, :root { background: white !important; color:black; }
+      .hero, .stats, .class-nav, .toolbar, .actions-row, .table-bottom, footer, .row-actions, .toast { display:none !important; }
+      .container { max-width:none; margin:0; padding:0; }
+      .layout {display:block;}
+      .panel {box-shadow:none; border:0;}
+      .content-head {display:none;}
+      .print-heading {display:block; font-size:16px; padding:0 0 15px; font-weight:bold;}
+      .table-scroll {overflow:visible;}
+      table {min-width:0; font-size:8px; width:100%;}
+      thead th, tbody td {padding:5px 4px; border-bottom:1px solid #aaa; word-break:break-word;}
+      thead th {border-top:1px solid #aaa;}
+      th:last-child, td:last-child {display:none;}
+      .truncate {white-space:normal; max-width:none;}
+      .student {font-size:8px;}
+      .class-pill, .pra-pill {padding:0; background:white; color:black;}
+      tr {break-inside:avoid;}
+    }
+  </style>
+</head>
+<body>
+  <main id="authPage" class="auth-page" hidden>
+    <section class="auth-card" aria-labelledby="authTitle">
+      <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m2 8 10-5 10 5-10 5L2 8Zm4 4 6 3 6-3v6c-4 3-8 3-12 0v-6Z"/></svg></div>
+      <div class="eyebrow" style="color:#8b659b">SK PEKAN TELIPOK • 2027</div>
+      <h1 id="authTitle">Pendaftaran Tahun 1</h1>
+      <p id="authDescription"></p>
+      <form id="authForm">
+        <label class="field"><span>Kata laluan <em>*</em></span><input id="passInput" type="password" autocomplete="current-password" required minlength="8" placeholder="Masukkan kata laluan"></label>
+        <label id="confirmWrap" class="field" hidden><span>Sahkan kata laluan <em>*</em></span><input id="passConfirm" type="password" autocomplete="new-password" minlength="8" placeholder="Ulang kata laluan"></label>
+        <div class="error" id="authError" role="alert" hidden></div>
+        <button id="authSubmit" class="btn btn-primary" type="submit">Buka Sistem</button>
+      </form>
+      <div class="auth-foot"><p>Maklumat murid dan penjaga disulitkan dengan kata laluan, disimpan dalam pelayar ini sahaja, dan tidak dihantar ke pelayan.</p>
+        <button class="auth-link" type="button" id="authRestore">Pulihkan daripada fail sandaran</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="app" class="app-shell" hidden>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="brand">
+          <div class="brand-left"><div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m2 8 10-5 10 5-10 5L2 8Zm4 4 6 3 6-3v6c-4 3-8 3-12 0v-6Z"/></svg></div><div><div class="brand-school">SK PEKAN TELIPOK</div><div class="brand-dept">Sistem Pendaftaran Murid Baharu</div></div></div>
+          <div class="brand-actions"><button class="btn btn-hero" type="button" id="backupBtn" title="Muat turun sandaran data yang disulitkan">▣ &nbsp;Sandaran</button><button class="btn btn-hero" type="button" id="restoreBtn" title="Pulihkan fail sandaran">↥ &nbsp;Pulih</button><button class="btn btn-hero" type="button" id="lockBtn" title="Kunci akses ke data">♙ &nbsp;Kunci</button></div>
+        </div>
+        <div class="hero-content"><div><div class="eyebrow">PENGURUSAN KEMASUKAN • SESI 2027</div><h1>Pendaftaran Tahun 1</h1><p class="hero-sub">Rekod maklumat murid baharu, ibu bapa dan penjaga dalam satu sistem yang kemas.</p></div><div class="year-block"><strong>2027</strong><small>9 KELAS</small></div></div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="stats" aria-label="Statistik pendaftaran">
+        <div class="stat"><span class="stat-label">Jumlah Pendaftaran</span><strong class="stat-value" id="statTotal">0</strong><span class="stat-foot">murid direkodkan</span></div>
+        <div class="stat"><span class="stat-label">Murid PRA</span><strong class="stat-value" id="statPra">0</strong><span class="stat-foot">pernah mengikuti prasekolah</span></div>
+        <div class="stat"><span class="stat-label">Bukan PRA</span><strong class="stat-value" id="statNotPra">0</strong><span class="stat-foot">tidak mengikuti prasekolah</span></div>
+        <div class="stat"><span class="stat-label">Kelas Diisi</span><strong class="stat-value" id="statClasses">0 <small style="font-size:14px;color:#9b8baa">/ 9</small></strong><span class="stat-foot">kelas mempunyai rekod</span></div>
+      </section>
+
+      <div class="layout">
+        <aside class="panel class-nav" id="classNav" aria-label="Pilih kelas">
+          <div class="nav-caption">Senarai kelas</div>
+          <button type="button" class="class-btn active" data-class="Semua"><span class="left"><span class="dot" style="--dot:#76508c"></span> Semua Kelas</span><span class="count" id="countSemua">0</span></button>
+          <button type="button" class="class-btn" data-class="Emerald"><span class="left"><span class="dot" style="--dot:#2da879"></span> Emerald</span><span class="count" id="countEmerald">0</span></button>
+          <button type="button" class="class-btn" data-class="Ruby"><span class="left"><span class="dot" style="--dot:#e1587b"></span> Ruby</span><span class="count" id="countRuby">0</span></button>
+          <button type="button" class="class-btn" data-class="Sapphire"><span class="left"><span class="dot" style="--dot:#3d80cd"></span> Sapphire</span><span class="count" id="countSapphire">0</span></button>
+          <button type="button" class="class-btn" data-class="Diamond"><span class="left"><span class="dot" style="--dot:#5da5ae"></span> Diamond</span><span class="count" id="countDiamond">0</span></button>
+          <button type="button" class="class-btn" data-class="Jade"><span class="left"><span class="dot" style="--dot:#80a95b"></span> Jade</span><span class="count" id="countJade">0</span></button>
+          <button type="button" class="class-btn" data-class="Crystal"><span class="left"><span class="dot" style="--dot:#aa8ace"></span> Crystal</span><span class="count" id="countCrystal">0</span></button>
+          <button type="button" class="class-btn" data-class="Topaz"><span class="left"><span class="dot" style="--dot:#e5a64c"></span> Topaz</span><span class="count" id="countTopaz">0</span></button>
+          <button type="button" class="class-btn" data-class="Amber"><span class="left"><span class="dot" style="--dot:#d67b3e"></span> Amber</span><span class="count" id="countAmber">0</span></button>
+          <button type="button" class="class-btn" data-class="Pearl"><span class="left"><span class="dot" style="--dot:#9d9fab"></span> Pearl</span><span class="count" id="countPearl">0</span></button>
+          <div class="side-note">🔐 <strong>Mod peranti ini</strong><br>Rekod hanya boleh diakses pada pelayar ini dengan kata laluan. Buat sandaran berkala untuk mengelakkan kehilangan data.</div>
+        </aside>
+        <section class="panel content-panel" aria-labelledby="listTitle">
+          <div class="content-head"><div><h2 id="listTitle">Semua Pendaftaran</h2><p class="content-caption" id="listCaption">Senarai murid untuk semua kelas Tahun 1</p></div><button type="button" class="btn btn-primary" id="addBtnHead"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Tambah Murid</button></div>
+          <div class="toolbar">
+            <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 5 5"/></svg><input id="searchInput" type="search" placeholder="Cari nama, ID murid, penjaga, telefon..."></div>
+            <select id="praFilter" class="filter" aria-label="Tapis status PRA"><option value="Semua">Semua PRA</option><option value="Ya">PRA: Ya</option><option value="Tidak">PRA: Tidak</option><option value="Belum Pasti">PRA: Belum Pasti</option></select>
+            <button type="button" class="btn btn-ghost" id="csvBtn"><svg viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v3h16v-3"/></svg> Eksport CSV</button>
+          </div>
+          <div class="actions-row"><span class="mini-help" id="filterSummary">0 murid dipaparkan</span><div class="action-buttons"><button type="button" class="btn btn-ghost" id="maskBtn">◉ &nbsp;Paparkan Maklumat</button><button type="button" class="btn btn-ghost" id="printBtn">▤ &nbsp;Cetak Senarai</button></div></div>
+          <div class="print-heading" id="printHeading"></div>
+          <div class="table-scroll"><table aria-label="Senarai murid Tahun 1"><thead><tr><th>Bil.</th><th>ID Murid</th><th>Nama Murid</th><th>Kelas</th><th>PRA</th><th>Ibu Bapa / Penjaga</th><th>No. IC Penjaga</th><th>No. Telefon</th><th>Alamat Terkini</th><th>Tindakan</th></tr></thead><tbody id="tableBody"></tbody></table><div id="emptyState" class="empty" hidden><div class="empty-icon">♧</div><strong id="emptyTitle">Belum ada pendaftaran</strong><p id="emptyText">Tekan “Tambah Murid” untuk mula mendaftarkan murid baharu.</p><button type="button" class="btn btn-primary" id="emptyAdd">+ Tambah Murid</button></div></div>
+          <div class="table-bottom"><span id="tableCount">0 rekod</span><span>Sesi 2027 • SK Pekan Telipok</span></div>
+        </section>
+      </div>
+      <footer>Untuk kegunaan pengurusan sekolah sahaja. Data sensitif disimpan secara tersulit dalam pelayar peranti yang digunakan. <br>© 2027 SK Pekan Telipok • Powered by Cikgu Wanwan</footer>
+    </main>
+  </div>
+
+  <div id="formOverlay" class="overlay" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+      <div class="modal-head"><div><h2 id="formTitle">Daftar Murid Baharu</h2><p class="content-caption">Lengkapkan semua medan bertanda * untuk menyimpan rekod.</p></div><button type="button" class="close" id="closeModal" aria-label="Tutup">×</button></div>
+      <form id="studentForm" autocomplete="off">
+        <div class="form-body"><div class="form-grid">
+          <label class="field"><span>Kelas <em>*</em></span><select name="kelas" required id="fieldClass"><option value="" selected disabled>Pilih kelas</option><option>Emerald</option><option>Ruby</option><option>Sapphire</option><option>Diamond</option><option>Jade</option><option>Crystal</option><option>Topaz</option><option>Amber</option><option>Pearl</option></select></label>
+          <label class="field"><span>ID Murid <em>*</em></span><input name="idMurid" required maxlength="45" placeholder="Contoh: M20270001" autocapitalize="characters"><small>ID tidak boleh berulang dalam sistem.</small></label>
+          <label class="field full"><span>Nama Murid <em>*</em></span><input name="namaMurid" required maxlength="150" placeholder="Nama penuh seperti dokumen rasmi"></label>
+          <label class="field"><span>PRA (Prasekolah) <em>*</em></span><select name="pra" required><option value="" selected disabled>Pilih status PRA</option><option value="Ya">Ya</option><option value="Tidak">Tidak</option><option value="Belum Pasti">Belum Pasti</option></select></label>
+          <label class="field"><span>Nama Ibu Bapa / Penjaga <em>*</em></span><input name="namaPenjaga" required maxlength="150" placeholder="Nama penuh penjaga"></label>
+          <label class="field"><span>No. IC Penjaga <em>*</em></span><input name="noIc" required maxlength="30" placeholder="No. MyKad / dokumen pengenalan"><small>MyKad 12 digit, atau nombor dokumen yang berkenaan.</small></label>
+          <label class="field"><span>No. Telefon <em>*</em></span><input name="noTelefon" type="tel" inputmode="tel" required maxlength="25" placeholder="Contoh: 0123456789"></label>
+          <label class="field full"><span>Alamat Terkini <em>*</em></span><textarea name="alamat" required maxlength="500" placeholder="Alamat lengkap kediaman murid kini"></textarea></label>
+        </div></div>
+        <div class="form-foot"><button type="button" class="btn btn-ghost" id="cancelModal">Batal</button><button type="submit" class="btn btn-primary" id="saveStudentBtn">Simpan Pendaftaran</button></div>
+      </form>
+    </section>
+  </div>
+  <input id="backupInput" type="file" accept=".json,application/json" hidden>
+  <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      'use strict';
+      const CLASSES = ['Emerald', 'Ruby', 'Sapphire', 'Diamond', 'Jade', 'Crystal', 'Topaz', 'Amber', 'Pearl'];
+      const STORE = 'skpt-pendaftaran-t1-2027-v1';
+      const ITERATIONS = 240000;
+      let vault = null, vaultKey = null, students = [], activeClass = 'Semua';
+      let editId = null, hideSensitive = true, pendingSave = Promise.resolve(), toastTimer;
+      const $ = id => document.getElementById(id);
+      const enc = new TextEncoder(), dec = new TextDecoder();
+      const esc = s => String(s ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+      const b64 = buf => {
+        const bytes = new Uint8Array(buf); let out = '';
+        for (let i = 0; i < bytes.length; i += 32768) out += String.fromCharCode(...bytes.subarray(i, i + 32768));
+        return btoa(out);
+      };
+      const un64 = value => Uint8Array.from(atob(value), c => c.charCodeAt(0));
+      const randomBytes = n => crypto.getRandomValues(new Uint8Array(n));
+      const dateText = iso => new Date(iso).toLocaleDateString('ms-MY', { timeZone:'Asia/Kuching', day:'2-digit', month:'2-digit', year:'numeric' });
+      const viewValue = v => hideSensitive ? mask(v) : esc(v);
+      const mask = s => { const v = String(s ?? ''); if(v.length <= 4) return '•'.repeat(v.length); return '•'.repeat(Math.min(9,v.length - 4)) + esc(v.slice(-4)); };
+      const uid = () => crypto.randomUUID ? crypto.randomUUID() : b64(randomBytes(16)).replace(/[^a-zA-Z0-9]/g,'');
+
+      function toast(msg) { $('toast').textContent=msg; $('toast').hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>$('toast').hidden=true,3300); }
+      function authError(msg) { $('authError').textContent=msg; $('authError').hidden=!msg; }
+      function isSupported() { try { return !!crypto?.subtle && !!localStorage; } catch(e) { return false; } }
+      async function deriveKey(password, salt) {
+        const root = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+        return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:ITERATIONS, hash:'SHA-256' }, root, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+      }
+      async function decryptPayload(payload, password) {
+        if (!payload || payload.v !== 1 || !payload.salt || !payload.iv || !payload.data) throw new Error('Format fail sandaran tidak disokong.');
+        const key = await deriveKey(password, un64(payload.salt));
+        const plaintext = await crypto.subtle.decrypt({name:'AES-GCM', iv:un64(payload.iv)}, key, un64(payload.data));
+        const parsed = JSON.parse(dec.decode(plaintext));
+        if (!parsed || !Array.isArray(parsed.records)) throw new Error('Kandungan rekod tidak sah.');
+        const clean = parsed.records.filter(r => r && typeof r === 'object' && CLASSES.includes(r.kelas) && r.uid && r.idMurid);
+        return {key, records:clean};
+      }
+      async function encryptPayload(records) {
+        const iv = randomBytes(12);
+        const content = enc.encode(JSON.stringify({version:1,records}));
+        const cipher = await crypto.subtle.encrypt({name:'AES-GCM', iv}, vaultKey, content);
+        return {v:1, salt:vault.salt, iv:b64(iv), data:b64(cipher)};
+      }
+      function queueSave() {
+        const snapshot = structuredClone(students);
+        pendingSave = pendingSave.catch(() => {}).then(async () => {
+          const payload = await encryptPayload(snapshot);
+          localStorage.setItem(STORE, JSON.stringify(payload));
+          vault = payload;
+        });
+        pendingSave.catch(e => {console.error('Gagal menyimpan data tersulit:',e.name); toast('Simpanan gagal. Sila eksport sandaran sebelum menutup halaman.');});
+        return pendingSave;
+      }
+      function hasStoredVault() { try { return !!localStorage.getItem(STORE); } catch(e) { return false; } }
+      function setAuthMode() {
+        const isNew = !hasStoredVault();
+        $('authDescription').textContent = isNew
+          ? 'Selamat datang. Cipta kata laluan untuk melindungi rekod pendaftaran murid Tahun 1 sesi 2027. Sila simpan kata laluan dengan selamat.'
+          : 'Sistem dikunci. Masukkan kata laluan untuk membuka rekod pendaftaran yang disimpan pada pelayar ini.';
+        $('authSubmit').textContent=isNew?'Cipta & Buka Sistem':'Buka Sistem';
+        $('confirmWrap').hidden=!isNew;
+        $('passConfirm').required=isNew;
+        $('passInput').autocomplete=isNew?'new-password':'current-password';
+        $('passInput').value=''; $('passConfirm').value=''; authError('');
+      }
+      function showAuth() { $('app').hidden=true; $('authPage').hidden=false; setAuthMode(); $('passInput').focus(); }
+      function showApp() { $('authPage').hidden=true; $('app').hidden=false; render(); }
+      async function submitAuth(e) {
+        e.preventDefault();
+        if (!isSupported()) return authError('Pelayar tidak menyokong penyulitan atau storan. Sila gunakan Chrome, Edge atau Firefox terkini melalui HTTPS / localhost.');
+        const pass=$('passInput').value, isNew=!hasStoredVault();
+        if(pass.length<8) return authError('Gunakan kata laluan sekurang-kurangnya 8 aksara.');
+        if (isNew && pass!==$('passConfirm').value) return authError('Pengesahan kata laluan tidak sepadan.');
+        $('authSubmit').disabled=true; authError('');
+        try {
+          if (isNew) { vault = {salt:b64(randomBytes(16))}; vaultKey=await deriveKey(pass,un64(vault.salt)); students=[]; await queueSave(); }
+          else { const stored=JSON.parse(localStorage.getItem(STORE)); const result=await decryptPayload(stored,pass); vault=stored; vaultKey=result.key; students=result.records; }
+          $('passInput').value=''; $('passConfirm').value=''; showApp();
+        } catch(e) { authError(isNew?'Gagal menyediakan storan tersulit. Pastikan pelayar membenarkan penyimpanan.':'Kata laluan salah atau rekod tersulit rosak. Cuba lagi atau pulihkan sandaran.'); }
+        finally { $('authSubmit').disabled=false; }
+      }
+      function countFor(c) { return students.filter(s=>c==='Semua'||s.kelas===c).length; }
+      function filtered() {
+        const q=$('searchInput').value.trim().toLocaleLowerCase('ms'); const pra=$('praFilter').value;
+        return students.filter(s=> (activeClass==='Semua'||s.kelas===activeClass) && (pra==='Semua'||s.pra===pra) && (!q || [s.namaMurid,s.idMurid,s.namaPenjaga,s.noTelefon,s.noIc,s.alamat].some(v=>String(v??'').toLocaleLowerCase('ms').includes(q))))
+          .sort((a,b)=>CLASSES.indexOf(a.kelas)-CLASSES.indexOf(b.kelas)||a.namaMurid.localeCompare(b.namaMurid,'ms'));
+      }
+      function render() {
+        $('statTotal').textContent=students.length;
+        $('statPra').textContent=students.filter(s=>s.pra==='Ya').length;
+        $('statNotPra').textContent=students.filter(s=>s.pra==='Tidak').length;
+        $('statClasses').innerHTML=students.reduce((sum,s)=>sum.add(s.kelas),new Set()).size + ' <small style="font-size:14px;color:#9b8baa">/ 9</small>';
+        ['Semua',...CLASSES].forEach(c => $('count'+c).textContent=countFor(c));
+        document.querySelectorAll('.class-btn').forEach(btn=>{ const yes=btn.dataset.class===activeClass; btn.classList.toggle('active',yes); btn.setAttribute('aria-pressed',yes?'true':'false'); });
+        $('listTitle').textContent=activeClass==='Semua'?'Semua Pendaftaran':'Kelas '+activeClass;
+        $('listCaption').textContent=activeClass==='Semua'?'Senarai murid untuk semua 9 kelas Tahun 1':'Senarai murid Tahun 1 '+activeClass+' — sesi 2027';
+        const items=filtered(); $('filterSummary').textContent=items.length+' murid dipaparkan'; $('tableCount').textContent=items.length+' daripada '+students.length+' rekod';
+        $('maskBtn').textContent=hideSensitive?'◉  Paparkan Maklumat':'◉  Sembunyikan Maklumat';
+        $('printHeading').textContent='SK PEKAN TELIPOK — PENDAFTARAN TAHUN 1 2027 — '+(activeClass==='Semua'?'SEMUA KELAS':activeClass.toUpperCase())+' | '+dateText(new Date().toISOString());
+        const tb=$('tableBody');
+        tb.innerHTML=items.map((s,i)=>`<tr><td class="mono">${i+1}</td><td class="mono">${esc(s.idMurid)}</td><td><span class="student">${esc(s.namaMurid)}</span></td><td><span class="class-pill">${esc(s.kelas)}</span></td><td><span class="pra-pill ${s.pra==='Tidak'?'no':s.pra==='Belum Pasti'?'maybe':''}">${esc(s.pra)}</span></td><td>${esc(s.namaPenjaga)}</td><td class="mono">${viewValue(s.noIc)}</td><td class="mono">${viewValue(s.noTelefon)}</td><td><span class="truncate" title="${esc(s.alamat)}">${esc(s.alamat)}</span></td><td><div class="row-actions"><button type="button" class="icon-btn" data-action="edit" data-uid="${esc(s.uid)}" title="Kemaskini murid ${esc(s.namaMurid)}" aria-label="Kemaskini murid">✎</button><button type="button" class="icon-btn danger" data-action="delete" data-uid="${esc(s.uid)}" title="Padam rekod" aria-label="Padam rekod">✕</button></div></td></tr>`).join('');
+        const empty=items.length===0; tb.hidden=empty; $('emptyState').hidden=!empty;
+        $('emptyTitle').textContent=students.length===0?'Belum ada pendaftaran':'Tiada rekod dijumpai';
+        $('emptyText').textContent=students.length===0?'Tekan “Tambah Murid” untuk mula mendaftarkan murid baharu.':'Cuba tukar kelas, status PRA atau kata kunci carian.';
+        $('emptyAdd').hidden=students.length!==0;
+      }
+      function openForm(s=null) {
+        editId=s?.uid??null;
+        $('studentForm').reset();
+        $('formTitle').textContent=s?'Kemaskini Maklumat Murid':'Daftar Murid Baharu';
+        $('saveStudentBtn').textContent=s?'Simpan Perubahan':'Simpan Pendaftaran';
+        const f=$('studentForm').elements;
+        f.namedItem('kelas').value=s?.kelas??(activeClass==='Semua'?'':activeClass);
+        for(const key of ['idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat']) f.namedItem(key).value=s?.[key]??'';
+        $('formOverlay').hidden=false; document.body.style.overflow='hidden';
+        (f.namedItem('kelas').value?f.namedItem('idMurid'):f.namedItem('kelas')).focus();
+      }
+      function closeForm() { $('formOverlay').hidden=true; document.body.style.overflow=''; editId=null; }
+      async function saveStudent(e) {
+        e.preventDefault();
+        const f=$('studentForm').elements;
+        const record={};
+        for(const field of ['kelas','idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat']) record[field]=f.namedItem(field).value.trim();
+        if(!CLASSES.includes(record.kelas)) return toast('Sila pilih kelas yang sah.');
+        if(Object.values(record).some(v=>!v)) return toast('Sila lengkapkan semua medan bertanda *.');
+        if(students.some(s=>s.uid!==editId&&s.idMurid.toLowerCase()===record.idMurid.toLowerCase())) { f.namedItem('idMurid').setCustomValidity('ID murid ini sudah digunakan.'); f.namedItem('idMurid').reportValidity(); return; }
+        const stamp=new Date().toISOString();
+        const wasEditing = !!editId;
+        if(editId) { const index=students.findIndex(s=>s.uid===editId); if(index<0) return; students[index]={...students[index],...record, updatedAt:stamp}; }
+        else students.push({...record,uid:uid(),createdAt:stamp,updatedAt:stamp});
+        $('saveStudentBtn').disabled=true;
+        try { await queueSave(); closeForm(); render(); toast(wasEditing?'Maklumat murid berjaya dikemaskini.':'Pendaftaran murid berjaya disimpan.'); }
+        catch { toast('Gagal menyimpan. Semak ruang storan pelayar.'); }
+        finally { $('saveStudentBtn').disabled=false; }
+      }
+      async function deleteStudent(id) {
+        const s=students.find(r=>r.uid===id); if(!s) return;
+        if(!confirm('Padam rekod '+s.namaMurid+'? Tindakan ini tidak boleh dibatalkan.')) return;
+        const old=students; students=students.filter(r=>r.uid!==id);
+        try { await queueSave(); render(); toast('Rekod telah dipadam.'); }
+        catch { students=old; render(); toast('Rekod gagal dipadam kerana masalah storan.'); }
+      }
+      function csvSafe(value) { let v=String(value??''); if (/^[\s]*[=+@\-\t\r]/.test(v)) v="'"+v; return '"'+v.replace(/"/g,'""')+'"'; }
+      function download(content,mime,filename) {
+        const blob=new Blob([content],{type:mime}); const url=URL.createObjectURL(blob);
+        const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }
+      function exportCSV() {
+        const rows=filtered(); if(!rows.length) return toast('Tiada rekod untuk dieksport.');
+        const headers=['Bil.','Kelas','ID Murid','Nama Murid','PRA','Nama Ibu Bapa/Penjaga','No. IC Penjaga','No. Telefon','Alamat Terkini','Tarikh Daftar'];
+        const lines=[headers.map(csvSafe).join(',')];
+        rows.forEach((r,i)=>lines.push([i+1,r.kelas,r.idMurid,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,dateText(r.createdAt??new Date().toISOString())].map(csvSafe).join(',')));
+        const label=activeClass==='Semua'?'Semua-Kelas':activeClass;
+        download('\uFEFF'+lines.join('\r\n'),'text/csv;charset=utf-8','Pendaftaran-Tahun1-2027-'+label+'.csv');
+        toast('Fail CSV dimuat turun ('+rows.length+' murid).');
+      }
+      async function backup() {
+        try { await pendingSave; const raw=localStorage.getItem(STORE); if(!raw) throw Error('missing');
+          download(JSON.stringify(JSON.parse(raw),null,2),'application/json','Sandaran-Tahun1-2027-SKPT-'+new Date().toISOString().slice(0,10)+'.json');
+          toast('Sandaran tersulit berjaya dimuat turun. Simpan bersama kata laluan.');
+        } catch { toast('Sandaran gagal dihasilkan.'); }
+      }
+      async function restoreBackup(file) {
+        if(!file) return;
+        try {
+          const payload=JSON.parse(await file.text());
+          if(!payload||payload.v!==1||!payload.salt||!payload.iv||!payload.data) return toast('Fail ini bukan sandaran sistem yang sah.');
+          const pass=prompt('Masukkan kata laluan asal bagi fail sandaran ini:');
+          if(pass===null) return;
+          const result=await decryptPayload(payload,pass);
+          if(!confirm('Pulihkan '+result.records.length+' rekod daripada sandaran? Semua rekod pada pelayar ini akan digantikan.')) return;
+          await pendingSave;
+          localStorage.setItem(STORE,JSON.stringify(payload)); vault=payload; vaultKey=result.key; students=result.records;
+          $('searchInput').value=''; $('praFilter').value='Semua'; activeClass='Semua'; showApp(); toast('Sandaran berjaya dipulihkan ('+students.length+' rekod).');
+        } catch(e) { toast('Gagal pulih: kata laluan salah atau fail sandaran tidak sah.'); }
+        finally { $('backupInput').value=''; }
+      }
+      async function lock() { try { await pendingSave; } catch(e) {} students=[]; vault=null; vaultKey=null; activeClass='Semua'; $('searchInput').value=''; $('praFilter').value='Semua'; hideSensitive=true; showAuth(); }
+      function boot() {
+        if(!isSupported()) {
+          $('authPage').hidden=false; setAuthMode();
+          authError('Pelayar atau mod ini tidak menyokong penyulitan/storan. Gunakan Chrome, Edge atau Firefox terkini melalui HTTPS atau localhost.');
+          $('authSubmit').disabled=true; return;
+        }
+        showAuth();
+      }
+      $('authForm').addEventListener('submit',submitAuth);
+      $('classNav').addEventListener('click',e=>{ const btn=e.target.closest('[data-class]'); if(!btn)return; activeClass=btn.dataset.class; render(); });
+      $('searchInput').addEventListener('input',render); $('praFilter').addEventListener('change',render);
+      [$('addBtnHead'),$('emptyAdd')].forEach(b=>b.addEventListener('click',()=>openForm()));
+      [$('closeModal'),$('cancelModal')].forEach(b=>b.addEventListener('click',closeForm));
+      $('formOverlay').addEventListener('click',e=>{if(e.target===$('formOverlay'))closeForm();});
+      document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('formOverlay').hidden)closeForm();});
+      $('studentForm').addEventListener('submit',saveStudent);
+      $('studentForm').elements.namedItem('idMurid').addEventListener('input',e=>e.target.setCustomValidity(''));
+      $('tableBody').addEventListener('click',e=>{ const btn=e.target.closest('[data-action]'); if(!btn)return; const s=students.find(x=>x.uid===btn.dataset.uid); if(!s)return; if(btn.dataset.action==='edit')openForm(s); else if(btn.dataset.action==='delete')deleteStudent(s.uid); });
+      $('maskBtn').addEventListener('click',()=>{hideSensitive=!hideSensitive;render();});
+      $('csvBtn').addEventListener('click',exportCSV);
+      $('printBtn').addEventListener('click',()=>{if(!filtered().length)return toast('Tiada rekod untuk dicetak.'); window.print();});
+      $('backupBtn').addEventListener('click',backup);
+      $('restoreBtn').addEventListener('click',()=>$('backupInput').click());
+      $('authRestore').addEventListener('click',()=>$('backupInput').click());
+      $('backupInput').addEventListener('change',e=>restoreBackup(e.target.files?.[0]));
+      $('lockBtn').addEventListener('click',lock);
+      boot();
+    })();
+  </script>
+</body>
+</html>
