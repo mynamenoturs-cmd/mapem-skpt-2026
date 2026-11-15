@@ -124,6 +124,9 @@
     .auth-foot { margin-top:20px; padding-top:16px; border-top:1px solid #eee9f0; }
     .auth-foot p {font-size:11px; margin:0 0 12px; }
     .auth-link { border:0; background:transparent; color:#6b4589; font-size:12px; text-decoration:underline; padding:4px 0; }
+    .cloud-hint { background:#f3f0f9; border-radius:10px; padding:12px 14px; font-size:12px; line-height:1.65; margin:12px 0; color:#59466c; }
+    .access-table {width:100%; min-width:0; font-size:12px;}
+    .access-table th,.access-table td {padding:9px 6px;}
     .error { background:#fff1f2; color:#a23747; border-radius:8px; padding:11px 12px; margin:5px 0 15px; font-size:12px; }
     .print-heading {display:none;}
     @media (max-width:1050px) {
@@ -194,8 +197,10 @@
         <div class="error" id="authError" role="alert" hidden></div>
         <button id="authSubmit" class="btn btn-primary" type="submit">Buka Sistem</button>
       </form>
-      <div class="auth-foot"><p>Maklumat murid dan penjaga disulitkan dengan kata laluan, disimpan dalam pelayar ini sahaja, dan tidak dihantar ke pelayan.</p>
+      <div class="cloud-hint"><strong>☁ Cloudflare D1 — Log Masuk Google</strong><div>Rekod dikongsi secara selamat antara guru yang diluluskan. Pentadbir boleh menetapkan akses mengikut kelas.</div><button type="button" class="btn btn-primary" id="cloudAuthBtn" style="margin-top:11px">Log Masuk / Buka Cloudflare</button></div>
+      <div class="auth-foot"><p><strong>Mod Setempat:</strong> Maklumat disulitkan menggunakan kata laluan dan disimpan pada peranti ini sahaja. Kata laluan setempat tidak digunakan untuk Cloudflare.</p>
         <button class="auth-link" type="button" id="authRestore">Pulihkan daripada fail sandaran</button>
+        <button class="auth-link" type="button" id="forgotPasswordBtn" hidden>Lupa kata laluan? Reset storan setempat</button>
       </div>
     </section>
   </main>
@@ -205,7 +210,7 @@
       <div class="hero-inner">
         <div class="brand">
           <div class="brand-left"><div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m2 8 10-5 10 5-10 5L2 8Zm4 4 6 3 6-3v6c-4 3-8 3-12 0v-6Z"/></svg></div><div><div class="brand-school">SK PEKAN TELIPOK</div><div class="brand-dept">Sistem Pendaftaran Murid Baharu</div></div></div>
-          <div class="brand-actions"><button class="btn btn-hero" type="button" id="backupBtn" title="Muat turun sandaran data yang disulitkan">▣ &nbsp;Sandaran</button><button class="btn btn-hero" type="button" id="restoreBtn" title="Pulihkan fail sandaran">↥ &nbsp;Pulih</button><button class="btn btn-hero" type="button" id="lockBtn" title="Kunci akses ke data">♙ &nbsp;Kunci</button></div>
+          <div class="brand-actions" style="flex-wrap:wrap;align-items:center"><span id="modeBadge" style="font-size:11px;color:#f6dba8;padding:0 8px">Setempat • disulitkan</span><button class="btn btn-hero" type="button" id="openCloudBtn">☁ &nbsp;Cloudflare</button><button class="btn btn-hero" type="button" id="accessBtn" hidden>⚙ &nbsp;Akses Guru</button><button class="btn btn-hero" type="button" id="changePasswordBtn">♙ &nbsp;Tukar Kata Laluan</button><button class="btn btn-hero" type="button" id="cloudExitBtn" hidden>Keluar Google</button><button class="btn btn-hero" type="button" id="backupBtn" title="Muat turun sandaran data yang disulitkan">▣ &nbsp;Sandaran</button><button class="btn btn-hero" type="button" id="restoreBtn" title="Pulihkan fail sandaran">↥ &nbsp;Pulih</button><button class="btn btn-hero" type="button" id="lockBtn" title="Kunci akses ke data">♙ &nbsp;Kunci</button></div>
         </div>
         <div class="hero-content"><div><div class="eyebrow">PENGURUSAN KEMASUKAN • SESI 2027</div><h1>Pendaftaran Tahun 1</h1><p class="hero-sub">Rekod maklumat murid baharu, ibu bapa dan penjaga dalam satu sistem yang kemas.</p></div><div class="year-block"><strong>2027</strong><small>9 KELAS</small></div></div>
       </div>
@@ -247,7 +252,7 @@
           <div class="table-bottom"><span id="tableCount">0 rekod</span><span>Sesi 2027 • SK Pekan Telipok</span></div>
         </section>
       </div>
-      <footer>Untuk kegunaan pengurusan sekolah sahaja. Data sensitif disimpan secara tersulit dalam pelayar peranti yang digunakan. <br>© 2027 SK Pekan Telipok • Powered by Cikgu Wanwan</footer>
+      <footer><span id="footerText">Untuk kegunaan pengurusan sekolah sahaja. Data setempat disulitkan menggunakan kata laluan.</span><br>© 2027 SK Pekan Telipok • Powered by Cikgu Wanwan</footer>
     </main>
   </div>
 
@@ -269,6 +274,41 @@
       </form>
     </section>
   </div>
+  <div id="changeOverlay" class="overlay" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="changeTitle" style="max-width:530px">
+      <div class="modal-head"><div><h2 id="changeTitle">Tukar Kata Laluan Setempat</h2><p class="content-caption">Rekod sedia ada akan disulitkan semula tanpa dipadam.</p></div><button class="close" type="button" id="closeChange" aria-label="Tutup">×</button></div>
+      <form id="changeForm"><div class="form-body">
+        <label class="field"><span>Kata laluan lama</span><input id="oldPass" type="password" required autocomplete="current-password" minlength="8"></label>
+        <label class="field"><span>Kata laluan baharu (minimum 8 aksara)</span><input id="newPass" type="password" required autocomplete="new-password" minlength="8"></label>
+        <label class="field"><span>Ulang kata laluan baharu</span><input id="newPassAgain" type="password" required autocomplete="new-password" minlength="8"></label>
+        <div id="changeError" class="error" hidden role="alert"></div>
+      </div><div class="form-foot"><button class="btn btn-ghost" type="button" id="cancelChange">Batal</button><button class="btn btn-primary" type="submit" id="confirmChange">Tukar & Sulitkan Semula</button></div></form>
+    </section>
+  </div>
+  <div id="resetOverlay" class="overlay" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="resetTitle" style="max-width:530px">
+      <div class="modal-head"><div><h2 id="resetTitle">Reset Kata Laluan Setempat</h2><p class="content-caption">Untuk data dalam pelayar ini sahaja.</p></div><button class="close" type="button" id="closeReset" aria-label="Tutup">×</button></div>
+      <form id="resetForm"><div class="form-body">
+        <div class="error"><strong>AMARAN:</strong> Tanpa kata laluan lama, data tersulit tidak boleh dibaca semula. Reset ini akan memadam SEMUA rekod setempat dalam pelayar ini sahaja. Rekod Cloudflare D1 dan MAPeM tidak terjejas. Pulihkan sandaran tersulit hanya dengan kata laluan asal.</div>
+        <label class="field"><span>Taip PADAM untuk mengesahkan pemadaman</span><input id="resetPhrase" required autocomplete="off" placeholder="PADAM"></label>
+      </div><div class="form-foot"><button class="btn btn-ghost" type="button" id="cancelReset">Batal</button><button class="btn btn-primary" type="submit" id="confirmReset">Padam Storan & Tetapkan Kata Laluan Baharu</button></div></form>
+    </section>
+  </div>
+  <div id="accessOverlay" class="overlay" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="accessTitle" style="max-width:650px">
+      <div class="modal-head"><div><h2 id="accessTitle">Kebenaran Guru Pendaftaran 2027</h2><p class="content-caption">Pentadbir sahaja. Guru hanya boleh melihat dan menyunting kelas yang ditetapkan.</p></div><button type="button" class="close" id="closeAccess" aria-label="Tutup">×</button></div>
+      <form id="accessForm"><div class="form-body">
+        <div class="form-grid">
+          <label class="field"><span>E-mel Google Guru</span><input id="accessEmail" type="email" required maxlength="254" placeholder="guru@moe-dl.edu.my"></label>
+          <label class="field"><span>Kelas 2027</span><select id="accessClass" required><option>Emerald</option><option>Ruby</option><option>Sapphire</option><option>Diamond</option><option>Jade</option><option>Crystal</option><option>Topaz</option><option>Amber</option><option>Pearl</option></select></label>
+        </div>
+        <p class="content-caption">Gunakan e-mel Google yang betul. Menyimpan e-mel yang sama akan mengemas kini kelas guru.</p>
+        <div class="form-foot" style="padding:12px 0;border:0"><button type="submit" class="btn btn-primary" id="accessSaveBtn">Berikan / Kemas Kini Akses</button></div>
+        <h3 style="font-size:14px;margin-top:18px">Guru yang diberi akses</h3>
+        <div class="table-scroll"><table class="access-table"><thead><tr><th>E-mel</th><th>Kelas</th><th>Tindakan</th></tr></thead><tbody id="accessTableBody"></tbody></table></div>
+      </div></form>
+    </section>
+  </div>
   <input id="backupInput" type="file" accept=".json,application/json" hidden>
   <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
@@ -280,6 +320,7 @@
       const ITERATIONS = 240000;
       let vault = null, vaultKey = null, students = [], activeClass = 'Semua';
       let editId = null, hideSensitive = true, pendingSave = Promise.resolve(), toastTimer;
+      let cloudMode = false, cloudInfo = null;
       const $ = id => document.getElementById(id);
       const enc = new TextEncoder(), dec = new TextDecoder();
       const esc = s => String(s ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -338,6 +379,7 @@
         $('passConfirm').required=isNew;
         $('passInput').autocomplete=isNew?'new-password':'current-password';
         $('passInput').value=''; $('passConfirm').value=''; authError('');
+        $('forgotPasswordBtn').hidden=isNew;
       }
       function showAuth() { $('app').hidden=true; $('authPage').hidden=false; setAuthMode(); $('passInput').focus(); }
       function showApp() { $('authPage').hidden=true; $('app').hidden=false; render(); }
@@ -355,6 +397,112 @@
         } catch(e) { authError(isNew?'Gagal menyediakan storan tersulit. Pastikan pelayar membenarkan penyimpanan.':'Kata laluan salah atau rekod tersulit rosak. Cuba lagi atau pulihkan sandaran.'); }
         finally { $('authSubmit').disabled=false; }
       }
+      // Google login uses the existing MaPeM HttpOnly session. PII is never cached in localStorage.
+      async function cloudApi(endpoint, body) {
+        const options={credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}};
+        if(body!==undefined){options.method='POST';options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}
+        const resp=await fetch('/api/registration2027/'+endpoint,options);
+        const data=await resp.json().catch(()=>({error:'Respons pelayan tidak sah.'}));
+        if(!resp.ok){const err=new Error(data.error||'Ralat Cloudflare ('+resp.status+').');err.status=resp.status;throw err;}
+        return data;
+      }
+      async function loadCloudStudents(){
+        const response=await cloudApi('students');
+        students=response.records;
+      }
+      async function enterCloud(){
+        const info=await cloudApi('me');
+        if(!info.authorized)throw Error('Akses akaun Google belum dibenarkan.');
+        await pendingSave.catch(()=>{});
+        cloudInfo=info;cloudMode=true;vault=null;vaultKey=null;
+        await loadCloudStudents();
+        activeClass=info.role==='admin'?'Semua':info.kelas;
+        hideSensitive=true;
+        $('searchInput').value='';$('praFilter').value='Semua';
+        showApp();
+        toast('Cloudflare D1 aktif — '+info.user.email);
+      }
+      async function cloudLogin(){
+        $('cloudAuthBtn').disabled=true;
+        try{await enterCloud();}
+        catch(e){
+          if(e.status===401) location.assign('/api/auth/google/start?next=registration2027');
+          else {if(!$('authPage').hidden)authError(e.message);else toast(e.message);}
+        }
+        finally{$('cloudAuthBtn').disabled=false;}
+      }
+      async function leaveCloud(){
+        try{await fetch('/api/logout',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'});}
+        catch(e){toast('Sambungan terganggu. Sila cuba lagi.');return;}
+        cloudMode=false;cloudInfo=null;students=[];activeClass='Semua';hideSensitive=true;
+        showAuth();
+      }
+      function updateModeUi(){
+        $('modeBadge').textContent=cloudMode?'☁ Cloudflare D1 • '+cloudInfo.user.email:'🔒 Setempat • Disulitkan';
+        for(const id of ['backupBtn','restoreBtn','lockBtn','changePasswordBtn','openCloudBtn'])$(id).hidden=cloudMode;
+        $('cloudExitBtn').hidden=!cloudMode;
+        $('accessBtn').hidden=!cloudMode||cloudInfo?.role!=='admin';
+        $('footerText').textContent=cloudMode?'Mod Cloudflare D1: hanya pengguna Google yang diluluskan boleh mengakses rekod; sambungan HTTPS diperlukan.':'Mod Setempat: rekod disulitkan menggunakan kata laluan dan tersimpan dalam pelayar ini sahaja.';
+      }
+      function openChange(){
+        if(cloudMode)return toast('Kata laluan Cloudflare diurus melalui akaun Google.');
+        $('changeForm').reset();$('changeError').hidden=true;$('changeOverlay').hidden=false;$('oldPass').focus();
+      }
+      function closeChange(){$('changeOverlay').hidden=true;$('changeForm').reset();}
+      async function changePassword(e){
+        e.preventDefault();
+        const old=$('oldPass').value,next=$('newPass').value,again=$('newPassAgain').value;
+        const show=message=>{$('changeError').textContent=message;$('changeError').hidden=false;};
+        if(next.length<8)return show('Gunakan sekurang-kurangnya 8 aksara.');
+        if(next!==again)return show('Kata laluan baharu tidak sepadan.');
+        if(cloudMode||!vaultKey)return show('Buka sistem setempat sebelum menukar kata laluan.');
+        $('confirmChange').disabled=true;$('changeError').hidden=true;
+        try{
+          await pendingSave;
+          const existing=JSON.parse(localStorage.getItem(STORE));
+          await decryptPayload(existing,old);
+          const salt=b64(randomBytes(16)), key=await deriveKey(next,un64(salt)),iv=randomBytes(12);
+          const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify({version:1,records:students})));
+          const payload={v:1,salt,iv:b64(iv),data:b64(cipher)};
+          localStorage.setItem(STORE,JSON.stringify(payload));
+          vault=payload;vaultKey=key;
+          closeChange();toast('Kata laluan berjaya ditukar. Semua rekod dikekalkan.');
+        }catch(e){show('Kata laluan lama salah atau proses penyulitan semula gagal. Tiada perubahan dibuat.');}
+        finally{$('confirmChange').disabled=false;}
+      }
+      function showReset(){$('resetForm').reset();$('resetOverlay').hidden=false;$('resetPhrase').focus();}
+      function closeReset(){$('resetOverlay').hidden=true;}
+      function resetLocal(e){
+        e.preventDefault();
+        if($('resetPhrase').value.trim()!=='PADAM'){toast('Taip PADAM untuk meneruskan.');return;}
+        try{
+          localStorage.removeItem(STORE);
+          cloudMode=false;vault=null;vaultKey=null;students=[];closeReset();showAuth();
+          toast('Storan setempat dipadam. Sila cipta kata laluan baharu.');
+        }catch(e){toast('Tidak dapat memadam storan setempat.');}
+      }
+      async function openAccess(){
+        if(!cloudMode||cloudInfo?.role!=='admin')return;
+        $('accessOverlay').hidden=false;
+        try{
+          const data=await cloudApi('access');
+          $('accessTableBody').innerHTML=data.grants.map(g=>'<tr><td>'+esc(g.email)+'</td><td>'+esc(g.kelas)+'</td><td><button type="button" class="btn btn-ghost" data-email="'+esc(g.email)+'">Batalkan Akses</button></td></tr>').join('')||'<tr><td colspan="3">Belum ada guru diberikan akses.</td></tr>';
+        }catch(e){toast(e.message);}
+      }
+      async function saveAccess(e){
+        e.preventDefault();
+        $('accessSaveBtn').disabled=true;
+        try{
+          await cloudApi('access/save',{email:$('accessEmail').value.trim(),kelas:$('accessClass').value});
+          $('accessEmail').value='';await openAccess();toast('Akses guru telah disimpan.');
+        }catch(e){toast(e.message);}
+        finally{$('accessSaveBtn').disabled=false;}
+      }
+      async function revokeAccess(email){
+        if(!confirm('Batalkan akses pendaftaran 2027 bagi '+email+'?'))return;
+        try{await cloudApi('access/revoke',{email});await openAccess();toast('Akses guru telah dibatalkan.');}
+        catch(e){toast(e.message);}
+      }
       function countFor(c) { return students.filter(s=>c==='Semua'||s.kelas===c).length; }
       function filtered() {
         const q=$('searchInput').value.trim().toLocaleLowerCase('ms'); const pra=$('praFilter').value;
@@ -362,6 +510,7 @@
           .sort((a,b)=>CLASSES.indexOf(a.kelas)-CLASSES.indexOf(b.kelas)||a.namaMurid.localeCompare(b.namaMurid,'ms'));
       }
       function render() {
+        updateModeUi();
         $('statTotal').textContent=students.length;
         $('statPra').textContent=students.filter(s=>s.pra==='Ya').length;
         $('statNotPra').textContent=students.filter(s=>s.pra==='Tidak').length;
@@ -386,7 +535,9 @@
         $('formTitle').textContent=s?'Kemaskini Maklumat Murid':'Daftar Murid Baharu';
         $('saveStudentBtn').textContent=s?'Simpan Perubahan':'Simpan Pendaftaran';
         const f=$('studentForm').elements;
+        f.namedItem('kelas').disabled=false;
         f.namedItem('kelas').value=s?.kelas??(activeClass==='Semua'?'':activeClass);
+        if(cloudMode&&cloudInfo.role!=='admin'){f.namedItem('kelas').value=cloudInfo.kelas;f.namedItem('kelas').disabled=true;}
         for(const key of ['idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat']) f.namedItem(key).value=s?.[key]??'';
         $('formOverlay').hidden=false; document.body.style.overflow='hidden';
         (f.namedItem('kelas').value?f.namedItem('idMurid'):f.namedItem('kelas')).focus();
@@ -400,6 +551,17 @@
         if(!CLASSES.includes(record.kelas)) return toast('Sila pilih kelas yang sah.');
         if(Object.values(record).some(v=>!v)) return toast('Sila lengkapkan semua medan bertanda *.');
         if(students.some(s=>s.uid!==editId&&s.idMurid.toLowerCase()===record.idMurid.toLowerCase())) { f.namedItem('idMurid').setCustomValidity('ID murid ini sudah digunakan.'); f.namedItem('idMurid').reportValidity(); return; }
+        if(cloudMode){
+          const current=editId?students.find(s=>s.uid===editId):null;
+          $('saveStudentBtn').disabled=true;
+          try{
+            await cloudApi('students/save',{record,uid:editId,version:current?.version??0});
+            await loadCloudStudents();closeForm();render();
+            toast(current?'Maklumat berjaya dikemas kini dalam Cloudflare D1.':'Rekod berjaya disimpan dalam Cloudflare D1.');
+          }catch(e){toast(e.message);if(e.status===409){await loadCloudStudents();render();}}
+          finally{$('saveStudentBtn').disabled=false;}
+          return;
+        }
         const stamp=new Date().toISOString();
         const wasEditing = !!editId;
         if(editId) { const index=students.findIndex(s=>s.uid===editId); if(index<0) return; students[index]={...students[index],...record, updatedAt:stamp}; }
@@ -412,6 +574,11 @@
       async function deleteStudent(id) {
         const s=students.find(r=>r.uid===id); if(!s) return;
         if(!confirm('Padam rekod '+s.namaMurid+'? Tindakan ini tidak boleh dibatalkan.')) return;
+        if(cloudMode){
+          try{await cloudApi('students/delete',{uid:s.uid,version:s.version});await loadCloudStudents();render();toast('Rekod Cloudflare telah dipadam.');}
+          catch(e){toast(e.message);if(e.status===409){await loadCloudStudents();render();}}
+          return;
+        }
         const old=students; students=students.filter(r=>r.uid!==id);
         try { await queueSave(); render(); toast('Rekod telah dipadam.'); }
         catch { students=old; render(); toast('Rekod gagal dipadam kerana masalah storan.'); }
@@ -452,15 +619,31 @@
         finally { $('backupInput').value=''; }
       }
       async function lock() { try { await pendingSave; } catch(e) {} students=[]; vault=null; vaultKey=null; activeClass='Semua'; $('searchInput').value=''; $('praFilter').value='Semua'; hideSensitive=true; showAuth(); }
-      function boot() {
+      async function boot() {
+        try{await enterCloud();return;}catch(e){}
         if(!isSupported()) {
           $('authPage').hidden=false; setAuthMode();
           authError('Pelayar atau mod ini tidak menyokong penyulitan/storan. Gunakan Chrome, Edge atau Firefox terkini melalui HTTPS atau localhost.');
-          $('authSubmit').disabled=true; return;
+          $('authSubmit').disabled=true;return;
         }
         showAuth();
       }
       $('authForm').addEventListener('submit',submitAuth);
+      $('cloudAuthBtn').addEventListener('click',cloudLogin);
+      $('openCloudBtn').addEventListener('click',cloudLogin);
+      $('cloudExitBtn').addEventListener('click',leaveCloud);
+      $('changePasswordBtn').addEventListener('click',openChange);
+      $('closeChange').addEventListener('click',closeChange);
+      $('cancelChange').addEventListener('click',closeChange);
+      $('changeForm').addEventListener('submit',changePassword);
+      $('forgotPasswordBtn').addEventListener('click',showReset);
+      $('closeReset').addEventListener('click',closeReset);
+      $('cancelReset').addEventListener('click',closeReset);
+      $('resetForm').addEventListener('submit',resetLocal);
+      $('accessBtn').addEventListener('click',openAccess);
+      $('closeAccess').addEventListener('click',()=>$('accessOverlay').hidden=true);
+      $('accessForm').addEventListener('submit',saveAccess);
+      $('accessTableBody').addEventListener('click',e=>{const b=e.target.closest('[data-email]');if(b)revokeAccess(b.dataset.email);});
       $('classNav').addEventListener('click',e=>{ const btn=e.target.closest('[data-class]'); if(!btn)return; activeClass=btn.dataset.class; render(); });
       $('searchInput').addEventListener('input',render); $('praFilter').addEventListener('change',render);
       [$('addBtnHead'),$('emptyAdd')].forEach(b=>b.addEventListener('click',()=>openForm()));
