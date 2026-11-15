@@ -188,6 +188,112 @@
       .class-pill, .pra-pill {padding:0; background:white; color:black;}
       tr {break-inside:avoid;}
     }
+
+    /* PORTAL TAHUN 1 2027 — polished application shell */
+    :root{--ink:#24182f;--purple:#59376f;--gold:#d9b46b;}
+    body{background:#f5f4f8;}
+    .auth-page{min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,455px);gap:6vw;align-items:center;padding:clamp(25px,5vw,70px) clamp(20px,7vw,130px);background:radial-gradient(ellipse at 9% 22%,#64408099,transparent 44%),radial-gradient(ellipse at 87% 94%,#8c644230,transparent 48%),linear-gradient(135deg,#21172f,#34213f 63%,#24182f);position:relative;overflow:hidden}
+    .auth-page::before{content:"";position:absolute;width:45vw;height:45vw;border:1px solid #e5c38b28;transform:rotate(24deg);border-radius:55px;left:-31vw;bottom:-28vw;pointer-events:none}
+    .login-intro{position:relative;z-index:1;max-width:690px;color:#fff;min-width:0}
+    .login-logo{display:flex;gap:12px;align-items:center;color:#fff;margin-bottom:78px}
+    .login-logo-icon{font-size:28px;color:#f0d49b;background:#ffffff14;width:51px;height:51px;border:1px solid #ffffff27;border-radius:15px;display:grid;place-items:center}
+    .login-logo strong{display:block;font-size:13px;letter-spacing:.115em}
+    .login-logo small{display:block;font-size:11px;color:#d9c9e4;margin-top:3px}
+    .login-eyebrow{display:flex;align-items:center;gap:9px;color:#efd5a6;font-size:11px;font-weight:800;letter-spacing:.16em;margin-bottom:27px}
+    .login-eyebrow-dot{display:block;width:8px;height:8px;border-radius:50%;background:#e4c178;box-shadow:0 0 0 5px #e4c17829}
+    .login-intro h2{font-size:clamp(35px,4.8vw,67px);max-width:690px;font-weight:780;line-height:1.11;letter-spacing:-.055em;color:#fff;margin:0 0 24px}
+    .login-intro h2 em{color:#ebc98b;font-style:normal}
+    .login-intro>p{font-size:15px;line-height:1.85;color:#ded2e7;max-width:480px}
+    .login-benefits{display:flex;gap:9px;flex-wrap:wrap;margin-top:32px}
+    .login-benefits span{border:1px solid #ffffff26;border-radius:100px;padding:10px 13px;font-size:11px;color:#f6ebf6;background:#ffffff0b}
+    .login-footer-note{font-size:11px;letter-spacing:.02em;color:#bdaeca;margin-top:90px}
+    .auth-card{background:#fff;border:1px solid #e6dfe9;padding:36px;border-radius:22px;box-shadow:0 30px 95px #13091b55;width:100%;max-width:455px;z-index:1;display:flex;flex-direction:column;gap:0}
+    .auth-card .mark{margin-bottom:23px}
+    .auth-card h1{font-size:31px;margin-bottom:5px}
+    .auth-card .login-card-desc{color:#75697d;line-height:1.7;font-size:13px;margin:4px 0 21px}
+    .auth-card .cloud-login{order:2;border-bottom:1px solid #eee7f1;padding-bottom:21px;margin-bottom:17px}
+    .cloud-login .btn{width:100%;justify-content:space-between;background:linear-gradient(115deg,#543469,#735187);font-size:14px;padding:16px 19px;min-height:53px;border-radius:12px}
+    .cloud-login .arrow{font-size:21px;font-weight:400}
+    .cloud-login p{font-size:11px;color:#8d8195;text-align:center;margin:12px 0 0}
+    .offline-toggle{order:3}
+    .offline-toggle details{border:1px solid #ebe4ee;border-radius:11px;padding:11px 14px;background:#fbfafc}
+    .offline-toggle summary{font-size:12px;font-weight:700;color:#685475;cursor:pointer}
+    .offline-toggle #authForm{margin-top:15px}
+    .offline-toggle .auth-foot{border-top:1px solid #eee7f1}
+    .auth-card .login-card-desc + p{display:none}
+    .brand-actions{display:none!important}
+    .mobile-nav-trigger{display:none;background:#ffffff18;color:#fff;border:1px solid #ffffff30;border-radius:10px;padding:9px 12px;font-size:20px}
+    .hero{background:linear-gradient(117deg,#261a35,#382347 77%,#4a2c58)}
+    .hero-inner{padding-bottom:53px}
+    .hero-content{margin-top:28px}
+    .hero-content h1{font-size:clamp(28px,3.4vw,42px)}
+    .hero-sub{font-size:12px}
+    .container.app-workspace{display:grid;grid-template-columns:246px minmax(0,1fr);gap:22px;max-width:1540px;align-items:start;margin-top:-20px}
+    .workspace-body{min-width:0}
+    .workspace-sidebar{background:#fff;border:1px solid #e9e3ec;box-shadow:0 10px 35px #26102f08;border-radius:17px;padding:19px 12px 15px;min-height:calc(100dvh - 184px);position:sticky;top:18px;display:flex;flex-direction:column;z-index:4}
+    .sidebar-top{display:flex;align-items:center;justify-content:space-between;padding:3px 10px 12px}
+    .sidebar-label{display:block;font-size:10px;font-weight:850;color:#aaa0b2;letter-spacing:.14em;padding:9px 13px}
+    .sidebar-dismiss{display:none;background:none;border:0;color:#655873;font-size:26px}
+    .workspace-menu{display:flex;flex-direction:column;gap:3px}
+    .workspace-link{width:100%;border:0;background:transparent;border-radius:10px;padding:12px 12px;display:flex;align-items:center;gap:12px;text-align:left;color:#635b6e;font-weight:700;font-size:12px;white-space:normal;min-height:43px;transition:background .16s,color .16s}
+    .workspace-link:hover{background:#f7f2fa;color:#5b3872}
+    .workspace-link.active{background:#eee6f5;color:#56326d}
+    .workspace-link .workspace-ico{border-radius:9px;font-size:18px;font-weight:500;width:24px;text-align:center;color:#8b719b}
+    .workspace-link.active .workspace-ico{color:#633a83}
+    .workspace-divider{height:1px;background:#eee8f1;margin:13px 10px 9px}
+    .sidebar-account{display:flex;align-items:center;gap:10px;margin:25px 5px 0;padding:13px 6px 2px;border-top:1px solid #eee8f1;color:#766d82;font-size:10px;overflow:hidden}
+    #navAccount{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+    .account-avatar{flex:none;width:32px;height:32px;background:#f0e5f5;color:#69467e;border-radius:10px;display:grid;place-items:center;font-size:11px;font-weight:900}
+    .account-live{width:7px;height:7px;border-radius:50%;background:#4aac7b;flex:none}
+    .dashboard-landing{padding:21px 0 3px}
+    .dashboard-greeting>span{color:#8a689e;font-size:10px;font-weight:850;letter-spacing:.13em}
+    .dashboard-greeting h2{font-size:clamp(24px,3vw,33px);margin:8px 0;color:#2d203c}
+    .dashboard-greeting p{font-size:13px;color:#8d8098;margin:0 0 22px;line-height:1.6}
+    .quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:23px}
+    .quick-tile{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:#fff;border:1px solid #e9e3ed;border-radius:15px;padding:20px 15px;min-height:150px;box-shadow:0 5px 18px #2d17360a;transition:transform .17s,box-shadow .17s}
+    .quick-tile:hover{transform:translateY(-3px);box-shadow:0 15px 30px #2d173618}
+    .quick-tile strong{font-size:13px;color:#30243d;margin:13px 0 5px}
+    .quick-tile small{font-size:11px;color:#897d93;line-height:1.5}
+    .quick-icon{display:grid;place-items:center;width:37px;height:37px;border-radius:11px;font-size:23px}
+    .quick-icon.violet{background:#f0e5f7;color:#6a3b89}
+    .quick-icon.blue{background:#e9f3fc;color:#3d76af}
+    .quick-icon.gold{background:#fcf2df;color:#9a752e}
+    .quick-icon.mint{background:#e7f5ef;color:#35866d}
+    .dashboard-classes{background:#fff;border:1px solid #ebe6ee;border-radius:16px;padding:21px 23px 24px}
+    .dashboard-classes-title h3{font-size:17px;color:#332643;margin:0 0 6px}
+    .dashboard-classes-title p{font-size:12px;color:#8c8095;margin:0 0 18px}
+    .class-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .class-summary-btn{border:1px solid #e8e2ea;background:#fcfbfd;border-radius:12px;padding:14px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;color:#51455d;min-height:62px;transition:background .15s}
+    .class-summary-btn:hover{background:#f4edf8}
+    .class-summary-left{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:800}
+    .class-summary-dot{width:9px;height:9px;border-radius:50%;background:var(--dot)}
+    .class-summary-count{color:#6e4a86;font-size:16px;font-weight:850}
+    #listLayout{grid-template-columns:180px minmax(0,1fr);gap:13px}
+    #listLayout .class-nav{position:sticky;top:16px}
+    #listLayout .class-btn{font-size:12px}
+    #listLayout .content-head{padding:23px 19px 17px}
+    #listLayout .toolbar{padding:15px}
+    #listLayout .toolbar .btn{min-height:38px}
+    #listLayout .actions-row{margin:0 16px 13px}
+    .sidebar-shade{display:none}
+    @media(max-width:1250px){.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.container.app-workspace{grid-template-columns:211px minmax(0,1fr);gap:15px}.workspace-sidebar{padding:13px 9px}.workspace-link{padding:11px 8px}#listLayout{grid-template-columns:1fr}#listLayout .class-nav{position:static}}
+    @media(max-width:890px){
+      .auth-page{grid-template-columns:1fr;gap:30px;justify-items:center;padding:40px 22px}
+      .login-intro{text-align:center;max-width:620px}.login-logo{justify-content:center;margin-bottom:34px}
+      .login-intro h2{font-size:clamp(31px,6vw,46px)}
+      .login-intro>p{margin-left:auto;margin-right:auto}.login-eyebrow,.login-benefits{justify-content:center}
+      .login-footer-note{display:none}.auth-card{max-width:500px}
+      .container.app-workspace{grid-template-columns:1fr;margin-top:-15px}
+      .workspace-sidebar{position:fixed;top:0;bottom:0;left:0;width:min(295px,84vw);height:100dvh;min-height:0;z-index:38;transform:translateX(-110%);transition:transform .2s;border-radius:0;overflow-y:auto}
+      body.sidebar-open .workspace-sidebar{transform:translateX(0)}
+      body.sidebar-open .sidebar-shade{display:block;position:fixed;inset:0;background:#1c1125aa;z-index:37}
+      .mobile-nav-trigger,.sidebar-dismiss{display:block}
+      .brand{justify-content:flex-start}.brand-left{flex:1}
+      .hero-inner{padding-bottom:47px}.hero-content{margin-top:22px}
+    }
+    @media(max-width:680px){.app-workspace{padding:0 12px 35px!important}.workspace-body{min-width:0}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.quick-tile{padding:15px 12px;min-height:142px}.class-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-classes{padding:17px 13px}.auth-page{padding:35px 16px;gap:25px}.auth-card{padding:27px 22px}.login-intro h2{font-size:32px}.login-benefits span{font-size:10px}.stats{gap:9px}.stats .stat{padding:13px 12px}.stats .stat-value{font-size:25px}.dashboard-greeting h2{font-size:25px}}
+    @media print{.workspace-sidebar,.dashboard-landing,.dashboard-classes,.sidebar-shade,.mobile-nav-trigger{display:none!important}.app-workspace{display:block!important;max-width:none!important;padding:0!important;margin:0!important}.workspace-body{width:100%}#listLayout{display:block!important}.stats{display:none!important}}
+
   </style>
 </head>
 <body>
