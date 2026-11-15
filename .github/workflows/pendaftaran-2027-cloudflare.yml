@@ -51,3 +51,10 @@ jobs:
         run: |
           curl -fsS --max-time 20 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/health > /tmp/year1-health.json
           node -e 'const fs=require("fs");const h=JSON.parse(fs.readFileSync("/tmp/year1-health.json"));if(!(h.ok&&h.databaseBound&&h.databaseConnected))process.exit(1);console.log("Year 1 registration portal ready");'
+          # Confirm the actual banner and logo are served by the independent Pages URL.
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/header-pendaftaran-2027.avif -o /tmp/registration-banner-live.avif
+          echo "596a131d14c01b105b0d8cfa8016b0b996d646db27f3763b95b075c8e5f7f0f9  /tmp/registration-banner-live.avif" | sha256sum --check
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/logo-sekolah.svg | grep -q 'SK PEKAN'
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ | grep -q 'hero-poster'
+          echo "Banner, logo and landing page verified online."
+
