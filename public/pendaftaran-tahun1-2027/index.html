@@ -542,6 +542,27 @@
         try{await cloudApi('access/revoke',{email});await openAccess();toast('Akses guru telah dibatalkan.');}
         catch(e){toast(e.message);}
       }
+      async function openAdmins(){
+        if(!cloudMode||cloudInfo?.canManageAdmins!==true)return;
+        $('adminOverlay').hidden=false;
+        try{
+          const data=await cloudApi('admins');
+          $('adminsTableBody').innerHTML=data.admins.map(a=>'<tr><td>'+esc(a.email)+'</td><td>'+esc(a.grantedBy)+'</td><td><button type="button" class="btn btn-ghost" data-admin-email="'+esc(a.email)+'">Batalkan Admin</button></td></tr>').join('')||'<tr><td colspan="3">Belum ada admin tambahan.</td></tr>';
+        }catch(e){toast(e.message);}
+      }
+      async function saveAdmin(e){
+        e.preventDefault();$('adminsSaveBtn').disabled=true;
+        try{
+          await cloudApi('admins/save',{email:$('adminsEmail').value.trim()});
+          $('adminsEmail').value='';await openAdmins();toast('Admin khusus Pendaftaran 2027 telah dilantik.');
+        }catch(e){toast(e.message);}
+        finally{$('adminsSaveBtn').disabled=false;}
+      }
+      async function revokeAdmin(email){
+        if(!confirm('Tarik balik hak Admin Pendaftaran 2027 untuk '+email+'?'))return;
+        try{await cloudApi('admins/revoke',{email});await openAdmins();toast('Akses admin telah dibatalkan.');}
+        catch(e){toast(e.message);}
+      }
       function downloadExcelTemplate(){
         const kelas=cloudMode&&cloudInfo.role!=='admin'?cloudInfo.kelas:activeClass;
         const blob=createExcelTemplate(kelas==='Semua'?'':kelas);
@@ -767,6 +788,17 @@
       $('cancelReset').addEventListener('click',closeReset);
       $('resetForm').addEventListener('submit',resetLocal);
       $('accessBtn').addEventListener('click',openAccess);
+      $('adminBtn').addEventListener('click',openAdmins);
+      $('closeAdmins').addEventListener('click',()=>$('adminOverlay').hidden=true);
+      $('adminsForm').addEventListener('submit',saveAdmin);
+      $('adminsTableBody').addEventListener('click',e=>{const b=e.target.closest('[data-admin-email]');if(b)revokeAdmin(b.dataset.adminEmail);});
+      $('templateBtn').addEventListener('click',downloadExcelTemplate);
+      $('importBtn').addEventListener('click',openImport);
+      $('closeImport').addEventListener('click',closeImport);
+      $('cancelImport').addEventListener('click',closeImport);
+      $('importFile').addEventListener('change',previewImport);
+      $('commitImportBtn').addEventListener('click',commitImport);
+      $('refreshBtn').addEventListener('click',refreshCloud);
       $('closeAccess').addEventListener('click',()=>$('accessOverlay').hidden=true);
       $('accessForm').addEventListener('submit',saveAccess);
       $('accessTableBody').addEventListener('click',e=>{const b=e.target.closest('[data-email]');if(b)revokeAccess(b.dataset.email);});
