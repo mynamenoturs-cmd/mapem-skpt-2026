@@ -26,15 +26,18 @@ function validateRecord(v) {
  noTelefon,alamat:safeText(v.alamat,'Alamat',500,5)};
 }
 async function accessFor(env,user) {
- if(user.role==='admin')return {role:'admin',kelas:'Semua'};
+ if(user.role==='admin')return {role:'admin',kelas:'Semua',canManageAdmins:true};
+ const extra=await env.DB.prepare('SELECT email FROM registration_2027_admins WHERE email=?').bind(user.email).first();
+ if(extra)return {role:'admin',kelas:'Semua',canManageAdmins:false};
  const row=await env.DB.prepare('SELECT class_name AS kelas FROM registration_2027_access WHERE email=?').bind(user.email).first();
  return row ? {role:'editor',kelas:row.kelas} : null;
 }
 function allowed(access,kelas) {return access.role==='admin'||access.kelas===kelas;}
-async function parseBody(request) {
+function emailValue(value){const email=safeText(value,'E-mel',254).toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))error('Alamat e-mel tidak sah.');return email;}
+async function parseBody(request,limit=12000) {
  if(!request.headers.get('content-type')?.includes('application/json'))error('Permintaan mesti JSON.',415);
  const content=await request.text();
- if(content.length>12000)error('Permintaan terlalu besar.',413);
+ if(content.length>limit)error('Permintaan terlalu besar.',413);
  try {return JSON.parse(content);}catch {error('JSON tidak sah.');}
 }
 const columns='uid, student_id AS idMurid, class_name AS kelas, name AS namaMurid, pra, guardian_name AS namaPenjaga, guardian_ic AS noIc, guardian_phone AS noTelefon, address AS alamat, version, created_at AS createdAt, updated_at AS updatedAt';
@@ -52,6 +55,30 @@ export async function handleRegistration2027({request,env,user,path}) {
    : env.DB.prepare('SELECT '+columns+' FROM registration_2027_students WHERE class_name=? ORDER BY name LIMIT 5000').bind(access.kelas);
   const rows=(await query.all()).results||[];
   return json({records:rows});
+ }
+ if(path==='registration2027/students/import'&&request.method==='POST') {
+  const b=await parseBody(request,80000);
+  if(!b||!Array.isArray(b.records)||b.records.length<1||b.records.length>25)error('Import mesti mengandungi 1–25 murid bagi setiap kelompok.',400);
+  const rows=b.records.map(validateRecord);
+  const seen=new Set();
+  for(const r of rows){
+   if(!allowed(access,r.kelas))error('Fail mengandungi kelas yang tidak dibenarkan: '+r.kelas,403);
+   const id=r.idMurid.toLocaleLowerCase('ms');
+   if(seen.has(id))error('ID murid berulang dalam kelompok import: '+r.idMurid,400);
+   seen.add(id);
+  }
+  let inserted=0,skipped=0;
+  const skippedIds=[];
+  for(const r of rows) {
+   const uid=crypto.randomUUID();
+   const result=await env.DB.prepare(
+    'INSERT OR IGNORE INTO registration_2027_students(uid,student_id,class_name,name,pra,guardian_name,guardian_ic,guardian_phone,address,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?)'
+   ).bind(uid,r.idMurid,r.kelas,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,user.email).run();
+   if(result.meta?.changes===1){
+    inserted++;await audit(env,user.email,'create',uid,r.kelas);
+   }else{skipped++;skippedIds.push(r.idMurid);}
+  }
+  return json({ok:true,received:rows.length,inserted,skipped,skippedIds});
  }
  if(path==='registration2027/students/save'&&request.method==='POST') {
   const b=await parseBody(request),r=validateRecord(b.record);
@@ -90,6 +117,28 @@ export async function handleRegistration2027({request,env,user,path}) {
   if(done.meta?.changes!==1)error('Rekod diubah pengguna lain. Muat semula.',409);
   await audit(env,user.email,'delete',b.uid,old.kelas);
   return json({ok:true});
+ }
+ if(path.startsWith('registration2027/admins')) {
+  if(access.role!=='admin'||access.canManageAdmins!==true)error('Hanya pentadbir MAPeM boleh melantik atau membatalkan admin Pendaftaran 2027.',403);
+  if(path==='registration2027/admins'&&request.method==='GET'){
+   const rows=(await env.DB.prepare('SELECT email,granted_by AS grantedBy,updated_at AS updatedAt FROM registration_2027_admins ORDER BY email').all()).results||[];
+   return json({admins:rows});
+  }
+  if(path==='registration2027/admins/save'&&request.method==='POST'){
+   const b=await parseBody(request),email=emailValue(b.email);
+   if(email===user.email)error('Akaun sendiri sudah mempunyai akses pentadbir.');
+   await env.DB.prepare('INSERT INTO registration_2027_admins(email,granted_by) VALUES(?,?) ON CONFLICT(email) DO UPDATE SET granted_by=excluded.granted_by,updated_at=CURRENT_TIMESTAMP').bind(email,user.email).run();
+   await env.DB.prepare("INSERT INTO registration_2027_admin_audit(actor_email,target_email,action) VALUES(?,?,'grant')").bind(user.email,email).run();
+   return json({ok:true});
+  }
+  if(path==='registration2027/admins/revoke'&&request.method==='POST'){
+   const b=await parseBody(request),email=emailValue(b.email);
+   if(email===user.email)error('Tidak boleh menarik balik akses sendiri.',403);
+   const result=await env.DB.prepare('DELETE FROM registration_2027_admins WHERE email=?').bind(email).run();
+   if(result.meta?.changes!==1)error('Admin tersebut tidak dijumpai.',404);
+   await env.DB.prepare("INSERT INTO registration_2027_admin_audit(actor_email,target_email,action) VALUES(?,?,'revoke')").bind(user.email,email).run();
+   return json({ok:true});
+  }
  }
  if(path.startsWith('registration2027/access')) {
   if(access.role!=='admin')error('Akses pentadbir sahaja.',403);
