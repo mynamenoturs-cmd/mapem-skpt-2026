@@ -152,7 +152,9 @@ export async function onRequest({request,env}){
    const state=rnd(),stateHash=await sha256(state);await env.DB.prepare('INSERT INTO oauth_states(state_hash,expires_at) VALUES(?,?)').bind(stateHash,now()+600).run();
    const qp=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:googleCallback(env),response_type:'code',scope:'openid email profile',state,access_type:'online',prompt:'select_account'});
    const response=redirect('https://accounts.google.com/o/oauth2/v2/auth?'+qp.toString(),{'Set-Cookie':cookie(STATE_COOKIE,state,600)});
-   response.headers.append('Set-Cookie',cookie(REG_RETURN_COOKIE,url.searchParams.get('next')==='registration2027'?'1':'',url.searchParams.get('next')==='registration2027'?600:0));
+   const nextPage=url.searchParams.get('next');
+   const nextType=nextPage==='registration2027'?'1':nextPage==='registration2027standalone'?'2':'';
+   response.headers.append('Set-Cookie',cookie(REG_RETURN_COOKIE,nextType,nextType?600:0));
    return response;
   }
   if(path==='auth/google/callback'&&request.method==='GET'){
@@ -170,7 +172,8 @@ export async function onRequest({request,env}){
    const email=adminTeacherEmail(profile.email),sub=String(profile.sub),name=String(profile.name||email).slice(0,180);
    await env.DB.prepare("INSERT INTO users(sub,email,name,updated_at) VALUES(?,?,?,datetime('now')) ON CONFLICT(sub) DO UPDATE SET email=excluded.email,name=excluded.name,updated_at=datetime('now')").bind(sub,email,name).run();
    const session=rnd(),sessionHash=await sha256(session);await env.DB.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').bind(sessionHash,sub,now()+7*86400).run();
-   const next=cookies(request)[REG_RETURN_COOKIE]==='1'?'/pendaftaran-tahun1-2027/':'/';
+   const returnTo=cookies(request)[REG_RETURN_COOKIE];
+   const next=returnTo==='1'?'/pendaftaran-tahun1-2027/':returnTo==='2'?'/api/registration2027/transfer/start':'/';
    const response=redirect(origin(env)+next,{'Set-Cookie':cookie(SESSION_COOKIE,session,7*86400)});
    response.headers.append('Set-Cookie',cookie(REG_RETURN_COOKIE,'',0));
    return response;
@@ -258,6 +261,17 @@ export async function onRequest({request,env}){
   }
   if(path==='me'&&request.method==='GET')return JSON_RESPONSE(user?{authenticated:true,user}:{authenticated:false});
   if(path==='logout'&&request.method==='POST'){const sid=cookies(request)[SESSION_COOKIE];if(sid)await env.DB.prepare('DELETE FROM sessions WHERE id_hash=?').bind(await sha256(sid)).run();return JSON_RESPONSE({ok:true},200,{'Set-Cookie':cookie(SESSION_COOKIE,'',0)});}
+  // Dedicated registration portal uses the already registered Google OAuth redirect URI
+  // on this origin, then exchanges a short-lived, one-use ticket on its own hostname.
+  if(path==='registration2027/transfer/start'&&request.method==='GET'){
+   if(!user)return redirect(origin(env)+'/api/auth/google/start?next=registration2027standalone');
+   const verified=await handleRegistration2027({request,env,user,path:'registration2027/me'});
+   if(!verified.ok)return redirect('https://pendaftaran-tahun1-2027-skpt.pages.dev/?login=not-authorized');
+   const ticket=rnd(32),hash=await sha256(ticket);
+   await env.DB.prepare('INSERT INTO registration_2027_login_transfers(code_hash,user_sub,expires_at) VALUES(?,?,?)').bind(hash,user.sub,now()+90).run();
+   return redirect('https://pendaftaran-tahun1-2027-skpt.pages.dev/api/session/redeem?code='+ticket,
+      {'Referrer-Policy':'no-referrer'});
+  }
   if(!user)return fail('Sila log masuk menggunakan Google.',401);
   if(path.startsWith('registration2027/'))return await handleRegistration2027({request,env,user,path});
   if(path==='published'&&request.method==='GET'){
