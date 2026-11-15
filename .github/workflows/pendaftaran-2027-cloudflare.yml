@@ -1,0 +1,76 @@
+name: Pendaftaran Tahun 1 2027 — Cloudflare Pages khusus
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/pendaftaran-tahun1-2027/**'
+      - 'registration-site/**'
+      - 'functions/api/_registration2027.js'
+      - 'functions/api/[[path]].js'
+      - 'migrations/0018_registration_2027_login_bridge.sql'
+      - '.github/scripts/setup-registration-pages.mjs'
+      - '.github/workflows/pendaftaran-2027-cloudflare.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pendaftaran-tahun1-2027-production
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Uji dan terbitkan portal Tahun 1 2027
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      MAPEM_D1_DATABASE_ID: ${{ vars.MAPEM_D1_DATABASE_ID }}
+      MAPEM_ADMIN_EMAILS: ${{ secrets.MAPEM_ADMIN_EMAILS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Uji kod, peranan dan keselamatan
+        run: |
+          node --check registration-site/functions/api/'[[path]].js'
+          node --check public/pendaftaran-tahun1-2027/import2027.mjs
+          node --test tests/registration2027.test.mjs
+      - name: Pasang Wrangler
+        run: npm install --no-save --no-package-lock wrangler@4
+      - name: Sediakan konfigurasi Pages baharu dan D1
+        run: node .github/scripts/setup-registration-pages.mjs
+      - name: Sediakan folder deploy berasingan daripada MAPeM
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .registration-deploy/public .registration-deploy/functions/api
+          cp public/pendaftaran-tahun1-2027/index.html .registration-deploy/public/index.html
+          cp public/pendaftaran-tahun1-2027/import2027.mjs .registration-deploy/public/import2027.mjs
+          cp registration-site/functions/api/'[[path]].js' .registration-deploy/functions/api/'[[path]].js'
+          cp functions/api/_registration2027.js .registration-deploy/functions/api/_registration2027.js
+          cat > .registration-deploy/public/_headers <<'EOF'
+          /*
+            Referrer-Policy: no-referrer
+            X-Content-Type-Options: nosniff
+            X-Frame-Options: DENY
+            X-Robots-Tag: noindex,nofollow
+            Permissions-Policy: camera=(), microphone=(), geolocation=()
+          /api/*
+            Cache-Control: no-store
+          EOF
+      - name: Terbitkan Cloudflare Pages Pendaftaran
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .registration-deploy
+          ../node_modules/.bin/wrangler pages deploy public --project-name pendaftaran-tahun1-2027-skpt --branch main --commit-dirty=true
+      - name: Semak API dan pangkalan data laman baharu
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 'https://pendaftaran-tahun1-2027-skpt.pages.dev/api/health' > /tmp/year1-health.json
+          node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync("/tmp/year1-health.json"));if(!r.ok||!r.databaseBound||!r.databaseConnected)process.exit(1);console.log("Sistem Pendaftaran Tahun 1 2027: API/D1 sihat.");'
