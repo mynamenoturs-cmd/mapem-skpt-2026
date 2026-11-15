@@ -1,3 +1,4 @@
+import {handleRegistration2027} from './_registration2027.js';
 // MaPeM 2026: same-origin Google OAuth, server-side sessions, explicit RBAC.
 // Teacher edits are scoped to the class assigned to their verified Google email.
 export const CATEGORIES = [
@@ -34,6 +35,7 @@ export const CATEGORIES = [
 const HEAD={'content-type':'application/json;charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer','x-robots-tag':'noindex,nofollow'};
 const SESSION_COOKIE='__Host-mapem_session';
 const STATE_COOKIE='__Host-mapem_oauth';
+const REG_RETURN_COOKIE='__Host-mapem_registration_return';
 const encoder=new TextEncoder();
 const JSON_RESPONSE=(payload,status=200,headers={})=>new Response(JSON.stringify(payload),{status,headers:{...HEAD,...headers}});
 const fail=(message,status=400)=>JSON_RESPONSE({error:message},status);
@@ -149,7 +151,9 @@ export async function onRequest({request,env}){
   if(path==='auth/google/start'&&request.method==='GET'){
    const state=rnd(),stateHash=await sha256(state);await env.DB.prepare('INSERT INTO oauth_states(state_hash,expires_at) VALUES(?,?)').bind(stateHash,now()+600).run();
    const qp=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:googleCallback(env),response_type:'code',scope:'openid email profile',state,access_type:'online',prompt:'select_account'});
-   return redirect('https://accounts.google.com/o/oauth2/v2/auth?'+qp.toString(),{'Set-Cookie':cookie(STATE_COOKIE,state,600)});
+   const response=redirect('https://accounts.google.com/o/oauth2/v2/auth?'+qp.toString(),{'Set-Cookie':cookie(STATE_COOKIE,state,600)});
+   response.headers.append('Set-Cookie',cookie(REG_RETURN_COOKIE,url.searchParams.get('next')==='registration2027'?'1':'',url.searchParams.get('next')==='registration2027'?600:0));
+   return response;
   }
   if(path==='auth/google/callback'&&request.method==='GET'){
    const code=url.searchParams.get('code'),state=url.searchParams.get('state'),stored=cookies(request)[STATE_COOKIE];
@@ -166,7 +170,10 @@ export async function onRequest({request,env}){
    const email=adminTeacherEmail(profile.email),sub=String(profile.sub),name=String(profile.name||email).slice(0,180);
    await env.DB.prepare("INSERT INTO users(sub,email,name,updated_at) VALUES(?,?,?,datetime('now')) ON CONFLICT(sub) DO UPDATE SET email=excluded.email,name=excluded.name,updated_at=datetime('now')").bind(sub,email,name).run();
    const session=rnd(),sessionHash=await sha256(session);await env.DB.prepare('INSERT INTO sessions(id_hash,user_sub,expires_at) VALUES(?,?,?)').bind(sessionHash,sub,now()+7*86400).run();
-   return redirect(origin(env)+'/',{'Set-Cookie':cookie(SESSION_COOKIE,session,7*86400)});
+   const next=cookies(request)[REG_RETURN_COOKIE]==='1'?'/pendaftaran-tahun1-2027/':'/';
+   const response=redirect(origin(env)+next,{'Set-Cookie':cookie(SESSION_COOKIE,session,7*86400)});
+   response.headers.append('Set-Cookie',cookie(REG_RETURN_COOKIE,'',0));
+   return response;
   }
   // Only same-origin JSON writes may mutate personal data.
   if(!['GET','HEAD'].includes(request.method)){const reqOrigin=request.headers.get('Origin');if(!reqOrigin||reqOrigin!==url.origin)return fail('Origin permintaan tidak sah.',403);}
@@ -252,6 +259,7 @@ export async function onRequest({request,env}){
   if(path==='me'&&request.method==='GET')return JSON_RESPONSE(user?{authenticated:true,user}:{authenticated:false});
   if(path==='logout'&&request.method==='POST'){const sid=cookies(request)[SESSION_COOKIE];if(sid)await env.DB.prepare('DELETE FROM sessions WHERE id_hash=?').bind(await sha256(sid)).run();return JSON_RESPONSE({ok:true},200,{'Set-Cookie':cookie(SESSION_COOKIE,'',0)});}
   if(!user)return fail('Sila log masuk menggunakan Google.',401);
+  if(path.startsWith('registration2027/'))return handleRegistration2027({request,env,user,path});
   if(path==='published'&&request.method==='GET'){
    const r=await env.DB.prepare('SELECT p.class_id,p.snapshot_json,p.published_at,c.year,c.name AS class_name FROM publications p JOIN classes c ON c.id=p.class_id WHERE c.year BETWEEN 1 AND 5 ORDER BY c.year,c.name').all();
    return JSON_RESPONSE({categories:await categoryCatalog(env),classes:(r.results||[]).map(x=>({classId:x.class_id,year:x.year,className:x.class_name,publishedAt:x.published_at,awards:Object.fromEntries(Object.entries(JSON.parse(x.snapshot_json)).filter(([id])=>{const cat=CATEGORIES.find(c=>c.id===id);return cat&&(!cat.years||cat.years.includes(x.year));}))}))});
