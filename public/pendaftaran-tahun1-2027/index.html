@@ -504,7 +504,7 @@
       const ITERATIONS = 240000;
       let vault = null, vaultKey = null, students = [], activeClass = 'Semua';
       let editId = null, hideSensitive = true, pendingSave = Promise.resolve(), toastTimer;
-      let cloudMode = false, cloudInfo = null, importRows = null, importing = false;
+      let cloudMode = false, cloudInfo = null, importRows = null, importing = false, currentView = 'dashboard';
       const $ = id => document.getElementById(id);
       const enc = new TextEncoder(), dec = new TextDecoder();
       const esc = s => String(s ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -565,8 +565,40 @@
         $('passInput').value=''; $('passConfirm').value=''; authError('');
         $('forgotPasswordBtn').hidden=isNew;
       }
-      function showAuth() { $('app').hidden=true; $('authPage').hidden=false; setAuthMode(); $('passInput').focus(); }
-      function showApp() { $('authPage').hidden=true; $('app').hidden=false; render(); }
+      function showAuth() {
+         $('app').hidden=true;$('authPage').hidden=false;setAuthMode();
+         const status=new URL(location.href).searchParams.get('login');
+         if(status==='not-authorized')authError('Akaun Google ini belum diberikan akses kepada pendaftaran Tahun 1. Minta pentadbir menambah akses.');
+         if(status==='expired')authError('Sesi log masuk telah tamat. Sila log masuk semula.');
+         $('cloudAuthBtn').focus();
+       }
+      function showApp() {
+         $('authPage').hidden=true;$('app').hidden=false;
+         switchView('dashboard');render();
+       }
+       function closeSidebar(){document.body.classList.remove('sidebar-open');$('mobileNavToggle').setAttribute('aria-expanded','false');$('sidebarShade').hidden=true;}
+       function switchView(view){
+         currentView=view==='list'?'list':'dashboard';
+         $('dashboardLanding').hidden=currentView!=='dashboard';
+         $('statsPanel').hidden=currentView!=='dashboard';
+         $('dashboardClasses').hidden=currentView!=='dashboard';
+         $('listLayout').hidden=currentView!=='list';
+         document.querySelectorAll('#mainNav [data-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===currentView));
+         closeSidebar();
+       }
+       function navigateAction(action){
+         closeSidebar();
+         if(action==='add')openForm();
+         else if(action==='import')openImport();
+         else if(action==='template')downloadExcelTemplate();
+         else if(action==='export')exportCSV();
+         else if(action==='refresh'){if(cloudMode)refreshCloud();else toast('Rekod setempat sudah dikemas kini.');}
+         else if(action==='access')openAccess();
+         else if(action==='admins')openAdmins();
+         else if(action==='password')openChange();
+         else if(action==='backup')backup();
+         else if(action==='logout'){if(cloudMode)leaveCloud();else lock();}
+       }
       async function submitAuth(e) {
         e.preventDefault();
         if (!isSupported()) return authError('Pelayar tidak menyokong penyulitan atau storan. Sila gunakan Chrome, Edge atau Firefox terkini melalui HTTPS / localhost.');
@@ -610,7 +642,10 @@
         $('cloudAuthBtn').disabled=true;
         try{await enterCloud();}
         catch(e){
-          if(e.status===401) location.assign('/api/auth/google/start?next=registration2027');
+          if(e.status===401){
+            const isDedicated=location.hostname==='pendaftaran-tahun1-2027-skpt.pages.dev'||location.hostname.endsWith('.pendaftaran-tahun1-2027-skpt.pages.dev');
+            location.assign(isDedicated?'https://mapem-skpt-2026.pages.dev/api/registration2027/transfer/start':'/api/auth/google/start?next=registration2027');
+          }
           else {if(!$('authPage').hidden)authError(e.message);else toast(e.message);}
         }
         finally{$('cloudAuthBtn').disabled=false;}
@@ -628,6 +663,12 @@
         $('accessBtn').hidden=!cloudMode||cloudInfo?.role!=='admin';
         $('adminBtn').hidden=!cloudMode||cloudInfo?.canManageAdmins!==true;
         $('refreshBtn').hidden=!cloudMode;
+        $('navAccess').hidden=!cloudMode||cloudInfo?.role!=='admin';
+        $('navAdmins').hidden=!cloudMode||cloudInfo?.canManageAdmins!==true;
+        $('navRefresh').hidden=!cloudMode;
+        $('navPassword').hidden=cloudMode;
+        $('navBackup').hidden=cloudMode;
+        $('navAccount').textContent=cloudMode?cloudInfo.user.name+' · '+(cloudInfo.role==='admin'?'Pentadbir':'Guru '+cloudInfo.kelas):'Rekod pada peranti ini';
         $('sideNote').innerHTML=cloudMode?'☁ <strong>Cloudflare D1</strong><br>Rekod disimpan berpusat dan hanya guru yang diluluskan boleh mengakses kelas masing-masing.':'🔐 <strong>Mod setempat</strong><br>Rekod hanya boleh diakses pada peranti ini dengan kata laluan. Buat sandaran berkala.';
         document.querySelectorAll('#classNav .class-btn').forEach(b=>{b.hidden=!!cloudMode&&cloudInfo?.role!=='admin'&&b.dataset.class!==cloudInfo.kelas;});
         $('footerText').textContent=cloudMode?'Mod Cloudflare D1: hanya pengguna Google yang diluluskan boleh mengakses rekod; sambungan HTTPS diperlukan.':'Mod Setempat: rekod disulitkan menggunakan kata laluan dan tersimpan dalam pelayar ini sahaja.';
@@ -812,6 +853,12 @@
         $('statNotPra').textContent=students.filter(s=>s.pra==='Tidak').length;
         $('statClasses').innerHTML=students.reduce((sum,s)=>sum.add(s.kelas),new Set()).size + ' <small style="font-size:14px;color:#9b8baa">/ 9</small>';
         ['Semua',...CLASSES].forEach(c => $('count'+c).textContent=countFor(c));
+        const dots=['#2da879','#e1587b','#3d80cd','#5da5ae','#80a95b','#aa8ace','#e5a64c','#d67b3e','#9d9fab'];
+        const viewable=cloudMode&&cloudInfo?.role!=='admin'?[cloudInfo.kelas]:CLASSES;
+        $('classCards').innerHTML=viewable.map(c=>{
+           const idx=CLASSES.indexOf(c);
+           return '<button type="button" class="class-summary-btn" data-dashboard-class="'+esc(c)+'"><span class="class-summary-left"><span class="class-summary-dot" style="--dot:'+dots[idx]+'"></span>1 '+esc(c)+'</span><span class="class-summary-count">'+countFor(c)+'</span></button>';
+        }).join('');
         document.querySelectorAll('.class-btn').forEach(btn=>{ const yes=btn.dataset.class===activeClass; btn.classList.toggle('active',yes); btn.setAttribute('aria-pressed',yes?'true':'false'); });
         $('listTitle').textContent=activeClass==='Semua'?'Semua Pendaftaran':'Kelas '+activeClass;
         $('listCaption').textContent=activeClass==='Semua'?'Senarai murid untuk semua 9 kelas Tahun 1':'Senarai murid Tahun 1 '+activeClass+' — sesi 2027';
@@ -951,7 +998,26 @@
       $('closeAccess').addEventListener('click',()=>$('accessOverlay').hidden=true);
       $('accessForm').addEventListener('submit',saveAccess);
       $('accessTableBody').addEventListener('click',e=>{const b=e.target.closest('[data-email]');if(b)revokeAccess(b.dataset.email);});
-      $('classNav').addEventListener('click',e=>{ const btn=e.target.closest('[data-class]'); if(!btn)return; activeClass=btn.dataset.class; render(); });
+      $('classNav').addEventListener('click',e=>{const btn=e.target.closest('[data-class]');if(!btn)return;activeClass=btn.dataset.class;switchView('list');render();});
+      $('classCards').addEventListener('click',e=>{const btn=e.target.closest('[data-dashboard-class]');if(!btn)return;activeClass=btn.dataset.dashboardClass;switchView('list');render();});
+      $('mainNav').addEventListener('click',e=>{
+         const btn=e.target.closest('button');
+         if(!btn)return;
+         if(btn.dataset.view) switchView(btn.dataset.view);
+         else if(btn.dataset.action)navigateAction(btn.dataset.action);
+      });
+      $('mobileNavToggle').addEventListener('click',()=>{
+         const open=!document.body.classList.contains('sidebar-open');
+         document.body.classList.toggle('sidebar-open',open);
+         $('mobileNavToggle').setAttribute('aria-expanded',String(open));
+         $('sidebarShade').hidden=!open;
+      });
+      $('closeSidebar').addEventListener('click',closeSidebar);
+      $('sidebarShade').addEventListener('click',closeSidebar);
+      $('quickAdd').addEventListener('click',()=>openForm());
+      $('quickImport').addEventListener('click',openImport);
+      $('quickTemplate').addEventListener('click',downloadExcelTemplate);
+      $('quickList').addEventListener('click',()=>switchView('list'));
       $('searchInput').addEventListener('input',render); $('praFilter').addEventListener('change',render);
       [$('addBtnHead'),$('emptyAdd')].forEach(b=>b.addEventListener('click',()=>openForm()));
       [$('closeModal'),$('cancelModal')].forEach(b=>b.addEventListener('click',closeForm));
@@ -968,6 +1034,7 @@
       $('authRestore').addEventListener('click',()=>$('backupInput').click());
       $('backupInput').addEventListener('change',e=>restoreBackup(e.target.files?.[0]));
       $('lockBtn').addEventListener('click',lock);
+      $('offlineDetails').appendChild($('authDescription'));
       boot();
     })();
   </script>
