@@ -4,12 +4,13 @@ import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {webcrypto} from 'node:crypto';
 import {onRequest} from '../functions/api/[[path]].js';
+import {onRequest as registrationApi} from '../registration-site/functions/api/[[path]].js';
 import {parseCsv,mapImportRows,createExcelTemplate} from '../public/pendaftaran-tahun1-2027/import2027.mjs';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 function fixture(){
  const db=new DatabaseSync(':memory:');
- for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql'])db.exec(file('../migrations/'+migration));
+ for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql'])db.exec(file('../migrations/'+migration));
  const DB={prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first(){return stmt.get(...values)||null;},all(){return {results:stmt.all(...values)};},run(){return {meta:{changes:stmt.run(...values).changes}};}};},first(){return stmt.get()||null;},all(){return {results:stmt.all()};}}}};
  const env={DB,GOOGLE_CLIENT_ID:'fake',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
  async function cookie(email){
@@ -116,4 +117,48 @@ test('CSV import parses quoted fields, headers and validates rows; Excel templat
  const script=html.split('<script type="module">')[1]?.split('</script>')[0];
  assert.ok(script,'inline module should exist');
  assert.doesNotThrow(()=>new Function(script.slice(script.indexOf(';')+1)));
+});
+
+test('dedicated hostname redeems one-time Google bridge ticket and isolates sessions',async()=>{
+ const {env,cookie,call}=fixture();
+ const admin=await cookie('admin@gmail.com'),viewer=await cookie('viewer@sample.com');
+ const start=await call('registration2027/transfer/start',{who:admin});
+ assert.equal(start.status,302);
+ const url=new URL(start.headers.get('Location'));
+ assert.equal(url.hostname,'pendaftaran-tahun1-2027-skpt.pages.dev');
+ assert.equal(url.pathname,'/api/session/redeem');
+ const code=url.searchParams.get('code');assert.match(code,/^[a-f0-9]{64}$/);
+ const dedicatedOrigin='https://pendaftaran-tahun1-2027-skpt.pages.dev';
+ const redeem=await registrationApi({env,request:new Request(url)});
+ assert.equal(redeem.status,302);
+ assert.equal(redeem.headers.get('Location'),'/');
+ const newCookie=redeem.headers.get('Set-Cookie').split(';')[0];
+ assert.match(newCookie,/^__Host-tahun1_2027_session=/);
+ const me=await registrationApi({env,request:new Request(dedicatedOrigin+'/api/registration2027/me',{headers:{Cookie:newCookie}})});
+ assert.equal(me.status,200);
+ assert.equal((await me.json()).role,'admin');
+ const repeat=await registrationApi({env,request:new Request(url)});
+ assert.equal(repeat.status,302);assert.equal(repeat.headers.get('Location'),'/?login=expired');
+ const outsider=await registrationApi({env,request:new Request(dedicatedOrigin+'/api/registration2027/students')});
+ assert.equal(outsider.status,401);
+ const wrongOrigin=await registrationApi({env,request:new Request(dedicatedOrigin+'/api/registration2027/students/import',{method:'POST',headers:{Cookie:newCookie,Origin:'https://evil.example','Content-Type':'application/json'},body:'{"records":[]}'})});
+ assert.equal(wrongOrigin.status,403);
+ const noAccess=await call('registration2027/transfer/start',{who:viewer});
+ assert.equal(noAccess.status,302);assert.match(noAccess.headers.get('Location'),/login=not-authorized/);
+ const needsGoogle=await call('registration2027/transfer/start');
+ assert.equal(needsGoogle.status,302);assert.match(needsGoogle.headers.get('Location'),/auth\/google\/start\?next=registration2027standalone/);
+ const logout=await registrationApi({env,request:new Request(dedicatedOrigin+'/api/logout',{method:'POST',headers:{Cookie:newCookie,Origin:dedicatedOrigin}})});
+ assert.equal(logout.status,200);
+ const after=await registrationApi({env,request:new Request(dedicatedOrigin+'/api/registration2027/me',{headers:{Cookie:newCookie}})});
+ assert.equal(after.status,401);
+});
+test('new interface contains accessible mobile navigation, landing and administrator menu',()=>{
+ const html=file('../public/pendaftaran-tahun1-2027/index.html');
+ for(const id of ['authPage','login-intro','mainNav','workspaceSidebar','dashboardLanding','statsPanel','classCards','listLayout','mobileNavToggle','sidebarShade','quickImport','quickTemplate','adminOverlay']){
+  if(id==='login-intro')assert.match(html,/class="login-intro"/);
+  else assert.match(html,new RegExp('id="'+id+'"'));
+ }
+ assert.match(html,/Portal Pendaftaran Tahun 1 2027/);
+ assert.match(html,/pendaftaran-tahun1-2027-skpt.pages.dev/);
+ assert.doesNotMatch(html,/<script[^>]+src=["']https?:\/\//);
 });
