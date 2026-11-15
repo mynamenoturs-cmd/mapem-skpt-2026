@@ -221,6 +221,7 @@
     .offline-toggle #authForm{margin-top:15px}
     .offline-toggle .auth-foot{border-top:1px solid #eee7f1}
     .auth-card .login-card-desc + p{display:none}
+    .login-notice{padding:11px 12px;margin-top:15px;background:#fff1f2;border:1px solid #f8d2d9;border-radius:10px;color:#9e3148;font-size:12px;line-height:1.6}
     .brand-actions{display:none!important}
     .mobile-nav-trigger{display:none;background:#ffffff18;color:#fff;border:1px solid #ffffff30;border-radius:10px;padding:9px 12px;font-size:20px}
     .hero{background:linear-gradient(117deg,#261a35,#382347 77%,#4a2c58)}
@@ -283,7 +284,7 @@
       .login-intro h2{font-size:clamp(31px,6vw,46px)}
       .login-intro>p{margin-left:auto;margin-right:auto}.login-eyebrow,.login-benefits{justify-content:center}
       .login-footer-note{display:none}.auth-card{max-width:500px}
-      .container.app-workspace{grid-template-columns:1fr;margin-top:-15px}
+      .container.app-workspace{grid-template-columns:1fr;margin-top:-15px;position:static;z-index:auto}
       .workspace-sidebar{position:fixed;top:0;bottom:0;left:0;width:min(295px,84vw);height:100dvh;min-height:0;z-index:38;transform:translateX(-110%);transition:transform .2s;border-radius:0;overflow-y:auto}
       body.sidebar-open .workspace-sidebar{transform:translateX(0)}
       body.sidebar-open .sidebar-shade{display:block;position:fixed;inset:0;background:#1c1125aa;z-index:37}
@@ -322,7 +323,7 @@
         <button class="auth-link" type="button" id="authRestore">Pulihkan daripada fail sandaran</button>
         <button class="auth-link" type="button" id="forgotPasswordBtn" hidden>Lupa kata laluan? Reset storan setempat</button>
       </div></details></div>
-      <div class="cloud-login"><button type="button" class="btn btn-primary" id="cloudAuthBtn">Teruskan dengan Google <span class="arrow">→</span></button><p>Akses untuk guru dan pentadbir yang didaftarkan sahaja.</p></div>
+      <div class="cloud-login"><button type="button" class="btn btn-primary" id="cloudAuthBtn">Teruskan dengan Google <span class="arrow">→</span></button><p>Akses untuk guru dan pentadbir yang didaftarkan sahaja.</p><div id="loginNotice" class="login-notice" role="alert" hidden></div></div>
     </section>
   </main>
 
@@ -567,9 +568,16 @@
       }
       function showAuth() {
          $('app').hidden=true;$('authPage').hidden=false;setAuthMode();
+         $('loginNotice').hidden=true;
          const status=new URL(location.href).searchParams.get('login');
-         if(status==='not-authorized')authError('Akaun Google ini belum diberikan akses kepada pendaftaran Tahun 1. Minta pentadbir menambah akses.');
-         if(status==='expired')authError('Sesi log masuk telah tamat. Sila log masuk semula.');
+         if(status==='not-authorized'){
+           $('loginNotice').textContent='Akaun Google ini belum diberikan akses. Hubungi pentadbir pendaftaran untuk mendapatkan kebenaran.';
+           $('loginNotice').hidden=false;
+         }
+         if(status==='expired'){
+           $('loginNotice').textContent='Sesi log masuk tamat. Sila klik Teruskan dengan Google sekali lagi.';
+           $('loginNotice').hidden=false;
+         }
          $('cloudAuthBtn').focus();
        }
       function showApp() {
@@ -646,7 +654,12 @@
             const isDedicated=location.hostname==='pendaftaran-tahun1-2027-skpt.pages.dev'||location.hostname.endsWith('.pendaftaran-tahun1-2027-skpt.pages.dev');
             location.assign(isDedicated?'https://mapem-skpt-2026.pages.dev/api/registration2027/transfer/start':'/api/auth/google/start?next=registration2027');
           }
-          else {if(!$('authPage').hidden)authError(e.message);else toast(e.message);}
+          else {
+            if(!$('authPage').hidden){
+              $('loginNotice').textContent=e.message;
+              $('loginNotice').hidden=false;
+            }else toast(e.message);
+          }
         }
         finally{$('cloudAuthBtn').disabled=false;}
       }
