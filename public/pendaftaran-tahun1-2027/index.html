@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#241739">
   <meta name="description" content="Sistem pendaftaran murid Tahun 1 sesi 2027 — SK Pekan Telipok.">
-  <title>Pendaftaran Tahun 1 2027 | SK Pekan Telipok</title>
+  <title>Portal Pendaftaran Tahun 1 2027 — SK Pekan Telipok</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23241739'/%3E%3Cpath d='M12 21 32 11 52 21 32 31Z' fill='%23F0C36C'/%3E%3Cpath d='M19 30v13q13 10 26 0V30L32 37z' fill='%23fff'/%3E%3C/svg%3E">
   <style>
     :root { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #251e32; background: #f7f5fa; font-synthesis: none; }
@@ -192,22 +192,31 @@
 </head>
 <body>
   <main id="authPage" class="auth-page" hidden>
+    <section class="login-intro" aria-label="Selamat datang">
+      <div class="login-logo"><span class="login-logo-icon">✦</span><div><strong>SK PEKAN TELIPOK</strong><small>Tuaran, Sabah</small></div></div>
+      <div class="login-eyebrow"><span class="login-eyebrow-dot"></span> PORTAL KEMASUKAN MURID • SESI 2027</div>
+      <h2>Selamat datang ke <em>pendaftaran Tahun 1.</em></h2>
+      <p>Satu ruang yang tersusun untuk urusan pendaftaran, pengurusan kelas dan maklumat murid baharu SK Pekan Telipok.</p>
+      <div class="login-benefits"><span>✦ 9 Kelas</span><span>✦ Import Excel</span><span>✦ Akses Guru Terkawal</span></div>
+      <div class="login-footer-note">Sistem pengurusan dalaman sekolah • Data murid dilindungi</div>
+    </section>
     <section class="auth-card" aria-labelledby="authTitle">
       <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m2 8 10-5 10 5-10 5L2 8Zm4 4 6 3 6-3v6c-4 3-8 3-12 0v-6Z"/></svg></div>
       <div class="eyebrow" style="color:#8b659b">SK PEKAN TELIPOK • 2027</div>
-      <h1 id="authTitle">Pendaftaran Tahun 1</h1>
+      <h1 id="authTitle">Log Masuk Sistem</h1><p class="login-card-desc">Gunakan akaun Google yang telah diberikan kebenaran oleh pentadbir sekolah.</p>
       <p id="authDescription"></p>
-      <form id="authForm">
+      <div class="offline-toggle"><details id="offlineDetails"><summary>Gunakan mod setempat / kata laluan peranti</summary><form id="authForm">
         <label class="field"><span>Kata laluan <em>*</em></span><input id="passInput" type="password" autocomplete="current-password" required minlength="8" placeholder="Masukkan kata laluan"></label>
         <label id="confirmWrap" class="field" hidden><span>Sahkan kata laluan <em>*</em></span><input id="passConfirm" type="password" autocomplete="new-password" minlength="8" placeholder="Ulang kata laluan"></label>
         <div class="error" id="authError" role="alert" hidden></div>
         <button id="authSubmit" class="btn btn-primary" type="submit">Buka Sistem</button>
       </form>
-      <div class="cloud-hint"><strong>☁ Cloudflare D1 — Log Masuk Google</strong><div>Rekod dikongsi secara selamat antara guru yang diluluskan. Pentadbir boleh menetapkan akses mengikut kelas.</div><button type="button" class="btn btn-primary" id="cloudAuthBtn" style="margin-top:11px">Log Masuk / Buka Cloudflare</button></div>
+      
       <div class="auth-foot"><p><strong>Mod Setempat:</strong> Maklumat disulitkan menggunakan kata laluan dan disimpan pada peranti ini sahaja. Kata laluan setempat tidak digunakan untuk Cloudflare.</p>
         <button class="auth-link" type="button" id="authRestore">Pulihkan daripada fail sandaran</button>
         <button class="auth-link" type="button" id="forgotPasswordBtn" hidden>Lupa kata laluan? Reset storan setempat</button>
-      </div>
+      </div></details></div>
+      <div class="cloud-login"><button type="button" class="btn btn-primary" id="cloudAuthBtn">Teruskan dengan Google <span class="arrow">→</span></button><p>Akses untuk guru dan pentadbir yang didaftarkan sahaja.</p></div>
     </section>
   </main>
 
@@ -215,22 +224,54 @@
     <header class="hero">
       <div class="hero-inner">
         <div class="brand">
-          <div class="brand-left"><div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m2 8 10-5 10 5-10 5L2 8Zm4 4 6 3 6-3v6c-4 3-8 3-12 0v-6Z"/></svg></div><div><div class="brand-school">SK PEKAN TELIPOK</div><div class="brand-dept">Sistem Pendaftaran Murid Baharu</div></div></div>
+          <button id="mobileNavToggle" class="mobile-nav-trigger" type="button" aria-label="Buka menu navigasi" aria-expanded="false">☰</button>
+          <div class="brand-left"><div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m2 8 10-5 10 5-10 5L2 8Zm4 4 6 3 6-3v6c-4 3-8 3-12 0v-6Z"/></svg></div><div><div class="brand-school">SK PEKAN TELIPOK</div><div class="brand-dept">Portal Pendaftaran Tahun 1 • Sesi 2027</div></div></div>
           <div class="brand-actions" style="flex-wrap:wrap;align-items:center"><span id="modeBadge" style="font-size:11px;color:#f6dba8;padding:0 8px">Setempat • disulitkan</span><button class="btn btn-hero" type="button" id="openCloudBtn">☁ &nbsp;Cloudflare</button><button class="btn btn-hero" type="button" id="accessBtn" hidden>⚙ &nbsp;Akses Guru</button><button class="btn btn-hero" type="button" id="adminBtn" hidden>♛ &nbsp;Admin Pendaftaran</button><button class="btn btn-hero" type="button" id="changePasswordBtn">♙ &nbsp;Tukar Kata Laluan</button><button class="btn btn-hero" type="button" id="cloudExitBtn" hidden>Keluar Google</button><button class="btn btn-hero" type="button" id="backupBtn" title="Muat turun sandaran data yang disulitkan">▣ &nbsp;Sandaran</button><button class="btn btn-hero" type="button" id="restoreBtn" title="Pulihkan fail sandaran">↥ &nbsp;Pulih</button><button class="btn btn-hero" type="button" id="lockBtn" title="Kunci akses ke data">♙ &nbsp;Kunci</button></div>
         </div>
         <div class="hero-content"><div><div class="eyebrow">PENGURUSAN KEMASUKAN • SESI 2027</div><h1>Pendaftaran Tahun 1</h1><p class="hero-sub">Rekod maklumat murid baharu, ibu bapa dan penjaga dalam satu sistem yang kemas.</p></div><div class="year-block"><strong>2027</strong><small>9 KELAS</small></div></div>
       </div>
     </header>
 
-    <main class="container">
-      <section class="stats" aria-label="Statistik pendaftaran">
+    <main class="container app-workspace">
+      <aside class="workspace-sidebar" id="workspaceSidebar">
+        <div class="sidebar-top"><span class="sidebar-label">MENU UTAMA</span><button type="button" class="sidebar-dismiss" id="closeSidebar" aria-label="Tutup menu">×</button></div>
+        <nav class="workspace-menu" id="mainNav" aria-label="Navigasi portal">
+          <button class="workspace-link active" data-view="dashboard" type="button"><span class="workspace-ico">▦</span><span>Dashboard</span></button>
+          <button class="workspace-link" data-view="list" type="button"><span class="workspace-ico">☷</span><span>Senarai Murid</span></button>
+          <div class="workspace-divider"></div><div class="sidebar-label">PENGURUSAN REKOD</div>
+          <button class="workspace-link" data-action="add" type="button"><span class="workspace-ico">＋</span><span>Daftar Murid</span></button>
+          <button class="workspace-link" data-action="import" type="button"><span class="workspace-ico">⇪</span><span>Import Excel / CSV</span></button>
+          <button class="workspace-link" data-action="template" type="button"><span class="workspace-ico">⇩</span><span>Templat Borang</span></button>
+          <button class="workspace-link" data-action="export" type="button"><span class="workspace-ico">▤</span><span>Eksport Senarai</span></button>
+          <button class="workspace-link" id="navRefresh" data-action="refresh" type="button"><span class="workspace-ico">↻</span><span>Muat Semula</span></button>
+          <div class="workspace-divider"></div><div class="sidebar-label">TETAPAN & AKSES</div>
+          <button class="workspace-link" id="navAccess" data-action="access" type="button" hidden><span class="workspace-ico">♙</span><span>Akses Guru</span></button>
+          <button class="workspace-link" id="navAdmins" data-action="admins" type="button" hidden><span class="workspace-ico">♛</span><span>Admin Tambahan</span></button>
+          <button class="workspace-link" id="navPassword" data-action="password" type="button"><span class="workspace-ico">⚿</span><span>Tukar Kata Laluan</span></button>
+          <button class="workspace-link" id="navBackup" data-action="backup" type="button"><span class="workspace-ico">▣</span><span>Sandaran Setempat</span></button>
+          <button class="workspace-link" data-action="logout" type="button"><span class="workspace-ico">⇥</span><span>Log Keluar</span></button>
+        </nav>
+        <div class="sidebar-account"><span class="account-avatar">SK</span><span id="navAccount">Sesi 2027</span><span class="account-live"></span></div>
+      </aside>
+      <div class="workspace-body">
+      <section id="dashboardLanding" class="dashboard-landing">
+        <div class="dashboard-greeting"><span>GAMBARAN KESELURUHAN</span><h2>Dashboard Pendaftaran</h2><p>Semua urusan Tahun 1 dalam satu tempat. Pilih tindakan di bawah untuk memulakan kerja.</p></div>
+        <div class="quick-grid">
+          <button type="button" id="quickAdd" class="quick-tile"><span class="quick-icon violet">＋</span><strong>Daftar Murid</strong><small>Isi maklumat murid baharu</small></button>
+          <button type="button" id="quickImport" class="quick-tile"><span class="quick-icon blue">⇪</span><strong>Import Senarai</strong><small>Muat naik data Excel / CSV</small></button>
+          <button type="button" id="quickTemplate" class="quick-tile"><span class="quick-icon gold">⇩</span><strong>Templat Excel</strong><small>Muat turun borang rasmi</small></button>
+          <button type="button" id="quickList" class="quick-tile"><span class="quick-icon mint">☷</span><strong>Semak Senarai</strong><small>Lihat semua rekod kelas</small></button>
+        </div>
+      </section>
+      <section class="stats" id="statsPanel" aria-label="Statistik pendaftaran">
         <div class="stat"><span class="stat-label">Jumlah Pendaftaran</span><strong class="stat-value" id="statTotal">0</strong><span class="stat-foot">murid direkodkan</span></div>
         <div class="stat"><span class="stat-label">Murid PRA</span><strong class="stat-value" id="statPra">0</strong><span class="stat-foot">pernah mengikuti prasekolah</span></div>
         <div class="stat"><span class="stat-label">Bukan PRA</span><strong class="stat-value" id="statNotPra">0</strong><span class="stat-foot">tidak mengikuti prasekolah</span></div>
         <div class="stat"><span class="stat-label">Kelas Diisi</span><strong class="stat-value" id="statClasses">0 <small style="font-size:14px;color:#9b8baa">/ 9</small></strong><span class="stat-foot">kelas mempunyai rekod</span></div>
       </section>
 
-      <div class="layout">
+      <div id="dashboardClasses" class="dashboard-classes"><div class="dashboard-classes-title"><h3>Ringkasan Mengikut Kelas</h3><p>Pilih kelas untuk melihat rekod yang telah didaftarkan.</p></div><div id="classCards" class="class-card-grid"></div></div>
+      <div class="layout" id="listLayout" hidden>
         <aside class="panel class-nav" id="classNav" aria-label="Pilih kelas">
           <div class="nav-caption">Senarai kelas</div>
           <button type="button" class="class-btn active" data-class="Semua"><span class="left"><span class="dot" style="--dot:#76508c"></span> Semua Kelas</span><span class="count" id="countSemua">0</span></button>
@@ -262,9 +303,11 @@
         </section>
       </div>
       <footer><span id="footerText">Untuk kegunaan pengurusan sekolah sahaja. Data setempat disulitkan menggunakan kata laluan.</span><br>© 2027 SK Pekan Telipok • Powered by Cikgu Wanwan</footer>
+    </div>
     </main>
   </div>
 
+  <div id="sidebarShade" class="sidebar-shade" hidden></div>
   <div id="formOverlay" class="overlay" hidden>
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="formTitle">
       <div class="modal-head"><div><h2 id="formTitle">Daftar Murid Baharu</h2><p class="content-caption">Lengkapkan semua medan bertanda * untuk menyimpan rekod.</p></div><button type="button" class="close" id="closeModal" aria-label="Tutup">×</button></div>
