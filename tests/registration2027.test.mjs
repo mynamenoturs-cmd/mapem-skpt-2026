@@ -113,7 +113,7 @@ test('CSV import parses quoted fields, headers and validates rows; Excel templat
  assert.equal(bytes[0],0x50);assert.equal(bytes[1],0x4b);assert(bytes.length>10000);
  const html=file('../public/pendaftaran-tahun1-2027/index.html');
  assert.match(html,/Templat Excel/);assert.match(html,/Import Excel \/ CSV/);assert.match(html,/Admin Pendaftaran/);
- const script=html.match(/<script type="module">([\\s\\S]*?)<\\/script>/)?.[1];
+ const script=html.split('<script type="module">')[1]?.split('</script>')[0];
  assert.ok(script,'inline module should exist');
- assert.doesNotThrow(()=>new Function(script.replace(/^\\s*import[^;]+;/m,'')));
+ assert.doesNotThrow(()=>new Function(script.slice(script.indexOf(';')+1)));
 });
