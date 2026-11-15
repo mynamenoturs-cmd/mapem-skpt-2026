@@ -127,6 +127,12 @@
     .cloud-hint { background:#f3f0f9; border-radius:10px; padding:12px 14px; font-size:12px; line-height:1.65; margin:12px 0; color:#59466c; }
     .access-table {width:100%; min-width:0; font-size:12px;}
     .access-table th,.access-table td {padding:9px 6px;}
+    .import-tips{padding:13px;border-radius:10px;background:#faf7fc;color:#634875;font-size:12px;line-height:1.8;margin-bottom:16px;}
+    .import-preview{max-height:245px;overflow:auto;border:1px solid #eae4ec;border-radius:10px;}
+    .import-preview table{min-width:600px;}
+    .import-status{font-size:12px;line-height:1.7;color:#584c66;padding:11px 0;}
+    .import-errors{max-height:120px;overflow:auto;font-size:12px;color:#a23747;white-space:pre-line;line-height:1.7;}
+    .admin-info{background:#fff6e8;border:1px solid #ebd3a0;border-radius:10px;padding:12px;font-size:12px;color:#7a5c2a;line-height:1.7;margin-bottom:16px;}
     .error { background:#fff1f2; color:#a23747; border-radius:8px; padding:11px 12px; margin:5px 0 15px; font-size:12px; }
     .print-heading {display:none;}
     @media (max-width:1050px) {
@@ -210,7 +216,7 @@
       <div class="hero-inner">
         <div class="brand">
           <div class="brand-left"><div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m2 8 10-5 10 5-10 5L2 8Zm4 4 6 3 6-3v6c-4 3-8 3-12 0v-6Z"/></svg></div><div><div class="brand-school">SK PEKAN TELIPOK</div><div class="brand-dept">Sistem Pendaftaran Murid Baharu</div></div></div>
-          <div class="brand-actions" style="flex-wrap:wrap;align-items:center"><span id="modeBadge" style="font-size:11px;color:#f6dba8;padding:0 8px">Setempat • disulitkan</span><button class="btn btn-hero" type="button" id="openCloudBtn">☁ &nbsp;Cloudflare</button><button class="btn btn-hero" type="button" id="accessBtn" hidden>⚙ &nbsp;Akses Guru</button><button class="btn btn-hero" type="button" id="changePasswordBtn">♙ &nbsp;Tukar Kata Laluan</button><button class="btn btn-hero" type="button" id="cloudExitBtn" hidden>Keluar Google</button><button class="btn btn-hero" type="button" id="backupBtn" title="Muat turun sandaran data yang disulitkan">▣ &nbsp;Sandaran</button><button class="btn btn-hero" type="button" id="restoreBtn" title="Pulihkan fail sandaran">↥ &nbsp;Pulih</button><button class="btn btn-hero" type="button" id="lockBtn" title="Kunci akses ke data">♙ &nbsp;Kunci</button></div>
+          <div class="brand-actions" style="flex-wrap:wrap;align-items:center"><span id="modeBadge" style="font-size:11px;color:#f6dba8;padding:0 8px">Setempat • disulitkan</span><button class="btn btn-hero" type="button" id="openCloudBtn">☁ &nbsp;Cloudflare</button><button class="btn btn-hero" type="button" id="accessBtn" hidden>⚙ &nbsp;Akses Guru</button><button class="btn btn-hero" type="button" id="adminBtn" hidden>♛ &nbsp;Admin Pendaftaran</button><button class="btn btn-hero" type="button" id="changePasswordBtn">♙ &nbsp;Tukar Kata Laluan</button><button class="btn btn-hero" type="button" id="cloudExitBtn" hidden>Keluar Google</button><button class="btn btn-hero" type="button" id="backupBtn" title="Muat turun sandaran data yang disulitkan">▣ &nbsp;Sandaran</button><button class="btn btn-hero" type="button" id="restoreBtn" title="Pulihkan fail sandaran">↥ &nbsp;Pulih</button><button class="btn btn-hero" type="button" id="lockBtn" title="Kunci akses ke data">♙ &nbsp;Kunci</button></div>
         </div>
         <div class="hero-content"><div><div class="eyebrow">PENGURUSAN KEMASUKAN • SESI 2027</div><h1>Pendaftaran Tahun 1</h1><p class="hero-sub">Rekod maklumat murid baharu, ibu bapa dan penjaga dalam satu sistem yang kemas.</p></div><div class="year-block"><strong>2027</strong><small>9 KELAS</small></div></div>
       </div>
@@ -237,13 +243,16 @@
           <button type="button" class="class-btn" data-class="Topaz"><span class="left"><span class="dot" style="--dot:#e5a64c"></span> Topaz</span><span class="count" id="countTopaz">0</span></button>
           <button type="button" class="class-btn" data-class="Amber"><span class="left"><span class="dot" style="--dot:#d67b3e"></span> Amber</span><span class="count" id="countAmber">0</span></button>
           <button type="button" class="class-btn" data-class="Pearl"><span class="left"><span class="dot" style="--dot:#9d9fab"></span> Pearl</span><span class="count" id="countPearl">0</span></button>
-          <div class="side-note">🔐 <strong>Mod peranti ini</strong><br>Rekod hanya boleh diakses pada pelayar ini dengan kata laluan. Buat sandaran berkala untuk mengelakkan kehilangan data.</div>
+          <div id="sideNote" class="side-note">🔐 <strong>Mod peranti ini</strong><br>Rekod hanya boleh diakses pada pelayar ini dengan kata laluan. Buat sandaran berkala untuk mengelakkan kehilangan data.</div>
         </aside>
         <section class="panel content-panel" aria-labelledby="listTitle">
           <div class="content-head"><div><h2 id="listTitle">Semua Pendaftaran</h2><p class="content-caption" id="listCaption">Senarai murid untuk semua kelas Tahun 1</p></div><button type="button" class="btn btn-primary" id="addBtnHead"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Tambah Murid</button></div>
           <div class="toolbar">
             <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 5 5"/></svg><input id="searchInput" type="search" placeholder="Cari nama, ID murid, penjaga, telefon..."></div>
             <select id="praFilter" class="filter" aria-label="Tapis status PRA"><option value="Semua">Semua PRA</option><option value="Ya">PRA: Ya</option><option value="Tidak">PRA: Tidak</option><option value="Belum Pasti">PRA: Belum Pasti</option></select>
+            <button type="button" class="btn btn-ghost" id="templateBtn">⬇ &nbsp;Templat Excel</button>
+            <button type="button" class="btn btn-primary" id="importBtn">⇧ &nbsp;Import Excel / CSV</button>
+            <button type="button" class="btn btn-ghost" id="refreshBtn" hidden>⟳ &nbsp;Muat Semula</button>
             <button type="button" class="btn btn-ghost" id="csvBtn"><svg viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v3h16v-3"/></svg> Eksport CSV</button>
           </div>
           <div class="actions-row"><span class="mini-help" id="filterSummary">0 murid dipaparkan</span><div class="action-buttons"><button type="button" class="btn btn-ghost" id="maskBtn">◉ &nbsp;Paparkan Maklumat</button><button type="button" class="btn btn-ghost" id="printBtn">▤ &nbsp;Cetak Senarai</button></div></div>
@@ -309,10 +318,36 @@
       </div></form>
     </section>
   </div>
+  <div id="importOverlay" class="overlay" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="importTitle" style="max-width:760px">
+      <div class="modal-head"><div><h2 id="importTitle">Import Senarai Pendaftaran</h2><p class="content-caption">Muat naik fail Excel/CSV dan semak sebelum menyimpan.</p></div><button type="button" class="close" id="closeImport" aria-label="Tutup">×</button></div>
+      <div class="form-body">
+        <div class="import-tips"><strong>Cara penggunaan:</strong> Muat turun Templat Excel, isi lapan lajur dan simpan XLSX. Pilih fail di bawah untuk pratonton, kemudian tekan Import Sekarang.<br><strong>Keselamatan:</strong> ID murid sedia ada dilangkau tanpa menimpa data. Templat memformat ID, IC dan telefon sebagai teks supaya angka 0 di hadapan tidak hilang. Import cloud dikongsi oleh guru yang diberi akses.</div>
+        <label class="field"><span>Fail senarai (.xlsx / .csv)</span><input id="importFile" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+        <div id="importStatus" class="import-status" role="status">Belum ada fail dipilih.</div>
+        <div id="importErrors" class="import-errors" hidden></div>
+        <div class="import-preview" id="importPreview" hidden><table><thead><tr><th>Baris</th><th>ID Murid</th><th>Nama Murid</th><th>Kelas</th><th>PRA</th></tr></thead><tbody id="importPreviewBody"></tbody></table></div>
+      </div>
+      <div class="form-foot"><button type="button" class="btn btn-ghost" id="cancelImport">Tutup</button><button type="button" class="btn btn-primary" id="commitImportBtn" disabled>Import Sekarang</button></div>
+    </section>
+  </div>
+  <div id="adminOverlay" class="overlay" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="adminTitle" style="max-width:700px">
+      <div class="modal-head"><div><h2 id="adminTitle">Admin Pendaftaran Tahun 1 2027</h2><p class="content-caption">Pelantikan oleh pentadbir utama sahaja.</p></div><button type="button" class="close" id="closeAdmins" aria-label="Tutup">×</button></div>
+      <form id="adminsForm"><div class="form-body">
+        <div class="admin-info"><strong>Admin Pendaftaran 2027</strong> boleh melihat serta mengurus sembilan kelas, import murid dan menetapkan akses guru kelas. Pelantikan ini <strong>tidak memberikan</strong> hak admin kepada portal MAPeM 2026. Hanya admin utama boleh melantik atau membatalkan admin pendaftaran.</div>
+        <label class="field"><span>E-mel Google Guru</span><input id="adminsEmail" type="email" maxlength="254" autocomplete="off" placeholder="guru@moe-dl.edu.my" required></label>
+        <div class="form-foot" style="padding:12px 0;border:0"><button type="submit" class="btn btn-primary" id="adminsSaveBtn">Lantik Admin</button></div>
+        <h3 style="font-size:14px;margin:18px 0 12px">Admin Tambahan</h3>
+        <div class="table-scroll"><table class="access-table"><thead><tr><th>E-mel</th><th>Diberikan oleh</th><th>Tindakan</th></tr></thead><tbody id="adminsTableBody"></tbody></table></div>
+      </div></form>
+    </section>
+  </div>
   <input id="backupInput" type="file" accept=".json,application/json" hidden>
   <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
-  <script>
+  <script type="module">
+    import {readTable,mapImportRows,createExcelTemplate} from './import2027.mjs';
     (() => {
       'use strict';
       const CLASSES = ['Emerald', 'Ruby', 'Sapphire', 'Diamond', 'Jade', 'Crystal', 'Topaz', 'Amber', 'Pearl'];
