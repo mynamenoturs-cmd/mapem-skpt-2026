@@ -295,12 +295,103 @@
     @media(max-width:680px){.app-workspace{padding:0 12px 35px!important}.workspace-body{min-width:0}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.quick-tile{padding:15px 12px;min-height:142px}.class-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-classes{padding:17px 13px}.auth-page{padding:35px 16px;gap:25px}.auth-card{padding:27px 22px}.login-intro h2{font-size:32px}.login-benefits span{font-size:10px}.stats{gap:9px}.stats .stat{padding:13px 12px}.stats .stat-value{font-size:25px}.dashboard-greeting h2{font-size:25px}}
     @media print{.workspace-sidebar,.dashboard-landing,.dashboard-classes,.sidebar-shade,.mobile-nav-trigger{display:none!important}.app-workspace{display:block!important;max-width:none!important;padding:0!important;margin:0!important}.workspace-body{width:100%}#listLayout{display:block!important}.stats{display:none!important}}
 
+
+    /* Tema sekolah Songket Maroon & Emas — visual rasmi portal Tahun 1 2027. */
+    :root{--reg-maroon:#65112f;--reg-wine:#390b27;--reg-purple:#342047;--reg-gold:#f3ce76;--reg-ivory:#fff8ed;--reg-muted:#e9d5e6}
+    body{background:radial-gradient(circle at 95% 5%,#752d4a16,transparent 32%),radial-gradient(circle at 8% 70%,#af80431b,transparent 36%),#f3edf3}
+    .auth-page{background:radial-gradient(ellipse at 9% 12%,#a72c4d63,transparent 48%),radial-gradient(ellipse at 86% 92%,#bd852932,transparent 36%),linear-gradient(125deg,#310820 0%,#4a1337 55%,#23122f 100%)}
+    .auth-page:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;background-image:repeating-linear-gradient(45deg,transparent 0 29px,#e2b86722 30px 32px,transparent 33px 66px),repeating-linear-gradient(-45deg,transparent 0 29px,#e2b86722 30px 32px,transparent 33px 66px);mask-image:linear-gradient(to bottom,#000,transparent 70%)}
+    .login-logo{margin-bottom:19px;gap:14px}
+    .login-intro h2 em{color:#f3ce76}
+    .login-eyebrow{color:#ffe0a1}
+    .login-banner-visual{max-width:740px;margin:9px 0 29px;border:2px solid #f9d082b7;border-radius:17px;overflow:hidden;box-shadow:0 18px 46px #16010d72,0 0 0 7px #f3d1870d}
+    .login-banner-visual img{display:block;width:100%;height:auto;aspect-ratio:3 / 1;object-fit:cover}
+    .auth-card{background:linear-gradient(158deg,#fff9f0,#fff6ed 55%,#f7ecf2);border:1px solid #edcc8eaa;box-shadow:0 32px 78px #22061d89,0 0 0 5px #fff2c515}
+    .auth-card h1{color:#5c1635}
+    .auth-card .eyebrow{color:#87415e!important}
+    .auth-card .cloud-login .btn{background:linear-gradient(110deg,#751334,#9f2849);box-shadow:0 8px 22px #7513342d;border:1px solid #deb065}
+    .auth-card .cloud-login .btn:hover{background:linear-gradient(110deg,#640c2b,#882441)}
+    .offline-toggle details{background:#fff9f2;border-color:#e8c99d}
+    .brand-crest{position:relative;display:inline-grid;place-items:center;width:66px;height:70px;flex:none;animation:crestFloat 4.2s ease-in-out infinite;filter:drop-shadow(0 3px 5px #fdcf7294)}
+    .brand-crest-sm{width:47px;height:52px}
+    .crest-image{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 7px #f9d2807a);animation:crestGlow 3.6s ease-in-out infinite}
+    .brand-crest:after{content:"✦";position:absolute;color:#ffe9ac;right:1%;top:7%;font-size:16px;text-shadow:0 0 8px #ffde79;animation:crestSparkle 3.6s ease-in-out infinite;pointer-events:none}
+    @keyframes crestFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-4px) rotate(1deg)}}
+    @keyframes crestGlow{0%,100%{filter:drop-shadow(0 0 5px #f4c05a77)}50%{filter:drop-shadow(0 0 17px #ffe28de8)}}
+    @keyframes crestSparkle{0%,38%,100%{opacity:0;transform:scale(.5) rotate(-35deg)}55%{opacity:1;transform:scale(1.2) rotate(20deg)}}
+    .hero{background:linear-gradient(120deg,#420d2f,#541031 55%,#2a1337);border-bottom:3px solid #d6a64d}
+    .hero:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 15% 0%,#e0b35e21,transparent 36%),repeating-linear-gradient(45deg,transparent 0 25px,#f5d88e0c 26px 27px,transparent 28px 60px);pointer-events:none}
+    .hero-inner{padding-top:13px;padding-bottom:52px}
+    .hero .brand{align-items:center}
+    .brand-left{gap:14px}
+    .hero .brand-school{color:#ffe4a9;text-shadow:0 1px 4px #0004}
+    .hero .brand-dept{color:#f1d8da}
+    .hero-poster{margin-top:14px;border-radius:17px;overflow:hidden;border:2px solid #ffd47ca8;box-shadow:0 16px 34px #1c091d66;max-width:1410px}
+    .hero-poster img{display:block;width:100%;height:auto;aspect-ratio:3 / 1;object-fit:cover;object-position:center}
+    .hero-caption{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;color:#ffe5b1;letter-spacing:.04em;font-size:11px;padding-top:14px}
+    .hero-caption strong{font-size:13px;letter-spacing:.09em;color:#fff5df;text-transform:uppercase}
+    .container.app-workspace{margin-top:-22px}
+    .workspace-sidebar{background:linear-gradient(163deg,#4c1433 0%,#300f30 62%,#231a36);border-color:#b57a57;box-shadow:0 15px 36px #3a102841}
+    .workspace-sidebar .sidebar-label{color:#e3b982}
+    .workspace-sidebar .workspace-link{color:#f3e2e9}
+    .workspace-sidebar .workspace-link .workspace-ico{color:#f0ca8c}
+    .workspace-sidebar .workspace-link:hover{background:#f4d5a421;color:#fff5e7}
+    .workspace-sidebar .workspace-link.active{background:linear-gradient(103deg,#ffd88c,#d9aa56);color:#491b32;box-shadow:inset 0 1px 0 #fff5d0}
+    .workspace-sidebar .workspace-link.active .workspace-ico{color:#6b263f}
+    .workspace-sidebar .workspace-divider,.workspace-sidebar .sidebar-account{border-color:#c892653b}
+    .workspace-sidebar .workspace-divider{background:#b995603b}
+    .workspace-sidebar .sidebar-account{color:#f5dfca}
+    .workspace-sidebar .account-avatar{background:#f3cd80;color:#58243a}
+    .workspace-sidebar .sidebar-dismiss{color:#ffe3af}
+    .dashboard-greeting>span{color:#9b3c55}
+    .dashboard-greeting h2{color:#4a1332}
+    .dashboard-greeting p{color:#756074}
+    .quick-tile{background:linear-gradient(158deg,#fff8ef,#f9edf2);border-color:#e4cda9;box-shadow:0 7px 23px #7b365017}
+    .quick-tile:hover{background:linear-gradient(145deg,#fff1db,#f5dfeb);border-color:#cfa566}
+    .quick-tile strong{color:#571e3a}
+    .quick-tile small{color:#7c6479}
+    .quick-icon.violet{background:#f5dfe7;color:#8b254a}
+    .quick-icon.gold{background:#f8e7bd;color:#916327}
+    .stat{background:linear-gradient(143deg,#fffaf3,#fbedef);border-color:#ead1af;box-shadow:0 6px 22px #65112f13}
+    .stat-label{color:#7c4c63}
+    .stat-value{color:#772447}
+    .dashboard-classes,.panel{background:linear-gradient(158deg,#fff9f0,#fff8f6 70%,#f8ecf3);border-color:#e5c99d}
+    .dashboard-classes-title h3,.content-head h2{color:#591b3c}
+    .class-summary-btn{background:linear-gradient(135deg,#fff7ed,#f8ebf0);border-color:#ead4b9}
+    .class-summary-btn:hover{background:#fbead7}
+    .class-summary-count{color:#8b2c4f}
+    .class-btn.active{background:#f4decc;color:#792d4d}
+    .class-btn.active .count{color:#792d4d}
+    .btn-primary{background:linear-gradient(110deg,#7a203e,#a43c58);border:1px solid #d8a76f}
+    .btn-primary:hover{background:linear-gradient(110deg,#681530,#912947)}
+    .btn-ghost{background:#fffcf6;border-color:#e3c99f;color:#6e3350}
+    .btn-ghost:hover{background:#fff0df;border-color:#ce9d64}
+    .row-actions .icon-btn{background:#fff9f1;border-color:#e3c99f}
+    input,select,textarea{background:#fffdf9;border-color:#e2d0b9}
+    input:focus,select:focus,textarea:focus{border-color:#ae6c74;box-shadow:0 0 0 3px #d69a6745}
+    .modal{background:linear-gradient(150deg,#fffaf5,#fff3f0);border:1px solid #d5a770}
+    .modal-head{background:#601a3b0e;border-bottom-color:#e3c59b}
+    .modal-head h2{color:#67213e}
+    .modal .form-foot{border-top-color:#e3c59b}
+    .toast{background:#581834;border-color:#e0b56c}
+    .side-note,.import-tips{background:#fff3de;border-color:#e8c18b;color:#75513b}
+    thead th{background:#f8e6da;color:#6e3049;border-color:#e9cda5}
+    tbody tr:hover{background:#ffefd9}
+    .class-pill{background:#f4dfd9;color:#7b3551}
+    .auth-page .login-benefits span{background:#f1c77e14;border-color:#f6d58d54}
+    .login-card-desc{color:#7c5b6c}
+    footer{color:#8a6370}
+    @media(max-width:890px){.login-banner-visual{margin:3px auto 25px;max-width:630px}.hero-poster{margin-top:12px}.brand-crest-sm{width:42px;height:48px}}
+    @media(max-width:680px){.login-banner-visual{margin-bottom:19px;border-radius:11px}.brand-crest{width:54px;height:61px}.brand-crest-sm{width:40px;height:45px}.login-intro h2{font-size:28px}.hero-inner{padding-bottom:43px}.hero-caption{font-size:10px}.workspace-sidebar{border:0;border-right:2px solid #e4bb70}.login-logo{margin-bottom:16px}}
+    @media(prefers-reduced-motion:reduce){.brand-crest,.crest-image,.brand-crest:after{animation:none!important}.quick-tile{transition:none}}
+    @media print{.hero-poster{display:none!important}.workspace-sidebar{display:none!important}}
   </style>
 </head>
 <body>
   <main id="authPage" class="auth-page" hidden>
     <section class="login-intro" aria-label="Selamat datang">
-      <div class="login-logo"><span class="login-logo-icon">✦</span><div><strong>SK PEKAN TELIPOK</strong><small>Tuaran, Sabah</small></div></div>
+      <div class="login-logo"><span class="brand-crest"><img class="crest-image" src="./assets/logo-sekolah.webp" alt="Lencana SK Pekan Telipok" loading="eager"></span><div><strong>SK PEKAN TELIPOK</strong><small>Tuaran, Sabah</small></div></div>
+      <div class="login-banner-visual"><img src="./assets/header-pendaftaran-2027.webp" alt="SK Pekan Telipok — Pendaftaran Murid Tahun 1 Sesi 2027" loading="eager" fetchpriority="high"></div>
       <div class="login-eyebrow"><span class="login-eyebrow-dot"></span> PORTAL KEMASUKAN MURID • SESI 2027</div>
       <h2>Selamat datang ke <em>pendaftaran Tahun 1.</em></h2>
       <p>Satu ruang yang tersusun untuk urusan pendaftaran, pengurusan kelas dan maklumat murid baharu SK Pekan Telipok.</p>
@@ -332,10 +423,11 @@
       <div class="hero-inner">
         <div class="brand">
           <button id="mobileNavToggle" class="mobile-nav-trigger" type="button" aria-label="Buka menu navigasi" aria-expanded="false">☰</button>
-          <div class="brand-left"><div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m2 8 10-5 10 5-10 5L2 8Zm4 4 6 3 6-3v6c-4 3-8 3-12 0v-6Z"/></svg></div><div><div class="brand-school">SK PEKAN TELIPOK</div><div class="brand-dept">Portal Pendaftaran Tahun 1 • Sesi 2027</div></div></div>
+          <div class="brand-left"><span class="brand-crest brand-crest-sm"><img class="crest-image" src="./assets/logo-sekolah.webp" alt="Logo SK Pekan Telipok"></span><div><div class="brand-school">SK PEKAN TELIPOK</div><div class="brand-dept">Portal Pendaftaran Tahun 1 • Sesi 2027</div></div></div>
           <div class="brand-actions" style="flex-wrap:wrap;align-items:center"><span id="modeBadge" style="font-size:11px;color:#f6dba8;padding:0 8px">Setempat • disulitkan</span><button class="btn btn-hero" type="button" id="openCloudBtn">☁ &nbsp;Cloudflare</button><button class="btn btn-hero" type="button" id="accessBtn" hidden>⚙ &nbsp;Akses Guru</button><button class="btn btn-hero" type="button" id="adminBtn" hidden>♛ &nbsp;Admin Pendaftaran</button><button class="btn btn-hero" type="button" id="changePasswordBtn">♙ &nbsp;Tukar Kata Laluan</button><button class="btn btn-hero" type="button" id="cloudExitBtn" hidden>Keluar Google</button><button class="btn btn-hero" type="button" id="backupBtn" title="Muat turun sandaran data yang disulitkan">▣ &nbsp;Sandaran</button><button class="btn btn-hero" type="button" id="restoreBtn" title="Pulihkan fail sandaran">↥ &nbsp;Pulih</button><button class="btn btn-hero" type="button" id="lockBtn" title="Kunci akses ke data">♙ &nbsp;Kunci</button></div>
         </div>
-        <div class="hero-content"><div><div class="eyebrow">PENGURUSAN KEMASUKAN • SESI 2027</div><h1>Pendaftaran Tahun 1</h1><p class="hero-sub">Rekod maklumat murid baharu, ibu bapa dan penjaga dalam satu sistem yang kemas.</p></div><div class="year-block"><strong>2027</strong><small>9 KELAS</small></div></div>
+        <div class="hero-poster"><img src="./assets/header-pendaftaran-2027.webp" alt="Banner rasmi Pendaftaran Murid Tahun 1 Sesi 2027 — SK Pekan Telipok" loading="eager" fetchpriority="high"></div>
+        <div class="hero-caption"><span>PORTAL RASMI SESI 2027</span><strong>Daftar • Semak • Urus</strong><span>9 kelas Tahun 1</span></div>
       </div>
     </header>
 
