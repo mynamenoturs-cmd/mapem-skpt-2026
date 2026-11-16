@@ -39,10 +39,10 @@ jobs:
           cp public/pendaftaran-tahun1-2027/ibu-bapa/index.html .registration-deploy/public/ibu-bapa/index.html
           cp public/pendaftaran-tahun1-2027/import2027.mjs .registration-deploy/public/import2027.mjs
           cp public/pendaftaran-tahun1-2027/_headers .registration-deploy/public/_headers
-          cp public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027.webp .registration-deploy/public/assets/header-pendaftaran-2027.webp
-          cp public/pendaftaran-tahun1-2027/assets/logo-sekolah.webp .registration-deploy/public/assets/logo-sekolah.webp
-          test -s .registration-deploy/public/assets/header-pendaftaran-2027.webp
-          test -s .registration-deploy/public/assets/logo-sekolah.webp
+          cp public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027-logo-rasmi.webp .registration-deploy/public/assets/header-pendaftaran-2027-logo-rasmi.webp
+          cp public/pendaftaran-tahun1-2027/assets/logo-sekolah-rasmi-2027.webp .registration-deploy/public/assets/logo-sekolah-rasmi-2027.webp
+          test -s .registration-deploy/public/assets/header-pendaftaran-2027-logo-rasmi.webp
+          test -s .registration-deploy/public/assets/logo-sekolah-rasmi-2027.webp
           cp 'registration-site/functions/api/[[path]].js' '.registration-deploy/functions/api/[[path]].js'
           cp functions/api/_registration2027.js .registration-deploy/functions/api/_registration2027.js
       - name: Deploy independent portal
@@ -54,11 +54,11 @@ jobs:
           curl -fsS --max-time 20 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/health > /tmp/year1-health.json
           node -e 'const fs=require("fs");const h=JSON.parse(fs.readFileSync("/tmp/year1-health.json"));if(!(h.ok&&h.databaseBound&&h.databaseConnected))process.exit(1);console.log("Year 1 registration portal ready");'
           # Verify that both supplied branded images are publicly served, not missing assets.
-          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/header-pendaftaran-2027.webp -o /tmp/registration-banner-live.webp
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/header-pendaftaran-2027-logo-rasmi.webp -o /tmp/registration-banner-live.webp
           test "$(wc -c < /tmp/registration-banner-live.webp)" -ge 200000
-          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/logo-sekolah.webp -o /tmp/registration-logo-live.webp
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/logo-sekolah-rasmi-2027.webp -o /tmp/registration-logo-live.webp
           test "$(wc -c < /tmp/registration-logo-live.webp)" -ge 5000
-          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ | grep -q 'header-pendaftaran-2027.webp'
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ | grep -q 'header-pendaftaran-2027-logo-rasmi.webp'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ibu-bapa/ | grep -q 'Paparan Ibu Bapa'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/teachers > /tmp/year1-teachers.json
           node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync("/tmp/year1-teachers.json"));if(d.teachers?.length!==9||d.teachers.some(t=>!t.namaGuru))process.exit(1);console.log("9 guru kelas tersedia dan paparan ibu bapa tersambung.");'
