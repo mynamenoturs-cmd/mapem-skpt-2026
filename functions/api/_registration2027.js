@@ -44,11 +44,91 @@ const columns='uid, student_id AS idMurid, class_name AS kelas, name AS namaMuri
 async function audit(env,email,action,uid,kelas) {
  await env.DB.prepare('INSERT INTO registration_2027_audit(actor_email,action,student_uid,class_name) VALUES(?,?,?,?)').bind(email,action,uid,kelas).run();
 }
+const teacherFields='class_name AS kelas, teacher_name AS namaGuru, photo_data_url AS gambarPasport';
+async function listTeachers(env) {
+ const rows=(await env.DB.prepare('SELECT '+teacherFields+' FROM registration_2027_teachers ORDER BY CASE class_name WHEN \'Emerald\' THEN 1 WHEN \'Ruby\' THEN 2 WHEN \'Sapphire\' THEN 3 WHEN \'Diamond\' THEN 4 WHEN \'Jade\' THEN 5 WHEN \'Crystal\' THEN 6 WHEN \'Topaz\' THEN 7 WHEN \'Amber\' THEN 8 ELSE 9 END').all()).results||[];
+ return rows;
+}
+function validateTeacherImage(value) {
+ if(value===null||value==='')return null;
+ if(typeof value!=='string'||value.length>140000)error('Gambar pasport terlalu besar. Had 100 KB.',413);
+ const match=/^data:image\/(webp|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/.exec(value);
+ if(!match)error('Format gambar mesti JPG atau WebP.');
+ let bytes;
+ try{bytes=atob(match[2]);}catch{error('Data gambar tidak sah.');}
+ if(bytes.length<350||bytes.length>100000)error('Gambar pasport mesti antara 350 B dan 100 KB.',413);
+ if(match[1]==='webp'&&!(bytes.slice(0,4)==='RIFF'&&bytes.slice(8,12)==='WEBP'))error('Fail WebP tidak sah.');
+ if(match[1]==='jpeg'&&!(bytes.charCodeAt(0)===255&&bytes.charCodeAt(1)===216&&bytes.charCodeAt(2)===255))error('Fail JPEG tidak sah.');
+ return value;
+}
+function validAdminPhone(value){
+ if(value===null||value===undefined||value==='')return '';
+ const s=safeText(value,'Telefon admin',24,9);
+ if(!/^\+?[0-9 ()-]{8,22}$/.test(s)||s.replace(/\D/g,'').length<9)error('Nombor telefon admin tidak sah.');
+ return s;
+}
+async function sha(value){
+ const v=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));
+ return Array.from(new Uint8Array(v),x=>x.toString(16).padStart(2,'0')).join('');
+}
+export async function publicRegistration2027({request,env,path}){
+ if(path==='public/teachers'&&request.method==='GET'){
+  const [teachers,setting]=await Promise.all([
+   listTeachers(env),
+   env.DB.prepare('SELECT parent_lookup_enabled AS enabled, admin_phone AS phone FROM registration_2027_public_settings WHERE id=1').first()
+  ]);
+  return json({teachers,canSearchStudents:setting?.enabled===1,adminPhone:setting?.phone||''});
+ }
+ if(path==='public/lookup'&&request.method==='GET'){
+  const setting=await env.DB.prepare('SELECT parent_lookup_enabled AS enabled FROM registration_2027_public_settings WHERE id=1').first();
+  if(setting?.enabled!==1)error('Semakan murid belum dibuka oleh pihak sekolah.',403);
+  const q=new URL(request.url).searchParams.get('q')||'';
+  if(q.length<4||q.length>80||/[\u0000-\u001f%_]/.test(q))error('Taip sekurang-kurangnya 4 huruf nama anak, maksimum 80 aksara. Tanda khas % dan _ tidak dibenarkan.');
+  const ip=request.headers.get('cf-connecting-ip')||'unknown';
+  const tick=Math.floor(Date.now()/1000/900);
+  const token=await sha(tick+'|'+ip);
+  await env.DB.prepare('INSERT INTO registration_2027_parent_limits(token,hits,expires_at) VALUES(?,1,?) ON CONFLICT(token) DO UPDATE SET hits=hits+1').bind(token,(tick+1)*900).run();
+  const rate=await env.DB.prepare('SELECT hits FROM registration_2027_parent_limits WHERE token=?').bind(token).first();
+  if(rate.hits>35)error('Terlalu banyak carian. Cuba semula selepas 15 minit.',429);
+  const rows=(await env.DB.prepare('SELECT name AS namaMurid, class_name AS kelas FROM registration_2027_students WHERE name LIKE ? ORDER BY name LIMIT 20').bind('%'+q.trim()+'%').all()).results||[];
+  return json({results:rows,limited:rows.length===20});
+ }
+ error('Laluan paparan ibu bapa tidak wujud.',404);
+}
+
 export async function handleRegistration2027({request,env,user,path}) {
  const access=await accessFor(env,user);
  if(path==='registration2027/me'&&request.method==='GET')
   return access?json({authorized:true,user:{email:user.email,name:user.name},...access}):json({authorized:false,error:'Akaun Google belum diberikan akses ke pendaftaran Tahun 1 2027.'},403);
  if(!access)error('Akaun Google tidak mempunyai kebenaran pendaftaran Tahun 1 2027.',403);
+ if(path==='registration2027/teachers'&&request.method==='GET'){
+  return json({teachers:await listTeachers(env)});
+ }
+ if(path==='registration2027/teachers/save'&&request.method==='POST'){
+  const b=await parseBody(request,155000),kelas=safeText(b.kelas,'Kelas',20);
+  if(!CLASSES.includes(kelas)||!allowed(access,kelas))error('Tiada kebenaran mengurus guru kelas ini.',403);
+  const previous=await env.DB.prepare('SELECT teacher_name AS namaGuru,photo_data_url AS gambarPasport FROM registration_2027_teachers WHERE class_name=?').bind(kelas).first();
+  if(!previous)error('Kelas tidak dijumpai.',404);
+  const name=b.namaGuru===undefined?previous.namaGuru:safeText(b.namaGuru,'Nama guru',150,3);
+  if(access.role!=='admin'&&name!==previous.namaGuru)error('Hanya pentadbir boleh mengubah nama guru kelas.',403);
+  const photo=b.gambarPasport===undefined?previous.gambarPasport:validateTeacherImage(b.gambarPasport);
+  await env.DB.prepare('UPDATE registration_2027_teachers SET teacher_name=?,photo_data_url=?,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE class_name=?').bind(name,photo,user.email,kelas).run();
+  await env.DB.prepare('INSERT INTO registration_2027_teacher_audit(actor_email,class_name,action) VALUES(?,?,?)').bind(user.email,kelas,photo===null?'clear-photo':'update').run();
+  return json({ok:true});
+ }
+ if(path==='registration2027/settings'&&request.method==='GET'){
+  if(access.role!=='admin')error('Tetapan hanya untuk pentadbir.',403);
+  const row=await env.DB.prepare('SELECT parent_lookup_enabled AS enabled, admin_phone AS phone FROM registration_2027_public_settings WHERE id=1').first();
+  return json({parentLookupEnabled:row?.enabled===1,adminPhone:row?.phone||''});
+ }
+ if(path==='registration2027/settings/save'&&request.method==='POST'){
+  if(access.role!=='admin')error('Tetapan hanya untuk pentadbir.',403);
+  const b=await parseBody(request);
+  if(typeof b.parentLookupEnabled!=='boolean')error('Pilihan kebenaran carian ibu bapa tidak sah.');
+  const phone=validAdminPhone(b.adminPhone);
+  await env.DB.prepare('UPDATE registration_2027_public_settings SET parent_lookup_enabled=?,admin_phone=?,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=1').bind(b.parentLookupEnabled?1:0,phone,user.email).run();
+  return json({ok:true,parentLookupEnabled:b.parentLookupEnabled,adminPhone:phone});
+ }
  if(path==='registration2027/students'&&request.method==='GET') {
   const query=access.role==='admin'
    ? env.DB.prepare('SELECT '+columns+' FROM registration_2027_students ORDER BY class_name,name LIMIT 5000')
