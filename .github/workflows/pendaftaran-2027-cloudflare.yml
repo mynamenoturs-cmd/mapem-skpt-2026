@@ -42,6 +42,16 @@ jobs:
           cp public/pendaftaran-tahun1-2027/import2027.mjs .registration-deploy/public/import2027.mjs
           cp public/pendaftaran-tahun1-2027/bot2027.mjs .registration-deploy/public/bot2027.mjs
           cp public/pendaftaran-tahun1-2027/bot2027.css .registration-deploy/public/bot2027.css
+          cp public/pendaftaran-tahun1-2027/manifest.webmanifest .registration-deploy/public/manifest.webmanifest
+          cp public/pendaftaran-tahun1-2027/sw.js .registration-deploy/public/sw.js
+          cp public/pendaftaran-tahun1-2027/pwa2027.mjs .registration-deploy/public/pwa2027.mjs
+          cp public/pendaftaran-tahun1-2027/pwa2027.css .registration-deploy/public/pwa2027.css
+          mkdir -p .registration-deploy/public/icons
+          cp public/pendaftaran-tahun1-2027/icons/*.png .registration-deploy/public/icons/
+          test -s .registration-deploy/public/icons/icon-192.png
+          test -s .registration-deploy/public/icons/icon-512.png
+          test -s .registration-deploy/public/icons/icon-maskable-512.png
+          test -s .registration-deploy/public/icons/apple-touch-icon.png
           cp public/pendaftaran-tahun1-2027/assets/cikgu-wanwan-bot.gif .registration-deploy/public/assets/cikgu-wanwan-bot.gif
           cp public/pendaftaran-tahun1-2027/assets/cikgu-wanwan-bot-v2.gif .registration-deploy/public/assets/cikgu-wanwan-bot-v2.gif
           cp public/pendaftaran-tahun1-2027/assets/cikgu-wanwan-bot-v2-still.webp .registration-deploy/public/assets/cikgu-wanwan-bot-v2-still.webp
@@ -79,6 +89,20 @@ jobs:
       - name: Check online portal database connectivity
         run: |
           curl -fsS --max-time 20 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/health > /tmp/year1-health.json
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/manifest.webmanifest > /tmp/year1-pwa-manifest.json
+          node -e 'const m=JSON.parse(require("fs").readFileSync("/tmp/year1-pwa-manifest.json"));if(m.display!=="standalone"||m.start_url!=="/"||m.icons.length<3||!m.icons.some(i=>i.purpose==="maskable"))process.exit(1);console.log("PWA Android/iOS manifest validated");'
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/sw.js -o /tmp/year1-pwa-sw.js
+          grep -F 'isAllowed(request,url)' /tmp/year1-pwa-sw.js > /dev/null
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/icons/icon-192.png -o /tmp/year1-pwa-icon-192.png
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/icons/icon-512.png -o /tmp/year1-pwa-icon-512.png
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/icons/icon-maskable-512.png -o /tmp/year1-pwa-icon-maskable.png
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/icons/apple-touch-icon.png -o /tmp/year1-pwa-apple-touch.png
+          test "$(wc -c < /tmp/year1-pwa-icon-192.png)" -gt 15000
+          test "$(wc -c < /tmp/year1-pwa-icon-512.png)" -gt 70000
+          test "$(wc -c < /tmp/year1-pwa-apple-touch.png)" -gt 15000
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/pwa2027.mjs | grep -F 'beforeinstallprompt' > /dev/null
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/pwa2027.css | grep -F 'pwa-install-dialog' > /dev/null
+          echo "Android dan iOS PWA installation assets verified."
           node -e 'const fs=require("fs");const h=JSON.parse(fs.readFileSync("/tmp/year1-health.json"));if(!(h.ok&&h.databaseBound&&h.databaseConnected))process.exit(1);console.log("Year 1 registration portal ready");'
           # Verify that both supplied branded images are publicly served, not missing assets.
           curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/header-pendaftaran-2027-logo-rasmi.webp -o /tmp/registration-banner-live.webp

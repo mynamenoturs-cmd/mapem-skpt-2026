@@ -37,6 +37,14 @@ button:disabled{opacity:.55;cursor:not-allowed}
 footer{text-align:center;font-size:10px;color:#9c7686;padding:20px}
 @media(max-width:620px){.panel{padding:15px}.faq-head{align-items:stretch;flex-direction:column}.faq-head button{align-self:flex-start}.actions{flex-direction:column}.actions>*{width:100%}.item-top{flex-wrap:wrap}}
 </style>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="SKPT Tahun 1">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/pwa2027.css">
 </head>
 <body>
 <header><div class="brand"><img src="/assets/logo-sekolah-rasmi-2027.webp" alt="Logo SK Pekan Telipok"><div><strong>SK PEKAN TELIPOK</strong><small>Pentadbir · Pendaftaran Tahun 1 Sesi 2027</small></div></div></header>
@@ -117,5 +125,6 @@ async function boot(){
 }
 boot();
 </script>
+<script type="module" src="/pwa2027.mjs"></script>
 </body>
 </html>

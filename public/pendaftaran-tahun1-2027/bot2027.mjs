@@ -155,6 +155,7 @@ function boot(){
   }else launcher.focus();
  }
  launcher.addEventListener('click',()=>openChat(panel.hidden));
+ if(new URLSearchParams(location.search).get('buka-bot')==='1')openChat(true);
  close.addEventListener('click',()=>openChat(false));
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden&&e.target.closest('.t1chat-root'))openChat(false);});
  function renderQuickQuestions(){

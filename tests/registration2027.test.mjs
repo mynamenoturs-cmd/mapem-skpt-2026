@@ -519,3 +519,50 @@ test('Cikgu Wanwan BOT replies naturally, without restarting with salam on every
  assert.match(source,/UCAPAN PEMBUKAAN SUDAH DIPAPARKAN/);
  assert.doesNotMatch(source,/Untuk menyapa, mulakan dengan Assalamualaikum/);
 });
+
+test('Portal Tahun 1 is installable as a standalone PWA with official SKPT icons',()=>{
+ const manifest=JSON.parse(file('../public/pendaftaran-tahun1-2027/manifest.webmanifest'));
+ assert.equal(manifest.display,'standalone');
+ assert.equal(manifest.start_url,'/');
+ assert.equal(manifest.scope,'/');
+ assert.match(manifest.name,/Pendaftaran Tahun 1 2027/);
+ assert.ok(manifest.icons.some(i=>i.purpose==='maskable'));
+ for(const icon of manifest.icons){
+  const bytes=readFileSync(new URL('../public/pendaftaran-tahun1-2027'+icon.src,import.meta.url));
+  assert.equal(bytes.subarray(1,4).toString('ascii'),'PNG');
+  assert.ok(bytes.readUInt32BE(16)>=192&&bytes.readUInt32BE(20)>=192);
+ }
+ const apple=readFileSync(new URL('../public/pendaftaran-tahun1-2027/icons/apple-touch-icon.png',import.meta.url));
+ assert.equal(apple.readUInt32BE(16),180);
+ assert.equal(apple.readUInt32BE(20),180);
+ for(const path of ['../public/pendaftaran-tahun1-2027/index.html','../public/pendaftaran-tahun1-2027/ibu-bapa/index.html','../public/pendaftaran-tahun1-2027/bot-admin/index.html']){
+  const html=file(path);
+  assert.match(html,/rel="manifest" href="\/manifest\.webmanifest"/);
+  assert.match(html,/rel="apple-touch-icon" sizes="180x180"/);
+  assert.match(html,/apple-mobile-web-app-capable/);
+  assert.match(html,/src="\/pwa2027\.mjs"/);
+  assert.match(html,/href="\/pwa2027\.css"/);
+ }
+});
+test('PWA installer supports Safari iPhone and Chrome Android without App Store or private account data',()=>{
+ const installer=file('../public/pendaftaran-tahun1-2027/pwa2027.mjs');
+ assert.match(installer,/beforeinstallprompt/);
+ assert.match(installer,/serviceWorker\.register\('\/sw\.js'/);
+ assert.match(installer,/Add to Home Screen/);
+ assert.match(installer,/Safari/);
+ assert.match(installer,/Google Chrome/);
+ assert.match(installer,/window\.matchMedia/);
+ assert.doesNotMatch(installer,/localStorage|registration_2027_students/);
+});
+test('PWA service worker only caches static shell and never caches registration API responses',()=>{
+ const sw=file('../public/pendaftaran-tahun1-2027/sw.js');
+ assert.match(sw,/request\.method!=='GET'/);
+ assert.match(sw,/startsWith\('\/api\/'\)/);
+ assert.match(sw,/request\.headers\.has\('authorization'\)/);
+ assert.match(sw,/if\(!isAllowed\(request,url\)\)return/);
+ assert.doesNotMatch(sw,/registration_2027_students|guardianPhone|studentRecords/);
+ const workflow=file('../.github/workflows/pendaftaran-2027-cloudflare.yml');
+ for(const p of ['manifest.webmanifest','sw.js','pwa2027.mjs','pwa2027.css','icons/*.png']){
+  assert.ok(workflow.includes(p),'missing PWA deployment: '+p);
+ }
+});
