@@ -1,0 +1,68 @@
+{
+  "id": "/tahun1-2027-app",
+  "name": "Pendaftaran Tahun 1 2027 | SK Pekan Telipok",
+  "short_name": "SKPT Tahun 1",
+  "description": "Portal Pendaftaran Tahun 1 Sesi 2027 SK Pekan Telipok, Tuaran, Sabah.",
+  "lang": "ms-MY",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#4c1637",
+  "theme_color": "#5b1738",
+  "orientation": "any",
+  "categories": [
+    "education",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Paparan Ibu Bapa",
+      "short_name": "Ibu Bapa",
+      "url": "/ibu-bapa/",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Cikgu Wanwan BOT",
+      "short_name": "Wanwan BOT",
+      "url": "/?buka-bot=1",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
