@@ -658,11 +658,23 @@
     (() => {
       'use strict';
       const CLASSES = ['Emerald', 'Ruby', 'Sapphire', 'Diamond', 'Jade', 'Crystal', 'Topaz', 'Amber', 'Pearl'];
+      const TEACHER_DEFAULTS={
+        Emerald:'Kamelia Nur Binti Raisin',
+        Ruby:'Airin Bin Alin',
+        Sapphire:'Ahmad Rifa’I Bin Syamsuddin',
+        Diamond:'Hayati Binti Abdul Rahim',
+        Jade:'Nur Ainun Arinah Binti Ramlee',
+        Crystal:'Nur Amalina Binti Mali',
+        Topaz:'Raisah Sandau',
+        Amber:'Mazniza Binti Mahadzir',
+        Pearl:'Nurul Umaierah Binti Abdul Rapi'
+      };
       const STORE = 'skpt-pendaftaran-t1-2027-v1';
       const ITERATIONS = 240000;
       let vault = null, vaultKey = null, students = [], activeClass = 'Semua';
       let editId = null, hideSensitive = true, pendingSave = Promise.resolve(), toastTimer;
       let cloudMode = false, cloudInfo = null, importRows = null, importing = false, currentView = 'dashboard';
+      let teachers=CLASSES.map(kelas=>({kelas,namaGuru:TEACHER_DEFAULTS[kelas],gambarPasport:null})),editingTeacherClass=null,teacherPhotoData=null;
       const $ = id => document.getElementById(id);
       const enc = new TextEncoder(), dec = new TextDecoder();
       const esc = s => String(s ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -743,11 +755,12 @@
        }
        function closeSidebar(){document.body.classList.remove('sidebar-open');$('mobileNavToggle').setAttribute('aria-expanded','false');$('sidebarShade').hidden=true;}
        function switchView(view){
-         currentView=view==='list'?'list':'dashboard';
+         currentView=['list','teachers'].includes(view)?view:'dashboard';
          $('dashboardLanding').hidden=currentView!=='dashboard';
          $('statsPanel').hidden=currentView!=='dashboard';
          $('dashboardClasses').hidden=currentView!=='dashboard';
          $('listLayout').hidden=currentView!=='list';
+          $('teacherSection').hidden=currentView!=='teachers';
          document.querySelectorAll('#mainNav [data-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===currentView));
          closeSidebar();
        }
@@ -760,6 +773,8 @@
          else if(action==='refresh'){if(cloudMode)refreshCloud();else toast('Rekod setempat sudah dikemas kini.');}
          else if(action==='access')openAccess();
          else if(action==='admins')openAdmins();
+          else if(action==='parents')location.assign('/ibu-bapa/');
+          else if(action==='public-settings')openPublicSettings();
          else if(action==='password')openChange();
          else if(action==='backup')backup();
          else if(action==='logout'){if(cloudMode)leaveCloud();else lock();}
@@ -791,12 +806,16 @@
         const response=await cloudApi('students');
         students=response.records;
       }
+      async function loadCloudTeachers(){
+        const response=await cloudApi('teachers');
+        teachers=response.teachers;
+      }
       async function enterCloud(){
         const info=await cloudApi('me');
         if(!info.authorized)throw Error('Akses akaun Google belum dibenarkan.');
         await pendingSave.catch(()=>{});
         cloudInfo=info;cloudMode=true;vault=null;vaultKey=null;
-        await loadCloudStudents();
+        await Promise.all([loadCloudStudents(),loadCloudTeachers()]);
         activeClass=info.role==='admin'?'Semua':info.kelas;
         hideSensitive=true;
         $('searchInput').value='';$('praFilter').value='Semua';
@@ -835,6 +854,7 @@
         $('refreshBtn').hidden=!cloudMode;
         $('navAccess').hidden=!cloudMode||cloudInfo?.role!=='admin';
         $('navAdmins').hidden=!cloudMode||cloudInfo?.canManageAdmins!==true;
+        $('navPublicSettings').hidden=!cloudMode||cloudInfo?.role!=='admin';
         $('navRefresh').hidden=!cloudMode;
         $('navPassword').hidden=cloudMode;
         $('navBackup').hidden=cloudMode;
@@ -1006,7 +1026,7 @@
       async function refreshCloud(){
         if(!cloudMode)return;
         $('refreshBtn').disabled=true;
-        try{await loadCloudStudents();render();toast('Senarai terkini telah dimuatkan.');}
+        try{await Promise.all([loadCloudStudents(),loadCloudTeachers()]);render();toast('Senarai dan guru kelas terkini telah dimuatkan.');}
         catch(e){toast(e.message);}
         finally{$('refreshBtn').disabled=false;}
       }
@@ -1027,8 +1047,10 @@
         const viewable=cloudMode&&cloudInfo?.role!=='admin'?[cloudInfo.kelas]:CLASSES;
         $('classCards').innerHTML=viewable.map(c=>{
            const idx=CLASSES.indexOf(c);
-           return '<button type="button" class="class-summary-btn" data-dashboard-class="'+esc(c)+'"><span class="class-summary-left"><span class="class-summary-dot" style="--dot:'+dots[idx]+'"></span>1 '+esc(c)+'</span><span class="class-summary-count">'+countFor(c)+'</span></button>';
+           const teacher=teacherFor(c);
+           return '<button type="button" class="class-summary-btn" data-dashboard-class="'+esc(c)+'"><span class="class-summary-left">'+photoThumb(teacher,'mini-passport')+'<span class="class-summary-text"><strong>1 '+esc(c)+'</strong><small>'+esc(teacher.namaGuru)+'</small></span></span><span class="class-summary-count">'+countFor(c)+'</span></button>';
         }).join('');
+        renderTeachers();
         document.querySelectorAll('.class-btn').forEach(btn=>{ const yes=btn.dataset.class===activeClass; btn.classList.toggle('active',yes); btn.setAttribute('aria-pressed',yes?'true':'false'); });
         $('listTitle').textContent=activeClass==='Semua'?'Semua Pendaftaran':'Kelas '+activeClass;
         $('listCaption').textContent=activeClass==='Semua'?'Senarai murid untuk semua 9 kelas Tahun 1':'Senarai murid Tahun 1 '+activeClass+' — sesi 2027';
