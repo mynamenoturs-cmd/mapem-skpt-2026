@@ -1,5 +1,5 @@
-// Pembantu Pendaftaran Tahun 1 2027: bot FAQ berasaskan maklumat portal.
-// Teks soalan tidak dihantar ke server, disimpan atau dihantar ke penyedia AI.
+// Pembantu AI + FAQ Pendaftaran Tahun 1 2027. Soalan umum dihantar kepada Workers AI.
+// Jangan simpan teks perbualan; maklumat peribadi disekat dan dijawab melalui FAQ sahaja.
 export const DEFAULT_TEACHERS=[
  {kelas:'Emerald',namaGuru:'Kamelia Nur Binti Raisin'},
  {kelas:'Ruby',namaGuru:'Airin Bin Alin'},
@@ -56,7 +56,7 @@ export function answerRegistrationQuestion(question,info={}){
 }
 export function containsPrivateRegistrationDetails(question){
  const q=String(question||'');
- return /@|(?:\d[\s-]?){10,}|mykid|kad\s*pengenalan|alamat\s*(?:rumah|anak)|nama\s*anak\s*saya|anak\s*saya\s*bernama/i.test(q)||
+ return /@|(?:\d[\s-]?){10,}|mykid|kad\s*pengenalan|alamat\s*(?:rumah|anak)|nama\s*anak|anak\s*saya|anak\s*aku|anak\s*saya\s*bernama/i.test(q)||
   /(?:kelas|semak|cari).{0,35}(?:anak saya|nama anak)|anak saya.{0,35}(?:nama|kelas)/i.test(q);
 }
 function boot(){
