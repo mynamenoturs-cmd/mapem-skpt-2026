@@ -2,6 +2,7 @@
 // Reuses the verified Google login on the school's existing OAuth hostname via
 // one-time, short-lived exchange tickets. No other MaPeM API is exposed here.
 import {handleRegistration2027,publicRegistration2027} from './_registration2027.js';
+import {registrationAI} from './_ai2027.js';
 const COOKIE='__Host-tahun1_2027_session';
 const LEGACY_COOKIE='__Host-mapem_session';
 const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex,nofollow','X-Content-Type-Options':'nosniff'};
@@ -49,6 +50,7 @@ export async function onRequest({request,env}){
    if(sid)await env.DB.prepare('DELETE FROM sessions WHERE id_hash=?').bind(await digest(sid)).run();
    return new Response(JSON.stringify({ok:true}),{headers:{...headers,'Set-Cookie':c('',0)}});
   }
+  if(path==='public/ai')return await registrationAI({request,env});
   if(path.startsWith('public/'))return await publicRegistration2027({request,env,path});
   const user=await currentUser(request,env);
   if(!user)return error('Sila log masuk menggunakan Google.',401);
