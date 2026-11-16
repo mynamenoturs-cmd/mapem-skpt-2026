@@ -247,3 +247,40 @@ test('student parent page exposes no private fields or edit controls',()=>{
  assert.match(main,/Kamelia Nur Binti Raisin/);
  assert.match(main,/Ahmad Rifa’I Bin Syamsuddin/);
 });
+
+test('large teacher passport image under 600 KB is accepted and oversize image rejected',async()=>{
+ const {cookie,call}=fixture();
+ const admin=await cookie('admin@gmail.com');
+ const makePhoto=size=>{
+   const bytes=Buffer.alloc(size,7);
+   bytes[0]=255;bytes[1]=216;bytes[2]=255;
+   return 'data:image/jpeg;base64,'+bytes.toString('base64');
+ };
+ const accepted=await call('registration2027/teachers/save',{
+   who:admin,method:'POST',body:{kelas:'Emerald',gambarPasport:makePhoto(475000)}
+ });
+ assert.equal(accepted.status,200);
+ const rows=await (await call('registration2027/teachers',{who:admin})).json();
+ assert.ok(rows.teachers.find(x=>x.kelas==='Emerald').gambarPasport.length>600000);
+ const oversize=await call('registration2027/teachers/save',{
+   who:admin,method:'POST',body:{kelas:'Ruby',gambarPasport:makePhoto(600001)}
+ });
+ assert.equal(oversize.status,413);
+ const bad=await call('registration2027/teachers/save',{
+   who:admin,method:'POST',body:{kelas:'Ruby',gambarPasport:'data:text/html;base64,'+Buffer.alloc(500,12).toString('base64')}
+ });
+ assert.equal(bad.status,400);
+});
+test('all nine class options render photographs, teacher names and selected teacher profile',()=>{
+ const html=file('../public/pendaftaran-tahun1-2027/index.html');
+ for(const id of ['classTeacherHero','selectedTeacherPhoto','selectedTeacherClass','selectedTeacherName','selectedTeacherNote','selectedTeacherUpload'])
+   assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(html,/function renderClassTeacherNav/);
+ assert.match(html,/function renderSelectedClassTeacher/);
+ assert.match(html,/photoThumb\(teacher,'nav-teacher-photo'\)/);
+ assert.match(html,/Kelas 1 '\+activeClass/);
+ assert.match(html,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(html,/\[\[1050,1500\],\[840,1200\],\[700,1000\]\]/);
+ assert.match(html,/output.length<=790000/);
+ assert.match(html,/12\*1024\*1024/);
+});
