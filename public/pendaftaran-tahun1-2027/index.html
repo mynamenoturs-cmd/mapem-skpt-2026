@@ -854,6 +854,7 @@
       const STORE = 'skpt-pendaftaran-t1-2027-v1';
       const ITERATIONS = 240000;
       let vault = null, vaultKey = null, students = [], activeClass = 'Semua';
+      let classPopupClass = null, classPopupOpener = null;
       let editId = null, hideSensitive = true, pendingSave = Promise.resolve(), toastTimer;
       let cloudMode = false, cloudInfo = null, importRows = null, importing = false, currentView = 'dashboard';
       let teachers=CLASSES.map(kelas=>({kelas,namaGuru:TEACHER_DEFAULTS[kelas],gambarPasport:null})),editingTeacherClass=null,teacherPhotoData=null;
@@ -1349,6 +1350,69 @@
       }
 
       function countFor(c) { return students.filter(s=>c==='Semua'||s.kelas===c).length; }
+      function openClassPopup(kelas){
+        if(!CLASSES.includes(kelas))return;
+        if(cloudMode&&cloudInfo?.role!=='admin'&&kelas!==cloudInfo.kelas)return toast('Akses kelas ini tidak dibenarkan.');
+        classPopupOpener=document.activeElement;
+        classPopupClass=kelas;
+        activeClass=kelas;
+        $('popupSearch').value='';
+        $('popupPraFilter').value='Semua';
+        $('classPopupOverlay').hidden=false;
+        document.body.style.overflow='hidden';
+        render();
+        $('classPopupDialog').focus();
+      }
+      function closeClassPopup(){
+        if($('classPopupOverlay').hidden)return;
+        // Keep the workspace open while a nested student, import or teacher dialog is active.
+        if(!$('formOverlay').hidden||!$('importOverlay').hidden||!$('teacherOverlay').hidden)return;
+        $('classPopupOverlay').hidden=true;
+        classPopupClass=null;
+        document.body.style.overflow='';
+        if(classPopupOpener?.isConnected)classPopupOpener.focus();
+        classPopupOpener=null;
+      }
+      function renderClassPopup(){
+        if(!classPopupClass||$('classPopupOverlay').hidden)return;
+        const kelas=classPopupClass,teacher=teacherFor(kelas);
+        const classmates=students.filter(s=>s.kelas===kelas);
+        $('popupClassTitle').textContent='Kelas 1 '+kelas;
+        $('popupClassDescription').textContent='Pengurusan rekod murid • Sesi 2027';
+        $('popupTeacherName').textContent=teacher.namaGuru;
+        $('popupTeacherPhoto').innerHTML=teacher.gambarPasport
+          ?'<img src="'+esc(teacher.gambarPasport)+'" alt="Foto guru kelas 1 '+esc(kelas)+'">'
+          :'<span aria-label="Gambar guru belum dimuat naik">▧</span>';
+        $('popupTeacherPhotoNote').textContent=teacher.gambarPasport?'Foto pasport guru kelas':'Gambar guru belum dimuat naik';
+        $('popupEditTeacher').hidden=!teacherEditable(kelas);
+        $('popupRefresh').hidden=!cloudMode;
+        $('popupTotal').textContent=classmates.length;
+        $('popupPraYes').textContent=classmates.filter(s=>s.pra==='Ya').length;
+        $('popupPraNo').textContent=classmates.filter(s=>s.pra==='Tidak').length;
+        const q=$('popupSearch').value.trim().toLocaleLowerCase('ms');
+        const pra=$('popupPraFilter').value;
+        const visible=classmates.filter(s=>(pra==='Semua'||s.pra===pra)&&
+          (!q||[s.namaMurid,s.idMurid,s.namaPenjaga].some(v=>String(v??'').toLocaleLowerCase('ms').includes(q))))
+          .sort((a,b)=>a.namaMurid.localeCompare(b.namaMurid,'ms'));
+        $('popupListCount').textContent=visible.length+' daripada '+classmates.length+' murid dalam kelas 1 '+kelas+'.';
+        $('popupStudentList').innerHTML=visible.length?visible.map((s,i)=>{
+          const status=s.pra==='Ya'?'PRA: Ya':s.pra==='Tidak'?'Bukan PRA':'PRA: Belum Pasti';
+          const style=s.pra==='Tidak'?'no':s.pra==='Belum Pasti'?'maybe':'';
+          return '<article class="class-popup-record"><div class="class-popup-record-top">'+
+            '<div class="class-popup-student"><strong>'+(i+1)+'. '+esc(s.namaMurid)+'</strong><small>ID Murid: '+esc(s.idMurid)+'</small></div>'+
+            '<div class="class-popup-record-right"><span class="class-popup-tag '+style+'">'+esc(status)+'</span></div></div>'+
+            '<details class="class-popup-record-details"><summary>Lihat maklumat pendaftaran</summary><dl>'+
+            '<dt>Penjaga</dt><dd>'+esc(s.namaPenjaga)+'</dd>'+
+            '<dt>No. IC</dt><dd>'+viewValue(s.noIc)+'</dd>'+
+            '<dt>Telefon</dt><dd>'+viewValue(s.noTelefon)+'</dd>'+
+            '<dt>Alamat</dt><dd>'+esc(s.alamat)+'</dd>'+
+            '</dl></details><div class="class-popup-record-actions">'+
+            '<button type="button" data-popup-action="edit" data-uid="'+esc(s.uid)+'">✎ Kemaskini</button>'+
+            '<button type="button" class="delete" data-popup-action="delete" data-uid="'+esc(s.uid)+'">× Padam</button>'+
+            '</div></article>';
+        }).join(''):'<div class="class-popup-empty"><strong>'+(classmates.length?'Tiada padanan carian':'Belum ada murid didaftarkan')+
+          '</strong>'+(classmates.length?'Cuba ubah kata kunci atau status PRA.':'Tekan “Daftar Murid” di bawah untuk memasukkan murid pertama bagi kelas 1 '+esc(kelas)+'.')+'</div>';
+      }
       function filtered() {
         const q=$('searchInput').value.trim().toLocaleLowerCase('ms'); const pra=$('praFilter').value;
         return students.filter(s=> (activeClass==='Semua'||s.kelas===activeClass) && (pra==='Semua'||s.pra===pra) && (!q || [s.namaMurid,s.idMurid,s.namaPenjaga,s.noTelefon,s.noIc,s.alamat].some(v=>String(v??'').toLocaleLowerCase('ms').includes(q))))
@@ -1383,6 +1447,7 @@
         $('emptyTitle').textContent=students.length===0?'Belum ada pendaftaran':'Tiada rekod dijumpai';
         $('emptyText').textContent=students.length===0?'Tekan “Tambah Murid” untuk mula mendaftarkan murid baharu.':'Cuba tukar kelas, status PRA atau kata kunci carian.';
         $('emptyAdd').hidden=students.length!==0;
+        renderClassPopup();
       }
       function openForm(s=null) {
         editId=s?.uid??null;
@@ -1397,7 +1462,7 @@
         $('formOverlay').hidden=false; document.body.style.overflow='hidden';
         (f.namedItem('kelas').value?f.namedItem('idMurid'):f.namedItem('kelas')).focus();
       }
-      function closeForm() { $('formOverlay').hidden=true; document.body.style.overflow=''; editId=null; }
+      function closeForm() { $('formOverlay').hidden=true; document.body.style.overflow=$('classPopupOverlay').hidden?'':'hidden'; editId=null; }
       async function saveStudent(e) {
         e.preventDefault();
         const f=$('studentForm').elements;
@@ -1511,7 +1576,26 @@
       $('accessForm').addEventListener('submit',saveAccess);
       $('accessTableBody').addEventListener('click',e=>{const b=e.target.closest('[data-email]');if(b)revokeAccess(b.dataset.email);});
       $('classNav').addEventListener('click',e=>{const btn=e.target.closest('[data-class]');if(!btn)return;activeClass=btn.dataset.class;switchView('list');render();});
-      $('classCards').addEventListener('click',e=>{const btn=e.target.closest('[data-dashboard-class]');if(!btn)return;activeClass=btn.dataset.dashboardClass;switchView('list');render();});
+      $('classCards').addEventListener('click',e=>{const btn=e.target.closest('[data-dashboard-class]');if(!btn)return;openClassPopup(btn.dataset.dashboardClass);});
+      $('popupSearch').addEventListener('input',renderClassPopup);
+      $('popupPraFilter').addEventListener('change',renderClassPopup);
+      $('closeClassPopup').addEventListener('click',closeClassPopup);
+      $('classPopupOverlay').addEventListener('click',e=>{if(e.target===$('classPopupOverlay'))closeClassPopup();});
+      $('popupStudentList').addEventListener('click',e=>{
+        const b=e.target.closest('[data-popup-action]');if(!b)return;
+        const s=students.find(r=>r.uid===b.dataset.uid&&r.kelas===classPopupClass);
+        if(!s)return;
+        if(b.dataset.popupAction==='edit')openForm(s);
+        if(b.dataset.popupAction==='delete')deleteStudent(s.uid);
+      });
+      $('popupAdd').addEventListener('click',()=>openForm());
+      $('popupImport').addEventListener('click',openImport);
+      $('popupTemplate').addEventListener('click',downloadExcelTemplate);
+      $('popupEditTeacher').addEventListener('click',()=>{if(classPopupClass)openTeacherEditor(classPopupClass);});
+      $('popupRefresh').addEventListener('click',refreshCloud);
+      document.addEventListener('keydown',e=>{
+        if(e.key==='Escape'&&$('formOverlay').hidden&&$('importOverlay').hidden&&$('teacherOverlay').hidden&&!$('classPopupOverlay').hidden)closeClassPopup();
+      });
       $('mainNav').addEventListener('click',e=>{
          const btn=e.target.closest('button');
          if(!btn)return;
