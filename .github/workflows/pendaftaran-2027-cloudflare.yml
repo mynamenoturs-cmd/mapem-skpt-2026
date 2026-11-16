@@ -84,6 +84,12 @@ jobs:
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/assistant > /tmp/year1-bot.json
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/ai > /tmp/year1-ai-status.json
           node -e 'const d=JSON.parse(require("fs").readFileSync("/tmp/year1-ai-status.json"));if(d.available!==true)process.exit(1);console.log("Cloudflare Workers AI binding active");'
+          curl --fail --silent --show-error --max-time 30 -X POST https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/ai \
+            -H 'Origin: https://pendaftaran-tahun1-2027-skpt.pages.dev' \
+            -H 'Content-Type: application/json' \
+            --data '{"question":"Siapa guru kelas 1 Ruby?"}' > /tmp/year1-ai-smoke.json
+          node -e 'const d=JSON.parse(require("fs").readFileSync("/tmp/year1-ai-smoke.json"));if(d.mode!=="ai"||!d.text||d.text.length<8){console.error("AI returned fallback:",d.reason||"unknown");process.exit(1);}console.log("Workers AI answered a real public registration question");'
+
 
           node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync("/tmp/year1-bot.json"));if(d.teachers?.length!==9||!Array.isArray(d.teachers)||d.teachers.some(t=>"gambarPasport" in t))process.exit(1);console.log("Bot FAQ data validated");'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/teachers > /tmp/year1-teachers.json
