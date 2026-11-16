@@ -72,6 +72,14 @@ async function sha(value){
  return Array.from(new Uint8Array(v),x=>x.toString(16).padStart(2,'0')).join('');
 }
 export async function publicRegistration2027({request,env,path}){
+ if(path==='public/assistant'&&request.method==='GET'){
+  // Public facts only: no guardian data, student records, or teacher photos.
+  const [rows,setting]=await Promise.all([
+   env.DB.prepare('SELECT class_name AS kelas, teacher_name AS namaGuru FROM registration_2027_teachers ORDER BY CASE class_name WHEN \'Emerald\' THEN 1 WHEN \'Ruby\' THEN 2 WHEN \'Sapphire\' THEN 3 WHEN \'Diamond\' THEN 4 WHEN \'Jade\' THEN 5 WHEN \'Crystal\' THEN 6 WHEN \'Topaz\' THEN 7 WHEN \'Amber\' THEN 8 ELSE 9 END').all(),
+   env.DB.prepare('SELECT parent_lookup_enabled AS enabled,admin_phone AS phone FROM registration_2027_public_settings WHERE id=1').first()
+  ]);
+  return json({teachers:rows.results||[],canSearchStudents:setting?.enabled===1,adminPhone:setting?.phone||''});
+ }
  if(path==='public/teachers'&&request.method==='GET'){
   const [teachers,setting]=await Promise.all([
    listTeachers(env),
