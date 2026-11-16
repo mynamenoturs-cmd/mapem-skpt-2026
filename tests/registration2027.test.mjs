@@ -454,7 +454,7 @@ test('pentadbir can edit official BOT greetings and FAQs without changing code; 
  const initial=await read.json();
  assert.match(initial.greeting,/Assalamualaikum dan salam sejahtera/);
  assert.equal(initial.faqs.length,5);
- assert.equal((await get(user)).status,403);
+ await assert.rejects(get(user),{status:403});
  const body={greeting:'Assalamualaikum dan salam sejahtera! Saya Cikgu Wanwan BOT. Selamat datang ke SK Pekan Telipok bagi pendaftaran Tahun 1 sesi 2027.',faqs:[
   {question:'Bilakah pendaftaran Tahun 1 bermula?',answer:'Sila hadir mengikut makluman rasmi sekolah yang akan diumumkan kemudian.',enabled:true},
   {question:'Soalan dinyahaktifkan',answer:'Tidak diterbitkan kepada pengguna awam.',enabled:false}
@@ -463,12 +463,12 @@ test('pentadbir can edit official BOT greetings and FAQs without changing code; 
   request:new Request('https://pendaftaran-tahun1-2027-skpt.pages.dev/api/registration2027/bot/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(candidate)}),
   env,user:who,path:'registration2027/bot/save'
  });
- assert.equal((await update(body,user)).status,403);
+ await assert.rejects(update(body,user),{status:403});
  assert.equal((await update(body)).status,200);
  const duplicate={...body,faqs:[body.faqs[0],body.faqs[0]]};
- assert.equal((await update(duplicate)).status,400);
+ await assert.rejects(update(duplicate),{status:400});
  const tooMany={...body,faqs:Array.from({length:21},(_,i)=>({question:'Soalan '+i,answer:'Jawapan rujukan rasmi',enabled:true}))};
- assert.equal((await update(tooMany)).status,400);
+ await assert.rejects(update(tooMany),{status:400});
  const published=await registrationApi({env,request:new Request('https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/assistant')});
  assert.equal(published.status,200);
  const bot=await published.json();
