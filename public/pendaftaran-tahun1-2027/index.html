@@ -490,6 +490,84 @@
 }
 @media print{#listLayout .class-nav,.selected-class-teacher .btn{display:none!important}.selected-class-teacher{background:#fff!important;color:#222!important;border:1px solid #ccc!important;box-shadow:none!important}}
 
+
+    /* Class-specific registration workspace in a dedicated popup, isolated from dashboard. */
+    .class-summary-btn{cursor:pointer}
+    .class-summary-btn:focus-visible{outline:3px solid #c4924b;outline-offset:3px}
+    .class-popup-overlay{z-index:19;padding:14px;background:#170d1bd9;backdrop-filter:blur(6px);overscroll-behavior:contain}
+    #formOverlay,#importOverlay,#teacherOverlay{z-index:24}
+    .class-popup-dialog{display:flex;flex-direction:column;width:min(900px,100%);height:min(800px,calc(100dvh - 28px));min-height:350px;overflow:hidden;background:linear-gradient(145deg,#fff9f0,#fff4f3);border:1px solid #e5ba78;border-radius:20px;box-shadow:0 24px 95px #1508179e;outline:0}
+    .class-popup-head{padding:20px 24px;display:flex;align-items:start;justify-content:space-between;gap:14px;background:linear-gradient(110deg,#47132f,#792244 72%,#963c54);color:#fff;border-bottom:3px solid #dcb873;flex:none}
+    .class-popup-kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:#efd5ab}
+    .class-popup-head h2{color:#fff;font-size:clamp(22px,3vw,30px);margin:6px 0 5px;letter-spacing:-.02em}
+    .class-popup-head p{margin:0;color:#f2d8e5;font-size:12px}
+    .class-popup-close{width:37px;height:37px;display:grid;place-items:center;font-size:25px;border:1px solid #ffffff50;border-radius:10px;color:white;background:#ffffff20;flex:none;cursor:pointer}
+    .class-popup-close:hover{background:#ffffff36}
+    .class-popup-scroll{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;padding:18px 22px 12px;overscroll-behavior:contain}
+    .class-popup-teacher{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid #e4c6a3;background:linear-gradient(120deg,#fffaf0,#f8e9eb);border-radius:13px}
+    .class-popup-photo{flex:none;width:65px;aspect-ratio:7/10;display:grid;place-items:center;overflow:hidden;border-radius:8px;border:2px solid #c49b5d;background:#efdfd6;color:#9a6984;font-size:26px}
+    .class-popup-photo img{display:block;width:100%;height:100%;object-fit:cover}
+    .class-popup-teacher-info{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}
+    .class-popup-teacher-info span{font-size:10px;color:#9b6770;font-weight:800;letter-spacing:.1em}
+    .class-popup-teacher-info strong{font-size:15px;color:#62213d;overflow-wrap:anywhere;line-height:1.4}
+    .class-popup-teacher-info small{font-size:10px;color:#8e7d87}
+    .class-popup-edit-teacher{border-radius:9px;padding:10px 12px;background:#fff9f1;color:#6c2b4b;border:1px solid #dfbd87;font-size:11px;font-weight:800;cursor:pointer;flex:none}
+    .class-popup-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0 21px}
+    .class-popup-stats div{display:flex;flex-direction:column;gap:3px;padding:13px;background:#fff;border:1px solid #ecdac3;border-radius:11px}
+    .class-popup-stats strong{font-size:24px;font-weight:850;color:#78274a;line-height:1.2;font-variant-numeric:tabular-nums}
+    .class-popup-stats span{font-size:10px;color:#8a707a;font-weight:700}
+    .class-popup-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .class-popup-section-head h3{font-size:17px;margin:0 0 4px;color:#54213b}
+    .class-popup-section-head p{font-size:11px;color:#887986;margin:0;line-height:1.6}
+    .class-popup-refresh{font-size:11px;color:#6f3153;background:#fff7ee;border:1px solid #e6cbad;border-radius:8px;padding:9px 10px;cursor:pointer}
+    .class-popup-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(140px,190px);gap:10px;margin-bottom:14px}
+    .class-popup-controls input,.class-popup-controls select{width:100%;min-height:44px;background:white}
+    .class-popup-list{display:flex;flex-direction:column;gap:9px}
+    .class-popup-record{border:1px solid #e8d3bc;background:#fffdf9;border-radius:12px;padding:14px 15px}
+    .class-popup-record-top{display:flex;align-items:start;justify-content:space-between;gap:12px;min-width:0}
+    .class-popup-student{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px}
+    .class-popup-student strong{color:#53263d;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+    .class-popup-student small{color:#8b7d88;font-size:11px;line-height:1.4}
+    .class-popup-record-right{display:flex;gap:8px;align-items:center;flex:none}
+    .class-popup-tag{padding:5px 8px;border-radius:8px;background:#e4f3e9;color:#277c52;font-weight:800;font-size:10px}
+    .class-popup-tag.no{background:#fae7ed;color:#a34b66}
+    .class-popup-tag.maybe{background:#fff0cf;color:#9a6c2b}
+    .class-popup-record-details{margin-top:11px;border-top:1px solid #eee0d4;padding-top:10px}
+    .class-popup-record-details summary{cursor:pointer;color:#823450;font-size:11px;font-weight:800;list-style:revert}
+    .class-popup-record-details dl{display:grid;grid-template-columns:115px 1fr;gap:7px 10px;color:#6d5967;font-size:11px;margin:12px 0 0;line-height:1.6;overflow-wrap:anywhere}
+    .class-popup-record-details dt{font-weight:800}
+    .class-popup-record-details dd{margin:0}
+    .class-popup-record-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+    .class-popup-record-actions button{border:1px solid #e8caaa;border-radius:8px;padding:8px 10px;background:#fff4e5;color:#6c2e4c;font-size:11px;font-weight:750;cursor:pointer}
+    .class-popup-record-actions .delete{color:#aa4560;background:#fff5f6}
+    .class-popup-empty{text-align:center;padding:40px 16px;border:1px dashed #dfbb8e;border-radius:13px;background:#fffaf3;color:#805d70;font-size:12px;line-height:1.7}
+    .class-popup-empty strong{display:block;color:#602342;font-size:15px;margin-bottom:6px}
+    .class-popup-footnote{color:#957988;font-size:11px;text-align:center;margin:14px 2px}
+    .class-popup-actions{padding:14px 21px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;border-top:1px solid #ead4b7;background:#fffaf2;flex:none}
+    .class-popup-actions .btn{min-height:42px;font-size:12px}
+    .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+    @media(max-width:650px){
+      .class-popup-overlay{padding:0;align-items:end}
+      .class-popup-dialog{width:100%;height:94dvh;max-height:94dvh;border-radius:19px 19px 0 0;border-bottom:0}
+      .class-popup-head{padding:16px 17px}
+      .class-popup-scroll{padding:13px 13px 5px}
+      .class-popup-teacher{gap:10px;padding:11px}
+      .class-popup-photo{width:53px}
+      .class-popup-teacher-info strong{font-size:12px}
+      .class-popup-edit-teacher{max-width:100px;font-size:10px;padding:8px}
+      .class-popup-controls{grid-template-columns:1fr;gap:7px}
+      .class-popup-stats{gap:7px;margin:12px 0 18px}
+      .class-popup-stats div{padding:10px}
+      .class-popup-stats strong{font-size:21px}
+      .class-popup-section-head{align-items:start}
+      .class-popup-record{padding:12px}
+      .class-popup-record-details dl{grid-template-columns:95px 1fr}
+      .class-popup-actions{padding:10px 12px;gap:7px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));justify-content:stretch}
+      .class-popup-actions .btn{width:100%;font-size:10px;padding:9px 6px;min-height:44px;white-space:normal;line-height:1.25}
+    }
+    @media(prefers-reduced-motion:reduce){.class-popup-dialog{scroll-behavior:auto}}
+    @media print{#classPopupOverlay{display:none!important}}
+
   </style>
 </head>
 <body>
@@ -577,7 +655,7 @@
         <div class="stat"><span class="stat-label">Kelas Diisi</span><strong class="stat-value" id="statClasses">0 <small style="font-size:14px;color:#9b8baa">/ 9</small></strong><span class="stat-foot">kelas mempunyai rekod</span></div>
       </section>
 
-      <div id="dashboardClasses" class="dashboard-classes"><div class="dashboard-classes-title"><h3>Ringkasan Mengikut Kelas</h3><p>Nama guru kelas dan slot gambar pasport. Pilih kelas untuk melihat senarai murid.</p></div><div id="classCards" class="class-card-grid"></div><div class="dashboard-bottom-actions"><button id="showTeachersBtn" type="button" class="btn btn-ghost">Lihat Semua Guru Kelas & Gambar Pasport</button><a href="/ibu-bapa/" class="btn btn-ghost">Paparan Ibu Bapa ↗</a></div></div>
+      <div id="dashboardClasses" class="dashboard-classes"><div class="dashboard-classes-title"><h3>Ringkasan Mengikut Kelas</h3><p>Nama guru kelas dan slot gambar pasport. Tekan mana-mana kad kelas untuk membuka senarai murid dan borang pendaftaran dalam pop-up, tanpa meninggalkan dashboard.</p></div><div id="classCards" class="class-card-grid"></div><div class="dashboard-bottom-actions"><button id="showTeachersBtn" type="button" class="btn btn-ghost">Lihat Semua Guru Kelas & Gambar Pasport</button><a href="/ibu-bapa/" class="btn btn-ghost">Paparan Ibu Bapa ↗</a></div></div>
       <section id="teacherSection" class="teacher-section" hidden><div class="dashboard-greeting"><span>GURU KELAS SESI 2027</span><h2>Profil Guru Kelas Tahun 1</h2><p>Sembilan guru kelas. Ruang gambar menggunakan nisbah pasport 35 × 50 mm (7:10).</p></div><div id="teacherCards" class="teacher-card-grid"></div><p class="teacher-footnote">Foto pasport beresolusi tinggi sehingga 600 KB boleh dimuat naik oleh pentadbir atau guru yang diberi akses. Guru lain hanya boleh melihat. Dalam mod setempat, gambar boleh dilihat tetapi tidak boleh dimuat naik ke server.</p></section>
       <div class="layout" id="listLayout" hidden>
         <aside class="panel class-nav" id="classNav" aria-label="Pilih kelas">
@@ -621,6 +699,39 @@
   </div>
 
   <div id="sidebarShade" class="sidebar-shade" hidden></div>
+  <div id="classPopupOverlay" class="overlay class-popup-overlay" hidden>
+    <section id="classPopupDialog" class="class-popup-dialog" role="dialog" aria-modal="true" aria-labelledby="popupClassTitle" tabindex="-1">
+      <header class="class-popup-head">
+        <div class="class-popup-brand"><span class="class-popup-kicker">PENDAFTARAN TAHUN 1 • SESI 2027</span><h2 id="popupClassTitle">Kelas 1 Emerald</h2><p id="popupClassDescription">Senarai murid dan pengisian kelas</p></div>
+        <button id="closeClassPopup" type="button" class="class-popup-close" aria-label="Tutup paparan kelas">×</button>
+      </header>
+      <div class="class-popup-scroll">
+        <div class="class-popup-teacher">
+          <div id="popupTeacherPhoto" class="class-popup-photo"><span>▧</span></div>
+          <div class="class-popup-teacher-info"><span>GURU KELAS</span><strong id="popupTeacherName"></strong><small id="popupTeacherPhotoNote">Gambar pasport</small></div>
+          <button id="popupEditTeacher" type="button" class="class-popup-edit-teacher" hidden>✎ &nbsp;Gambar Guru</button>
+        </div>
+        <div class="class-popup-stats">
+          <div><strong id="popupTotal">0</strong><span>Jumlah Murid</span></div>
+          <div><strong id="popupPraYes">0</strong><span>PRA</span></div>
+          <div><strong id="popupPraNo">0</strong><span>Bukan PRA</span></div>
+        </div>
+        <div class="class-popup-section-head"><div><h3>Senarai Murid</h3><p>Semak rekod atau daftar murid terus di kelas ini.</p></div><button id="popupRefresh" type="button" class="class-popup-refresh" hidden>⟳ Muat Semula</button></div>
+        <div class="class-popup-controls">
+          <label class="class-popup-search"><span class="sr-only">Carian nama atau ID murid</span><input id="popupSearch" type="search" placeholder="Cari nama atau ID murid..." autocomplete="off"></label>
+          <select id="popupPraFilter" aria-label="Tapis status prasekolah"><option value="Semua">Semua PRA</option><option value="Ya">PRA: Ya</option><option value="Tidak">Bukan PRA</option><option value="Belum Pasti">Belum Pasti</option></select>
+        </div>
+        <div class="class-popup-list" id="popupStudentList" aria-live="polite"></div>
+        <p class="class-popup-footnote" id="popupListCount">0 murid dipaparkan.</p>
+      </div>
+      <footer class="class-popup-actions">
+        <button type="button" class="btn btn-ghost" id="popupTemplate">⬇ Templat Excel</button>
+        <button type="button" class="btn btn-ghost" id="popupImport">⇧ Import Senarai</button>
+        <button type="button" class="btn btn-primary" id="popupAdd">＋ Daftar Murid</button>
+      </footer>
+    </section>
+  </div>
+
   <div id="teacherOverlay" class="overlay" hidden>
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="teacherTitle" style="max-width:580px">
       <div class="modal-head"><div><h2 id="teacherTitle">Profil Guru Kelas</h2><p class="content-caption">Muat naik gambar dalam bentuk pasport (nisbah 7:10).</p></div><button class="close" id="closeTeacher" type="button" aria-label="Tutup">×</button></div>
