@@ -85,20 +85,20 @@ jobs:
           test "$(wc -c < /tmp/registration-banner-live.webp)" -ge 200000
           curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/logo-sekolah-rasmi-2027.webp -o /tmp/registration-logo-live.webp
           test "$(wc -c < /tmp/registration-logo-live.webp)" -ge 5000
-          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ | grep -q 'header-pendaftaran-2027-logo-rasmi.webp'
-          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ibu-bapa/ | grep -q 'Paparan Ibu Bapa'
-          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot-admin/ | grep -q 'Soalan & Jawapan BOT'
-          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -q 'answerRegistrationQuestion'
-          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.css | grep -q 't1chat-panel'
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ | grep -F 'header-pendaftaran-2027-logo-rasmi.webp' > /dev/null
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ibu-bapa/ | grep -F 'Paparan Ibu Bapa' > /dev/null
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot-admin/ | grep -F 'Soalan & Jawapan BOT' > /dev/null
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -F 'answerRegistrationQuestion' > /dev/null
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.css | grep -F 't1chat-panel' > /dev/null
           curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/cikgu-wanwan-bot.gif -o /tmp/cikgu-wanwan-bot-live.gif
           test "$(wc -c < /tmp/cikgu-wanwan-bot-live.gif)" -ge 200000
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/cikgu-wanwan-bot-v2.gif -o /tmp/cikgu-wanwan-bot-v2.gif
           test "$(wc -c < /tmp/cikgu-wanwan-bot-v2.gif)" -ge 180000
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/cikgu-wanwan-bot-v2-still.webp -o /tmp/cikgu-wanwan-bot-v2-still.webp
           test "$(wc -c < /tmp/cikgu-wanwan-bot-v2-still.webp)" -ge 10000
-          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -q '/assets/cikgu-wanwan-bot-v2.gif'
-          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.css | grep -q 'font-size:11px!important'
-          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -q 'Cikgu Wanwan BOT'
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -F '/assets/cikgu-wanwan-bot-v2.gif' > /dev/null
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.css | grep -F 'font-size:11px!important' > /dev/null
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -F 'Cikgu Wanwan BOT' > /dev/null
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/assistant > /tmp/year1-bot.json
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/ai > /tmp/year1-ai-status.json
           node -e 'const d=JSON.parse(require("fs").readFileSync("/tmp/year1-ai-status.json"));if(d.available!==true)process.exit(1);console.log("Cloudflare Workers AI binding active");'
