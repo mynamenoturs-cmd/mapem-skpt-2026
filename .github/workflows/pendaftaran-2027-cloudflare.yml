@@ -87,7 +87,7 @@ jobs:
           test "$(wc -c < /tmp/registration-logo-live.webp)" -ge 5000
           curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ | grep -F 'header-pendaftaran-2027-logo-rasmi.webp' > /dev/null
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ibu-bapa/ | grep -F 'Paparan Ibu Bapa' > /dev/null
-          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot-admin/ | grep -F 'Soalan & Jawapan BOT' > /dev/null
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot-admin/ | grep -F 'Soalan & Jawapan Cikgu Wanwan BOT' > /dev/null
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -F 'answerRegistrationQuestion' > /dev/null
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.css | grep -F 't1chat-panel' > /dev/null
           curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/cikgu-wanwan-bot.gif -o /tmp/cikgu-wanwan-bot-live.gif
