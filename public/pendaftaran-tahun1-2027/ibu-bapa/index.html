@@ -51,15 +51,15 @@ footer{text-align:center;color:#926c76;font-size:11px;padding:15px 10px 30px}
 <img class="hero" src="/assets/header-pendaftaran-2027-logo-rasmi.webp" alt="Pendaftaran Murid Tahun 1 Sesi 2027 SK Pekan Telipok">
 <a class="back" href="/">‹ Kembali ke halaman utama</a>
 <h1>Paparan Ibu Bapa / Penjaga</h1>
-<p class="lead">Semak maklumat kelas dan kenali guru kelas Tahun 1. Paparan ini untuk rujukan sahaja — ibu bapa tidak boleh mengubah rekod pendaftaran.</p>
-<section class="section"><h2>Guru Kelas Tahun 1 — 2027</h2><p>Setiap ruang gambar menggunakan nisbah pasport. Gambar guru akan dipaparkan selepas dimuat naik oleh pihak sekolah.</p><div id="teachers" class="teacher-grid" aria-live="polite"><div class="status">Memuatkan maklumat guru kelas...</div></div></section>
-<section class="section"><h2>Semakan Nama dan Kelas Anak</h2><p>Carian ini hanya memaparkan nama murid dan kelas, tanpa maklumat penjaga, IC, nombor telefon atau alamat.</p>
-<div id="lookupClosed" class="note" hidden>Semakan nama murid belum dibuka kepada ibu bapa. Pihak sekolah akan mengaktifkan paparan setelah senarai disemak.</div>
+<p class="lead">Semak kelas anak dan kenali guru kelas Tahun 1 sesi 2027.</p>
+<section class="section"><h2>Guru Kelas Tahun 1 — 2027</h2><div id="teachers" class="teacher-grid" aria-live="polite"><div class="status">Memuatkan senarai kelas...</div></div></section>
+<section class="section"><h2>Semakan Kelas Anak</h2><p>Cari menggunakan nama anak.</p>
+<div id="lookupClosed" class="note" hidden>Semakan kelas anak belum dibuka. Sila rujuk pihak sekolah.</div>
 <form id="lookupForm" hidden><div class="search-row"><input id="childName" type="search" maxlength="80" minlength="4" required placeholder="Masukkan sekurang-kurangnya 4 huruf nama anak" aria-label="Cari nama murid"><button type="submit" id="findBtn">Cari Nama Murid</button></div></form>
 <div id="results" class="results" aria-live="polite"></div>
 </section>
-<section class="section"><h2>Hubungi Pentadbir Pendaftaran</h2><p>Untuk pembetulan maklumat atau pertanyaan, sila hubungi pentadbir sekolah. Maklumat murid tidak boleh disunting dari paparan ini.</p>
-<div id="contactEmpty" class="note">Nombor telefon pentadbir belum ditetapkan. Sila hubungi pejabat SK Pekan Telipok.</div>
+<section class="section"><h2>Hubungi Pentadbir Pendaftaran</h2><p>Ada pertanyaan? Hubungi pentadbir pendaftaran.</p>
+<div id="contactEmpty" class="note">Sila hubungi pejabat SK Pekan Telipok.</div>
 <div id="contactBtns" class="contacts" hidden><a id="whatsapp" class="btn wa" target="_blank" rel="noopener noreferrer">WhatsApp Admin</a><a id="call" class="btn">Telefon Admin</a></div>
 </section>
 </main><footer>© 2027 SK Pekan Telipok • Portal Pendaftaran Tahun 1 • Powered by Cikgu Wanwan</footer>
@@ -70,7 +70,7 @@ async function load(){
   const response=await fetch('/api/public/teachers',{cache:'no-store'});
   if(!response.ok)throw Error('Maklumat kelas belum dapat dimuatkan.');
   const data=await response.json();
-  $('teachers').innerHTML=data.teachers.map(t=>'<div class="teacher"><div class="photo">'+(t.gambarPasport?'<img src="'+esc(t.gambarPasport)+'" alt="Gambar '+esc(t.namaGuru)+'">':'<span aria-label="Gambar belum dimuat naik">▧</span>')+'</div><div><strong>1 '+esc(t.kelas)+'</strong><span>'+esc(t.namaGuru)+'</span></div></div>').join('');
+  $('teachers').innerHTML=data.teachers.map(t=>'<div class="teacher"><div class="photo">'+(t.gambarPasport?'<img src="'+esc(t.gambarPasport)+'" alt="Gambar '+esc(t.namaGuru)+'">':'<span aria-label="Foto belum tersedia">▧</span>')+'</div><div><strong>1 '+esc(t.kelas)+'</strong><span>'+esc(t.namaGuru)+'</span></div></div>').join('');
   $('lookupClosed').hidden=!!data.canSearchStudents;
   $('lookupForm').hidden=!data.canSearchStudents;
   const phone=(data.adminPhone||'').replace(/[^0-9+]/g,'');
