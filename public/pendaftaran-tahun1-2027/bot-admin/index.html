@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#571838"><meta name="robots" content="noindex,nofollow">
+<title>Soalan & Jawapan Cikgu Wanwan BOT | SK Pekan Telipok</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#43263b;background:#fff6ef}
+*{box-sizing:border-box}
+body{margin:0;min-width:320px;min-height:100dvh;background:radial-gradient(circle at 5% 5%,#edc1a144,transparent 45%),linear-gradient(160deg,#fff8ef,#f7eaf0)}
+header{padding:16px max(16px,calc((100vw - 980px)/2));background:linear-gradient(105deg,#3e102e,#7f2544);border-bottom:3px solid #e0b26b;color:#fff}
+.brand{display:flex;gap:12px;align-items:center}.brand img{width:49px;height:53px;object-fit:contain}.brand strong{font-size:16px;letter-spacing:.04em}.brand small{display:block;color:#efd2bd;font-size:11px;margin-top:3px}
+main{max-width:990px;margin:0 auto;padding:18px 16px 70px}
+.back{text-decoration:none;color:#702446;font-weight:750;font-size:12px;display:inline-block;margin:5px 0 16px}
+h1{color:#632140;font-size:clamp(22px,3vw,30px);line-height:1.3;margin:0 0 8px}h2{color:#6d2143;font-size:18px;margin:0}
+.lead{font-size:13px;line-height:1.75;color:#775e6c;margin:0 0 18px}
+.panel{padding:22px;background:#fffdf9;border:1px solid #e9ceb2;border-radius:17px;box-shadow:0 11px 30px #53213a14}
+.field{display:block;margin-bottom:16px}.field>span{display:block;font-size:12px;font-weight:800;color:#62344b;margin-bottom:7px}
+.field small{font-size:10px;color:#866d79;line-height:1.6;display:block;margin-top:6px}
+textarea,input[type=text]{font:inherit;font-size:13px;color:#3e2938;width:100%;border:1px solid #d7b5ad;border-radius:9px;background:#fff;padding:11px 12px;line-height:1.7;resize:vertical}
+textarea:focus,input:focus{outline:3px solid #e7bb74;outline-offset:1px}
+#botGreeting{min-height:122px}
+.note{font-size:12px;line-height:1.7;color:#724750;padding:12px 14px;border-left:4px solid #d6aa62;background:#fff3e5;border-radius:8px;margin:12px 0 18px}
+.divider{height:1px;background:#efd9c5;margin:22px 0}
+.faq-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.faq-head small{font-size:11px;line-height:1.5;display:block;color:#8b7880;margin-top:6px}
+.faq-list{display:grid;gap:13px}
+.faq-item{background:linear-gradient(135deg,#fffefb,#fdf0ed);border:1px solid #ecd4b8;border-radius:12px;padding:14px}
+.item-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px}.item-top strong{color:#712346;font-size:12px}
+.row{display:flex;align-items:center;gap:8px}.enabled{font-size:12px;color:#693b50;display:flex;align-items:center;gap:8px}
+.enabled input{width:17px;height:17px;accent-color:#78254b}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:7px;font:inherit;font-weight:800;font-size:12px;border:0;border-radius:9px;min-height:42px;padding:10px 15px;cursor:pointer}
+.primary{background:#812b4f;color:#fff;border:1px solid #812b4f}.secondary{background:#fff4e9;color:#752c4c;border:1px solid #d6b28b}.danger{background:#fff4f3;border:1px solid #e6bec0;color:#9a354d;font-size:11px;padding:7px 10px;min-height:35px}
+button:disabled{opacity:.55;cursor:not-allowed}
+.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+#status{font-size:12px;color:#6d425a;line-height:1.7;margin:12px 0;min-height:20px}
+#editor[hidden]{display:none}
+footer{text-align:center;font-size:10px;color:#9c7686;padding:20px}
+@media(max-width:620px){.panel{padding:15px}.faq-head{align-items:stretch;flex-direction:column}.faq-head button{align-self:flex-start}.actions{flex-direction:column}.actions>*{width:100%}.item-top{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<header><div class="brand"><img src="/assets/logo-sekolah-rasmi-2027.webp" alt="Logo SK Pekan Telipok"><div><strong>SK PEKAN TELIPOK</strong><small>Pentadbir · Pendaftaran Tahun 1 Sesi 2027</small></div></div></header>
+<main>
+<a class="back" href="/">‹ Kembali ke Dashboard Pendaftaran</a>
+<h1>🤖 Soalan & Jawapan Cikgu Wanwan BOT</h1>
+<p class="lead">Urus ucapan pembukaan serta jawapan rasmi yang digunakan oleh bot FAQ dan AI. Tidak perlu mengubah kod GitHub untuk kemas kini maklumat.</p>
+<div id="status" role="status" aria-live="polite">Sedang menyemak kebenaran pentadbir...</div>
+<form id="editor" class="panel" hidden>
+ <label class="field"><span>Ucapan permulaan BOT</span><textarea id="botGreeting" required minlength="40" maxlength="650"></textarea><small>Paparan pertama apabila ibu bapa menekan bot. Boleh diubah pada bila-bila masa.</small></label>
+ <div class="note"><strong>Untuk maklumat awam sahaja.</strong> Jangan masukkan MyKid, IC, nama murid, nombor telefon penjaga atau alamat rumah. Soalan dan jawapan aktif boleh dibaca semua pelawat portal.</div>
+ <div class="divider"></div>
+ <div class="faq-head"><div><h2>Senarai Soalan & Jawapan</h2><small>Maksimum 20 soalan. Pilihan aktif digunakan sebagai butang pertanyaan pantas dan rujukan AI.</small></div><button class="button secondary" id="addFaq" type="button">＋ Tambah Soalan</button></div>
+ <div id="faqList" class="faq-list"></div>
+ <div class="actions"><a class="button secondary" href="/" style="text-decoration:none">Kembali</a><button class="button primary" id="saveBtn" type="submit">Simpan Semua Perubahan</button></div>
+</form>
+</main><footer>© 2027 SK Pekan Telipok • Powered by Cikgu Wanwan</footer>
+<script type="module">
+const $=id=>document.getElementById(id);
+const info=$('status'),list=$('faqList'),form=$('editor'),saveBtn=$('saveBtn');
+const api=async(path,body)=>{
+ const options={cache:'no-store',credentials:'same-origin',headers:{Accept:'application/json'}};
+ if(body!==undefined){options.method='POST';options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}
+ const r=await fetch('/api/registration2027/'+path,options);
+ const data=await r.json().catch(()=>({}));
+ if(!r.ok)throw Error(data.error||'Ralat sambungan ('+r.status+')');
+ return data;
+};
+function renumber(){
+ [...list.children].forEach((el,i)=>el.querySelector('.number').textContent='Soalan '+(i+1));
+}
+function addItem(faq={question:'',answer:'',enabled:true}){
+ if(list.children.length>=20){info.textContent='Maksimum 20 soalan dibenarkan.';return;}
+ const article=document.createElement('article');article.className='faq-item';
+ article.innerHTML='<div class="item-top"><strong class="number"></strong><button class="button danger" type="button" data-remove>Padam Soalan</button></div>'+
+  '<label class="field"><span>Soalan</span><input class="question" type="text" required minlength="5" maxlength="150" placeholder="Contoh: Bila tarikh pendaftaran?"></label>'+
+  '<label class="field"><span>Jawapan rasmi sekolah</span><textarea class="answer" rows="3" required minlength="8" maxlength="1200" placeholder="Masukkan jawapan yang telah disahkan."></textarea></label>'+
+  '<label class="enabled"><input class="active" type="checkbox"> Aktifkan soalan ini</label>';
+ article.querySelector('.question').value=faq.question||'';
+ article.querySelector('.answer').value=faq.answer||'';
+ article.querySelector('.active').checked=faq.enabled!==false;
+ list.append(article);renumber();
+}
+list.addEventListener('click',e=>{
+ const button=e.target.closest('[data-remove]');
+ if(!button)return;
+ button.closest('.faq-item').remove();renumber();
+ info.textContent='Soalan dibuang daripada draf. Tekan Simpan Semua Perubahan untuk mengesahkan.';
+});
+$('addFaq').addEventListener('click',()=>{addItem();list.lastElementChild?.querySelector('.question')?.focus();});
+form.addEventListener('submit',async e=>{
+ e.preventDefault();
+ const faqs=[...list.children].map(item=>({
+  question:item.querySelector('.question').value.trim(),
+  answer:item.querySelector('.answer').value.trim(),
+  enabled:item.querySelector('.active').checked
+ }));
+ const unique=new Set(faqs.map(x=>x.question.toLocaleLowerCase('ms').replace(/\s+/g,' ').trim()));
+ if(unique.size!==faqs.length){info.textContent='Terdapat soalan berulang. Sila semak semula.';return;}
+ saveBtn.disabled=true;info.textContent='Sedang menyimpan konfigurasi bot...';
+ try{
+  await api('bot/save',{greeting:$('botGreeting').value.trim(),faqs});
+  info.textContent='Berjaya! Ucapan permulaan dan '+faqs.length+' soalan telah disimpan. Buka semula bot pada portal untuk melihat jawapan terkini.';
+ }catch(err){info.textContent='Gagal menyimpan: '+err.message;}
+ finally{saveBtn.disabled=false;}
+});
+async function boot(){
+ try{
+  const me=await api('me');
+  if(me.role!=='admin')throw Error('Hanya pentadbir pendaftaran boleh membuka halaman ini. Sila log masuk Google sebagai admin di portal utama.');
+  const data=await api('bot/config');
+  $('botGreeting').value=data.greeting||'';
+  list.replaceChildren();
+  (data.faqs||[]).forEach(addItem);
+  form.hidden=false;
+  info.textContent='Log masuk pentadbir disahkan. Ubah ucapan atau soalan di bawah, kemudian tekan Simpan Semua Perubahan.';
+ }catch(err){info.textContent=err.message;}
+}
+boot();
+</script>
+</body>
+</html>

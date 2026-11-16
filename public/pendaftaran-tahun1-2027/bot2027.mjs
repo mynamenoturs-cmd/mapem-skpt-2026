@@ -11,6 +11,7 @@ export const DEFAULT_TEACHERS=[
  {kelas:'Amber',namaGuru:'Mazniza Binti Mahadzir'},
  {kelas:'Pearl',namaGuru:'Nurul Umaierah Binti Abdul Rapi'}
 ];
+export const DEFAULT_GREETING="Assalamualaikum dan salam sejahtera! 🌸 Saya Cikgu Wanwan BOT 🤖, pembantu maya Pendaftaran Tahun 1 Sesi 2027 SK Pekan Telipok. Saya sedia membantu ibu bapa dan penjaga mendapatkan maklumat tentang pendaftaran, guru kelas, semakan kelas anak dan cara menghubungi pihak sekolah. Pilih soalan di bawah atau taip pertanyaan anda. 😊";
 export const QUICK_QUESTIONS=['Cara semak kelas anak','Senarai guru kelas','Dokumen diperlukan','Tarikh pendaftaran','Hubungi admin'];
 const normal=x=>String(x??'').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('ms').replace(/[’‘]/g,"'").trim();
 export function answerRegistrationQuestion(question,info={}){
@@ -26,7 +27,9 @@ export function answerRegistrationQuestion(question,info={}){
  if(/\b\d{6}[- ]?\d{2}[- ]?\d{4}\b/.test(q)||/\b01\d[- ]?\d{7,8}\b/.test(q))
   return {text:'Jangan kongsi nombor MyKid, IC, telefon, alamat atau data peribadi murid melalui chat ini. Hubungi admin untuk urusan rekod.',links};
  if(/\b(hai|hi|hello|salam|assalamualaikum)\b/.test(q))
-  return {text:'Waalaikumussalam! Saya Cikgu Wanwan BOT 🤖🌸, pembantu AI Pendaftaran Tahun 1 2027 SK Pekan Telipok. Boleh tanya tentang kelas, guru kelas, tarikh, dokumen atau cara menghubungi admin.'};
+  return {text:DEFAULT_GREETING};
+ const custom=(Array.isArray(info.faqs)?info.faqs:[]).find(f=>f&&normal(f.question)===q&&typeof f.answer==='string'&&f.answer.trim());
+ if(custom)return {text:custom.answer.trim(),links:[parent,...links],curated:true};
  const named=teachers.find(t=>normal(q).includes(normal(t.kelas)));
  if(named&&!/kelas\s+anak|kelas\s+murid|semak.*anak|nama\s+anak/.test(q))
   return {text:'Guru kelas 1 '+named.kelas+' ialah '+named.namaGuru+'.',links:[parent]};
@@ -83,12 +86,11 @@ function boot(){
 
  const launcher=root.querySelector('#t1chat-launcher'),panel=root.querySelector('#t1chat-panel'),close=root.querySelector('.t1chat-close'),
   messages=root.querySelector('.t1chat-messages'),quick=root.querySelector('.t1chat-quick'),form=root.querySelector('form'),input=form.querySelector('input');
- let info={teachers:DEFAULT_TEACHERS,canSearchStudents:false,adminPhone:''},loaded=false;
+ let info={teachers:DEFAULT_TEACHERS,canSearchStudents:false,adminPhone:'',greeting:DEFAULT_GREETING,faqs:[]};
  async function refresh(){
-  if(loaded)return;
   try{
    const r=await fetch('/api/public/assistant',{cache:'no-store',credentials:'omit'});
-   if(r.ok){const d=await r.json();if(Array.isArray(d.teachers)&&d.teachers.length===9)info={...info,...d};loaded=true;}
+   if(r.ok){const d=await r.json();if(Array.isArray(d.teachers)&&d.teachers.length===9)info={...info,...d};renderQuickQuestions();}
   }catch{/* Use safe offline defaults. */}
  }
  function add(text,user=false,links=[]){
@@ -109,6 +111,7 @@ function boot(){
  async function ask(question){
   const val=String(question||'').trim();if(!val)return;
   const fallback=answerRegistrationQuestion(val,info);
+  if(fallback.curated){add(val,true);add(fallback.text+'\n\n— Jawapan rasmi sekolah',false,fallback.links||[]);return;}
   if(containsPrivateRegistrationDetails(val)){
    add('Untuk keselamatan, maklumat berkaitan anak tidak dihantar kepada AI. '+fallback.text,false,fallback.links||[]);
    return;
@@ -138,16 +141,29 @@ function boot(){
  function openChat(open){
   panel.hidden=!open;launcher.setAttribute('aria-expanded',String(open));
   if(open){
-   if(!messages.childNodes.length)add('Assalamualaikum! Saya Cikgu Wanwan BOT 🤖🌸. Seronok dapat membantu! Pilih soalan lazim di bawah atau tanya saya tentang pendaftaran Tahun 1 2027.');
-   refresh();input.focus();
+   if(!messages.childNodes.length)add(info.greeting||DEFAULT_GREETING);
+   refresh().then(()=>{
+    if(messages.children.length===1){
+     const first=messages.firstElementChild?.querySelector('p');
+     if(first)first.textContent=info.greeting||DEFAULT_GREETING;
+    }
+   });
+   input.focus();
   }else launcher.focus();
  }
  launcher.addEventListener('click',()=>openChat(panel.hidden));
  close.addEventListener('click',()=>openChat(false));
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden&&e.target.closest('.t1chat-root'))openChat(false);});
- for(const question of QUICK_QUESTIONS){
-  const b=document.createElement('button');b.type='button';b.textContent=question;b.addEventListener('click',()=>ask(question));quick.append(b);
+ function renderQuickQuestions(){
+  quick.replaceChildren();
+  const options=Array.isArray(info.faqs)&&info.faqs.length
+   ?info.faqs.filter(f=>f&&f.question).slice(0,20).map(f=>f.question):QUICK_QUESTIONS;
+  for(const question of options){
+   const button=document.createElement('button');button.type='button';button.textContent=question;
+   button.addEventListener('click',()=>ask(question));quick.append(button);
+  }
  }
+ renderQuickQuestions();
  form.addEventListener('submit',e=>{e.preventDefault();const val=input.value;input.value='';ask(val);input.focus();});
 }
 if(typeof document!=='undefined'){

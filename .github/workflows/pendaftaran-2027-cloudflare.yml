@@ -37,6 +37,8 @@ jobs:
           cp public/pendaftaran-tahun1-2027/index.html .registration-deploy/public/index.html
           mkdir -p .registration-deploy/public/ibu-bapa
           cp public/pendaftaran-tahun1-2027/ibu-bapa/index.html .registration-deploy/public/ibu-bapa/index.html
+          mkdir -p .registration-deploy/public/bot-admin
+          cp public/pendaftaran-tahun1-2027/bot-admin/index.html .registration-deploy/public/bot-admin/index.html
           cp public/pendaftaran-tahun1-2027/import2027.mjs .registration-deploy/public/import2027.mjs
           cp public/pendaftaran-tahun1-2027/bot2027.mjs .registration-deploy/public/bot2027.mjs
           cp public/pendaftaran-tahun1-2027/bot2027.css .registration-deploy/public/bot2027.css
@@ -85,6 +87,7 @@ jobs:
           test "$(wc -c < /tmp/registration-logo-live.webp)" -ge 5000
           curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ | grep -q 'header-pendaftaran-2027-logo-rasmi.webp'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ibu-bapa/ | grep -q 'Paparan Ibu Bapa'
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot-admin/ | grep -q 'Soalan & Jawapan BOT'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -q 'answerRegistrationQuestion'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.css | grep -q 't1chat-panel'
           curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/cikgu-wanwan-bot.gif -o /tmp/cikgu-wanwan-bot-live.gif

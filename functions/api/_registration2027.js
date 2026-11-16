@@ -73,12 +73,15 @@ async function sha(value){
 }
 export async function publicRegistration2027({request,env,path}){
  if(path==='public/assistant'&&request.method==='GET'){
-  // Public facts only: no guardian data, student records, or teacher photos.
-  const [rows,setting]=await Promise.all([
+  // Only explicitly published general FAQs; never return a pupil or guardian record.
+  const [rows,setting,config]=await Promise.all([
    env.DB.prepare('SELECT class_name AS kelas, teacher_name AS namaGuru FROM registration_2027_teachers ORDER BY CASE class_name WHEN \'Emerald\' THEN 1 WHEN \'Ruby\' THEN 2 WHEN \'Sapphire\' THEN 3 WHEN \'Diamond\' THEN 4 WHEN \'Jade\' THEN 5 WHEN \'Crystal\' THEN 6 WHEN \'Topaz\' THEN 7 WHEN \'Amber\' THEN 8 ELSE 9 END').all(),
-   env.DB.prepare('SELECT parent_lookup_enabled AS enabled,admin_phone AS phone FROM registration_2027_public_settings WHERE id=1').first()
+   env.DB.prepare('SELECT parent_lookup_enabled AS enabled,admin_phone AS phone FROM registration_2027_public_settings WHERE id=1').first(),
+   env.DB.prepare('SELECT greeting,faq_json FROM registration_2027_bot_config WHERE id=1').first()
   ]);
-  return json({teachers:rows.results||[],canSearchStudents:setting?.enabled===1,adminPhone:setting?.phone||''});
+  let faqs=[];try{faqs=JSON.parse(config?.faq_json||'[]');}catch{}
+  return json({teachers:rows.results||[],canSearchStudents:setting?.enabled===1,adminPhone:setting?.phone||'',
+   greeting:config?.greeting||'',faqs:faqs.filter(item=>item.enabled!==false).map(item=>({question:item.question,answer:item.answer}))});
  }
  if(path==='public/teachers'&&request.method==='GET'){
   const [teachers,setting]=await Promise.all([
@@ -123,6 +126,32 @@ export async function handleRegistration2027({request,env,user,path}) {
   await env.DB.prepare('UPDATE registration_2027_teachers SET teacher_name=?,photo_data_url=?,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE class_name=?').bind(name,photo,user.email,kelas).run();
   await env.DB.prepare('INSERT INTO registration_2027_teacher_audit(actor_email,class_name,action) VALUES(?,?,?)').bind(user.email,kelas,photo===null?'clear-photo':'update').run();
   return json({ok:true});
+ }
+ if(path==='registration2027/bot/config'&&request.method==='GET'){
+  if(access.role!=='admin')error('Hanya pentadbir boleh mengurus soalan dan jawapan bot.',403);
+  const row=await env.DB.prepare('SELECT greeting,faq_json FROM registration_2027_bot_config WHERE id=1').first();
+  let faqs=[];try{faqs=JSON.parse(row?.faq_json||'[]');}catch{}
+  return json({greeting:row?.greeting||'',faqs});
+ }
+ if(path==='registration2027/bot/save'&&request.method==='POST'){
+  if(access.role!=='admin')error('Hanya pentadbir boleh mengurus soalan dan jawapan bot.',403);
+  const body=await parseBody(request,26000);
+  const greeting=safeText(body.greeting,'Ucapan Cikgu Wanwan BOT',650,40);
+  if(!Array.isArray(body.faqs)||body.faqs.length>20)error('Maksimum 20 soalan lazim dibenarkan.');
+  const seen=new Set(),faqs=[];
+  for(const item of body.faqs){
+   if(!item||typeof item!=='object')error('Format soalan lazim tidak sah.');
+   const question=safeText(item.question,'Soalan bot',150,5);
+   const answer=safeText(item.answer,'Jawapan bot',1200,8);
+   const key=question.toLocaleLowerCase('ms').replace(/\\s+/g,' ').trim();
+   if(seen.has(key))error('Terdapat soalan yang berulang: '+question);
+   seen.add(key);
+   if(typeof item.enabled!=='boolean')error('Status soalan tidak sah.');
+   faqs.push({question,answer,enabled:item.enabled});
+  }
+  await env.DB.prepare('UPDATE registration_2027_bot_config SET greeting=?,faq_json=?,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=1')
+   .bind(greeting,JSON.stringify(faqs),user.email).run();
+  return json({ok:true,faqs:faqs.length});
  }
  if(path==='registration2027/settings'&&request.method==='GET'){
   if(access.role!=='admin')error('Tetapan hanya untuk pentadbir.',403);

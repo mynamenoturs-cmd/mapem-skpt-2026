@@ -633,6 +633,7 @@
           <button class="workspace-link" id="navAccess" data-action="access" type="button" hidden><span class="workspace-ico">♙</span><span>Akses Guru</span></button>
           <button class="workspace-link" id="navAdmins" data-action="admins" type="button" hidden><span class="workspace-ico">♛</span><span>Admin Tambahan</span></button>
           <button class="workspace-link" id="navPublicSettings" data-action="public-settings" type="button" hidden><span class="workspace-ico">☎</span><span>Hubungi Admin & Ibu Bapa</span></button>
+          <a class="workspace-link" id="navBotSettings" href="/bot-admin/" hidden style="text-decoration:none"><span class="workspace-ico">🤖</span><span>Soalan & Jawapan BOT</span></a>
           <button class="workspace-link" id="navPassword" data-action="password" type="button"><span class="workspace-ico">⚿</span><span>Tukar Kata Laluan</span></button>
           <button class="workspace-link" id="navBackup" data-action="backup" type="button"><span class="workspace-ico">▣</span><span>Sandaran Setempat</span></button>
           <button class="workspace-link" data-action="logout" type="button"><span class="workspace-ico">⇥</span><span>Log Keluar</span></button>
@@ -1039,6 +1040,7 @@
         $('navAccess').hidden=!cloudMode||cloudInfo?.role!=='admin';
         $('navAdmins').hidden=!cloudMode||cloudInfo?.canManageAdmins!==true;
         $('navPublicSettings').hidden=!cloudMode||cloudInfo?.role!=='admin';
+        $('navBotSettings').hidden=!cloudMode||cloudInfo?.role!=='admin';
         $('navRefresh').hidden=!cloudMode;
         $('navPassword').hidden=cloudMode;
         $('navBackup').hidden=cloudMode;

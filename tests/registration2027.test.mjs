@@ -5,13 +5,14 @@ import {DatabaseSync} from 'node:sqlite';
 import {webcrypto} from 'node:crypto';
 import {onRequest} from '../functions/api/[[path]].js';
 import {onRequest as registrationApi} from '../registration-site/functions/api/[[path]].js';
+import {handleRegistration2027} from '../functions/api/_registration2027.js';
 import {answerRegistrationQuestion,DEFAULT_TEACHERS,QUICK_QUESTIONS,containsPrivateRegistrationDetails} from '../public/pendaftaran-tahun1-2027/bot2027.mjs';
 import {parseCsv,mapImportRows,createExcelTemplate} from '../public/pendaftaran-tahun1-2027/import2027.mjs';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 function fixture(){
  const db=new DatabaseSync(':memory:');
- for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql'])db.exec(file('../migrations/'+migration));
+ for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql','0021_registration2027_bot_config.sql'])db.exec(file('../migrations/'+migration));
  const DB={prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first(){return stmt.get(...values)||null;},all(){return {results:stmt.all(...values)};},run(){return {meta:{changes:stmt.run(...values).changes}};}};},first(){return stmt.get()||null;},all(){return {results:stmt.all()};}}}};
  const env={DB,GOOGLE_CLIENT_ID:'fake',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
  async function cookie(email){
@@ -438,4 +439,58 @@ test('avatar v2 fixes mobile label size and provides a colorful animated avatar 
  assert.match(css,/prefers-reduced-motion/);
  assert.match(wf,/cikgu-wanwan-bot-v2\.gif/);
  assert.match(wf,/cikgu-wanwan-bot-v2-still\.webp/);
+});
+
+test('pentadbir can edit official BOT greetings and FAQs without changing code; other teachers cannot',async()=>{
+ const {env}=fixture();
+ const admin={role:'admin',email:'admin@gmail.com'};
+ const user={role:'viewer',email:'viewer@gmail.com'};
+ const path='registration2027/bot/config';
+ const get=async(who)=>handleRegistration2027({
+  request:new Request('https://pendaftaran-tahun1-2027-skpt.pages.dev/api/'+path),env,user:who,path
+ });
+ const read=await get(admin);
+ assert.equal(read.status,200);
+ const initial=await read.json();
+ assert.match(initial.greeting,/Assalamualaikum dan salam sejahtera/);
+ assert.equal(initial.faqs.length,5);
+ assert.equal((await get(user)).status,403);
+ const body={greeting:'Assalamualaikum dan salam sejahtera! Saya Cikgu Wanwan BOT. Selamat datang ke SK Pekan Telipok bagi pendaftaran Tahun 1 sesi 2027.',faqs:[
+  {question:'Bilakah pendaftaran Tahun 1 bermula?',answer:'Sila hadir mengikut makluman rasmi sekolah yang akan diumumkan kemudian.',enabled:true},
+  {question:'Soalan dinyahaktifkan',answer:'Tidak diterbitkan kepada pengguna awam.',enabled:false}
+ ]};
+ const update=async(candidate,who=admin)=>handleRegistration2027({
+  request:new Request('https://pendaftaran-tahun1-2027-skpt.pages.dev/api/registration2027/bot/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(candidate)}),
+  env,user:who,path:'registration2027/bot/save'
+ });
+ assert.equal((await update(body,user)).status,403);
+ assert.equal((await update(body)).status,200);
+ const duplicate={...body,faqs:[body.faqs[0],body.faqs[0]]};
+ assert.equal((await update(duplicate)).status,400);
+ const tooMany={...body,faqs:Array.from({length:21},(_,i)=>({question:'Soalan '+i,answer:'Jawapan rujukan rasmi',enabled:true}))};
+ assert.equal((await update(tooMany)).status,400);
+ const published=await registrationApi({env,request:new Request('https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/assistant')});
+ assert.equal(published.status,200);
+ const bot=await published.json();
+ assert.equal(bot.greeting,body.greeting);
+ assert.equal(bot.faqs.length,1);
+ assert.equal(bot.faqs[0].question,body.faqs[0].question);
+ assert.deepEqual(Object.keys(bot.faqs[0]).sort(),['answer','question']);
+ assert.doesNotMatch(JSON.stringify(bot),/Soalan dinyahaktifkan|registration_2027_students|noIc/);
+});
+test('editable FAQ is available for the local fallback, AI prompt and the linked admin editor',()=>{
+ const script=file('../public/pendaftaran-tahun1-2027/bot2027.mjs');
+ const html=file('../public/pendaftaran-tahun1-2027/index.html');
+ const adminPage=file('../public/pendaftaran-tahun1-2027/bot-admin/index.html');
+ const workflow=file('../.github/workflows/pendaftaran-2027-cloudflare.yml');
+ const ai=file('../registration-site/functions/api/_ai2027.js');
+ assert.match(script,/Assalamualaikum dan salam sejahtera/);
+ assert.match(script,/renderQuickQuestions/);
+ assert.match(script,/curated/);
+ assert.match(html,/navBotSettings/);
+ assert.match(html,/\/bot-admin\//);
+ assert.match(adminPage,/api\('bot\/save'/);
+ assert.match(adminPage,/Simpan Semua Perubahan/);
+ assert.match(workflow,/bot-admin\/index\.html/);
+ assert.match(ai,/officialFaqs/);
 });
