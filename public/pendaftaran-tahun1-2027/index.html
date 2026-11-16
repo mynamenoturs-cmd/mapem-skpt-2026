@@ -1105,6 +1105,32 @@
       const teacherFor=kelas=>teachers.find(t=>t.kelas===kelas)||{kelas,namaGuru:TEACHER_DEFAULTS[kelas],gambarPasport:null};
       const photoThumb=(t,cls)=>'<span class="'+cls+'">'+(t.gambarPasport?'<img src="'+esc(t.gambarPasport)+'" alt="Foto '+esc(t.namaGuru)+'">':'<span aria-label="Foto belum dimuat naik">▧</span>')+'</span>';
       function teacherEditable(kelas){return !!cloudMode&&(cloudInfo?.role==='admin'||cloudInfo?.kelas===kelas);}
+      function renderClassTeacherNav(){
+        document.querySelectorAll('#classNav .class-btn').forEach(btn=>{
+          const kelas=btn.dataset.class;
+          const left=btn.querySelector('.left');
+          if(!left)return;
+          if(kelas==='Semua'){
+            left.innerHTML='<span class="all-class-mark" aria-hidden="true">▦</span><span class="class-nav-text"><strong>Semua Kelas</strong><small>9 kelas Tahun 1</small></span>';
+          }else{
+            const teacher=teacherFor(kelas);
+            left.innerHTML=photoThumb(teacher,'nav-teacher-photo')+'<span class="class-nav-text"><strong>1 '+esc(kelas)+'</strong><small>'+esc(teacher.namaGuru)+'</small></span>';
+          }
+        });
+      }
+      function renderSelectedClassTeacher(){
+        const panel=$('classTeacherHero');
+        if(activeClass==='Semua'){panel.hidden=true;return;}
+        const teacher=teacherFor(activeClass);
+        panel.hidden=false;
+        $('selectedTeacherClass').textContent='1 '+activeClass;
+        $('selectedTeacherName').textContent=teacher.namaGuru;
+        $('selectedTeacherPhoto').innerHTML=teacher.gambarPasport
+          ? '<img src="'+esc(teacher.gambarPasport)+'" alt="Gambar guru kelas 1 '+esc(activeClass)+'">'
+          : '<span aria-label="Gambar guru belum dimuat naik">▧</span>';
+        $('selectedTeacherNote').textContent=teacher.gambarPasport?'Foto pasport guru kelas sesi 2027':'Gambar guru belum dimuat naik';
+        $('selectedTeacherUpload').hidden=!teacherEditable(activeClass);
+      }
       function renderTeachers(){
         const viewable=cloudMode&&cloudInfo?.role!=='admin'?[cloudInfo.kelas]:CLASSES;
         $('teacherCards').innerHTML=viewable.map(kelas=>{
@@ -1216,9 +1242,11 @@
            return '<button type="button" class="class-summary-btn" data-dashboard-class="'+esc(c)+'"><span class="class-summary-left">'+photoThumb(teacher,'mini-passport')+'<span class="class-summary-text"><strong>1 '+esc(c)+'</strong><small>'+esc(teacher.namaGuru)+'</small></span></span><span class="class-summary-count">'+countFor(c)+'</span></button>';
         }).join('');
         renderTeachers();
+        renderClassTeacherNav();
+        renderSelectedClassTeacher();
         document.querySelectorAll('.class-btn').forEach(btn=>{ const yes=btn.dataset.class===activeClass; btn.classList.toggle('active',yes); btn.setAttribute('aria-pressed',yes?'true':'false'); });
-        $('listTitle').textContent=activeClass==='Semua'?'Semua Pendaftaran':'Kelas '+activeClass;
-        $('listCaption').textContent=activeClass==='Semua'?'Senarai murid untuk semua 9 kelas Tahun 1':'Senarai murid Tahun 1 '+activeClass+' — sesi 2027';
+        $('listTitle').textContent=activeClass==='Semua'?'Semua Pendaftaran':'Kelas 1 '+activeClass;
+        $('listCaption').textContent=activeClass==='Semua'?'Senarai murid untuk semua 9 kelas Tahun 1':'Senarai murid 1 '+activeClass+' • Sesi 2027';
         const items=filtered(); $('filterSummary').textContent=items.length+' murid dipaparkan'; $('tableCount').textContent=items.length+' daripada '+students.length+' rekod';
         $('maskBtn').textContent=hideSensitive?'◉  Paparkan Maklumat':'◉  Sembunyikan Maklumat';
         $('printHeading').textContent='SK PEKAN TELIPOK — PENDAFTARAN TAHUN 1 2027 — '+(activeClass==='Semua'?'SEMUA KELAS':activeClass.toUpperCase())+' | '+dateText(new Date().toISOString());
@@ -1376,6 +1404,7 @@
       $('quickTemplate').addEventListener('click',downloadExcelTemplate);
       $('quickList').addEventListener('click',()=>switchView('list'));
       $('showTeachersBtn').addEventListener('click',()=>switchView('teachers'));
+      $('selectedTeacherUpload').addEventListener('click',()=>{if(activeClass!=='Semua')openTeacherEditor(activeClass);});
       $('teacherCards').addEventListener('click',e=>{
         const btn=e.target.closest('[data-edit-teacher]');if(btn)openTeacherEditor(btn.dataset.editTeacher);
       });
