@@ -5,13 +5,13 @@ import {DatabaseSync} from 'node:sqlite';
 import {webcrypto} from 'node:crypto';
 import {onRequest} from '../functions/api/[[path]].js';
 import {onRequest as registrationApi} from '../registration-site/functions/api/[[path]].js';
-import {answerRegistrationQuestion,DEFAULT_TEACHERS,QUICK_QUESTIONS} from '../public/pendaftaran-tahun1-2027/bot2027.mjs';
+import {answerRegistrationQuestion,DEFAULT_TEACHERS,QUICK_QUESTIONS,containsPrivateRegistrationDetails} from '../public/pendaftaran-tahun1-2027/bot2027.mjs';
 import {parseCsv,mapImportRows,createExcelTemplate} from '../public/pendaftaran-tahun1-2027/import2027.mjs';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 function fixture(){
  const db=new DatabaseSync(':memory:');
- for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql'])db.exec(file('../migrations/'+migration));
+ for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql'])db.exec(file('../migrations/'+migration));
  const DB={prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first(){return stmt.get(...values)||null;},all(){return {results:stmt.all(...values)};},run(){return {meta:{changes:stmt.run(...values).changes}};}};},first(){return stmt.get()||null;},all(){return {results:stmt.all()};}}}};
  const env={DB,GOOGLE_CLIENT_ID:'fake',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
  async function cookie(email){
@@ -343,4 +343,68 @@ test('both portal pages load chat module and workflow deploys its assets',()=>{
  const bot=file('../public/pendaftaran-tahun1-2027/bot2027.mjs');
  assert.match(bot,/Jangan taip IC, MyKid atau alamat murid/);
  assert.doesNotMatch(bot,/localStorage|sessionStorage|fetch\([^)]*question/);
+});
+
+test('Cloudflare AI endpoint uses approved facts, caps requests, and falls back without binding',async()=>{
+ const {env,db}=fixture();
+ const base='https://pendaftaran-tahun1-2027-skpt.pages.dev';
+ const call=question=>registrationApi({env,request:new Request(base+'/api/public/ai',{
+  method:'POST',headers:{Origin:base,'Content-Type':'application/json','cf-connecting-ip':'198.51.100.57'},
+  body:JSON.stringify({question})
+ })});
+ const before=await (await call('Cara nak daftar tahun 1?')).json();
+ assert.equal(before.mode,'faq');
+ const status=await (await registrationApi({env,request:new Request(base+'/api/public/ai')})).json();
+ assert.equal(status.available,false);
+ let times=0;
+ env.AI={run:async(model,opts)=>{
+  times++;
+  assert.equal(model,'@cf/zai-org/glm-4.7-flash');
+  assert.match(opts.messages[0].content,/Nur Amalina Binti Mali/);
+  assert.match(opts.messages[0].content,/belum diumumkan/);
+  assert.doesNotMatch(opts.messages[0].content,/PENJAGA UJIAN|000000000000/);
+  return {response:'Sila hubungi sekolah untuk perkara tersebut.'};
+ }};
+ const real=await (await call('Bagaimanakah urusan pendaftaran dibuat?')).json();
+ assert.equal(real.mode,'ai');
+ assert.match(real.text,/Sila hubungi sekolah/);
+ assert.equal(times,1);
+ const privacy=await (await call('MyKid 120101-12-1234')).json();
+ assert.equal(privacy.mode,'faq');assert.equal(privacy.reason,'privacy');
+ const emails=await (await call('Email saya ibu@example.com')).json();
+ assert.equal(emails.mode,'faq');
+ assert.equal(times,1);
+ assert.equal(containsPrivateRegistrationDetails('MyKid 120101-12-1234'),true);
+ assert.equal(containsPrivateRegistrationDetails('anak saya di kelas mana'),true);
+ assert.equal(containsPrivateRegistrationDetails('Berapa kelas tahun 1?'),false);
+ const blocked=await (await call('anak saya di kelas mana')).json();
+ assert.equal(blocked.mode,'faq');
+ assert.equal(times,1);
+ for(let i=1;i<15;i++){
+  const answer=await (await call('Soalan umum tentang pendaftaran nombor '+i)).json();
+  assert.equal(answer.mode,'ai');
+ }
+ const limit=await (await call('Cara daftar di sekolah?')).json();
+ assert.equal(limit.mode,'faq');assert.equal(limit.reason,'client-limit');
+ assert.equal(times,15);
+ assert.ok(db.prepare("SELECT request_count FROM registration_2027_ai_limits WHERE counter_key LIKE 'g:%'").get().request_count>=15);
+ const cross=await registrationApi({env,request:new Request(base+'/api/public/ai',{
+  method:'POST',headers:{Origin:'https://evil.example','Content-Type':'application/json'},
+  body:JSON.stringify({question:'Cara pendaftaran?'})
+ })});
+ assert.equal(cross.status,403);
+});
+test('AI integration deploys a free-tier model binding and keeps FAQ fallback',()=>{
+ const server=file('../registration-site/functions/api/_ai2027.js');
+ const workflow=file('../.github/workflows/pendaftaran-2027-cloudflare.yml');
+ const client=file('../public/pendaftaran-tahun1-2027/bot2027.mjs');
+ assert.match(server,/@cf\/zai-org\/glm-4\.7-flash/);
+ assert.match(server,/WORLD_LIMIT=100/);
+ assert.match(server,/CLIENT_LIMIT=15/);
+ assert.doesNotMatch(server,/registration_2027_students/);
+ assert.match(workflow,/binding = "AI"/);
+ assert.match(workflow,/wrangler\.toml/);
+ assert.match(workflow,/registration-site\/functions\/api\/_ai2027\.js/);
+ assert.match(client,/\/api\/public\/ai/);
+ assert.match(client,/Jawapan FAQ automatik/);
 });
