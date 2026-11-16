@@ -414,7 +414,7 @@
         <button class="auth-link" type="button" id="authRestore">Pulihkan daripada fail sandaran</button>
         <button class="auth-link" type="button" id="forgotPasswordBtn" hidden>Lupa kata laluan? Reset storan setempat</button>
       </div></details></div>
-      <div class="cloud-login"><button type="button" class="btn btn-primary" id="cloudAuthBtn">Teruskan dengan Google <span class="arrow">→</span></button><p>Akses untuk guru dan pentadbir yang didaftarkan sahaja.</p><div id="loginNotice" class="login-notice" role="alert" hidden></div></div>
+      <div class="cloud-login"><button type="button" class="btn btn-primary" id="cloudAuthBtn">Teruskan dengan Google <span class="arrow">→</span></button><p>Akses untuk guru dan pentadbir yang didaftarkan sahaja.</p><a class="parent-login-link" href="/ibu-bapa/">☷ &nbsp;Paparan Ibu Bapa / Penjaga (lihat sahaja)</a><div id="loginNotice" class="login-notice" role="alert" hidden></div></div>
     </section>
   </main>
 
@@ -437,6 +437,8 @@
         <nav class="workspace-menu" id="mainNav" aria-label="Navigasi portal">
           <button class="workspace-link active" data-view="dashboard" type="button"><span class="workspace-ico">▦</span><span>Dashboard</span></button>
           <button class="workspace-link" data-view="list" type="button"><span class="workspace-ico">☷</span><span>Senarai Murid</span></button>
+          <button class="workspace-link" data-view="teachers" type="button"><span class="workspace-ico">▣</span><span>Guru Kelas & Foto</span></button>
+          <button class="workspace-link" data-action="parents" type="button"><span class="workspace-ico">♧</span><span>Paparan Ibu Bapa</span></button>
           <div class="workspace-divider"></div><div class="sidebar-label">PENGURUSAN REKOD</div>
           <button class="workspace-link" data-action="add" type="button"><span class="workspace-ico">＋</span><span>Daftar Murid</span></button>
           <button class="workspace-link" data-action="import" type="button"><span class="workspace-ico">⇪</span><span>Import Excel / CSV</span></button>
@@ -446,6 +448,7 @@
           <div class="workspace-divider"></div><div class="sidebar-label">TETAPAN & AKSES</div>
           <button class="workspace-link" id="navAccess" data-action="access" type="button" hidden><span class="workspace-ico">♙</span><span>Akses Guru</span></button>
           <button class="workspace-link" id="navAdmins" data-action="admins" type="button" hidden><span class="workspace-ico">♛</span><span>Admin Tambahan</span></button>
+          <button class="workspace-link" id="navPublicSettings" data-action="public-settings" type="button" hidden><span class="workspace-ico">☎</span><span>Hubungi Admin & Ibu Bapa</span></button>
           <button class="workspace-link" id="navPassword" data-action="password" type="button"><span class="workspace-ico">⚿</span><span>Tukar Kata Laluan</span></button>
           <button class="workspace-link" id="navBackup" data-action="backup" type="button"><span class="workspace-ico">▣</span><span>Sandaran Setempat</span></button>
           <button class="workspace-link" data-action="logout" type="button"><span class="workspace-ico">⇥</span><span>Log Keluar</span></button>
@@ -469,7 +472,8 @@
         <div class="stat"><span class="stat-label">Kelas Diisi</span><strong class="stat-value" id="statClasses">0 <small style="font-size:14px;color:#9b8baa">/ 9</small></strong><span class="stat-foot">kelas mempunyai rekod</span></div>
       </section>
 
-      <div id="dashboardClasses" class="dashboard-classes"><div class="dashboard-classes-title"><h3>Ringkasan Mengikut Kelas</h3><p>Pilih kelas untuk melihat rekod yang telah didaftarkan.</p></div><div id="classCards" class="class-card-grid"></div></div>
+      <div id="dashboardClasses" class="dashboard-classes"><div class="dashboard-classes-title"><h3>Ringkasan Mengikut Kelas</h3><p>Nama guru kelas dan slot gambar pasport. Pilih kelas untuk melihat senarai murid.</p></div><div id="classCards" class="class-card-grid"></div><div class="dashboard-bottom-actions"><button id="showTeachersBtn" type="button" class="btn btn-ghost">Lihat Semua Guru Kelas & Gambar Pasport</button><a href="/ibu-bapa/" class="btn btn-ghost">Paparan Ibu Bapa ↗</a></div></div>
+      <section id="teacherSection" class="teacher-section" hidden><div class="dashboard-greeting"><span>GURU KELAS SESI 2027</span><h2>Profil Guru Kelas Tahun 1</h2><p>Sembilan guru kelas. Ruang gambar menggunakan nisbah pasport 35 × 50 mm (7:10).</p></div><div id="teacherCards" class="teacher-card-grid"></div><p class="teacher-footnote">Gambar hanya boleh dimuat naik oleh pentadbir atau guru kelas yang diberi akses. Dalam mod setempat, gambar boleh dilihat tetapi tidak boleh dimuat naik ke server.</p></section>
       <div class="layout" id="listLayout" hidden>
         <aside class="panel class-nav" id="classNav" aria-label="Pilih kelas">
           <div class="nav-caption">Senarai kelas</div>
@@ -507,6 +511,28 @@
   </div>
 
   <div id="sidebarShade" class="sidebar-shade" hidden></div>
+  <div id="teacherOverlay" class="overlay" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="teacherTitle" style="max-width:580px">
+      <div class="modal-head"><div><h2 id="teacherTitle">Profil Guru Kelas</h2><p class="content-caption">Muat naik gambar dalam bentuk pasport (nisbah 7:10).</p></div><button class="close" id="closeTeacher" type="button" aria-label="Tutup">×</button></div>
+      <form id="teacherForm"><div class="form-body">
+        <div class="teacher-edit-layout">
+          <div id="teacherPhotoPreview" class="passport-preview"><span>▧</span></div>
+          <div class="teacher-edit-fields"><label class="field"><span>Kelas</span><input id="teacherClass" readonly></label><label class="field"><span>Nama Guru Kelas</span><input id="teacherName" maxlength="150" required></label><label class="field"><span>Gambar Guru (JPG, PNG atau WebP)</span><input id="teacherPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"><small>Gambar dipotong automatik kepada 7:10 dan dimampatkan sebelum simpan.</small></label><button type="button" class="btn btn-ghost" id="teacherRemovePhoto">Kosongkan Gambar</button></div>
+        </div><div id="teacherPhotoStatus" class="content-caption" role="status"></div>
+      </div><div class="form-foot"><button type="button" id="cancelTeacher" class="btn btn-ghost">Batal</button><button type="submit" id="saveTeacherBtn" class="btn btn-primary">Simpan Profil Guru</button></div></form>
+    </section>
+  </div>
+  <div id="publicSettingsOverlay" class="overlay" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="publicSettingsTitle" style="max-width:610px">
+      <div class="modal-head"><div><h2 id="publicSettingsTitle">Tetapan Ibu Bapa & Hubungi Admin</h2><p class="content-caption">Hanya pentadbir pendaftaran boleh mengubah tetapan.</p></div><button type="button" class="close" id="closePublicSettings" aria-label="Tutup">×</button></div>
+      <form id="publicSettingsForm"><div class="form-body">
+        <label class="field"><span>Nombor WhatsApp / Telefon Admin</span><input id="publicAdminPhone" type="tel" maxlength="24" placeholder="Contoh: 0123456789"><small>Nombor ini akan dipaparkan kepada ibu bapa sebagai butang WhatsApp dan Telefon. Biarkan kosong jika belum ditetapkan.</small></label>
+        <div class="parent-publish-warning"><strong>Privasi data murid:</strong> Apabila carian diaktifkan, sesiapa yang mempunyai pautan dan mengetahui sebahagian nama murid boleh menyemak nama penuh dan kelas yang sepadan. Maklumat penjaga, IC, nombor telefon dan alamat kekal rahsia. Aktifkan hanya selepas mendapat kelulusan pihak sekolah.</div>
+        <label class="parent-publish-check"><input id="parentLookupSwitch" type="checkbox"><span>Benarkan ibu bapa mencari nama murid dan kelas (paparan baca-sahaja)</span></label>
+        <a class="parent-preview-link" href="/ibu-bapa/" target="_blank" rel="noopener">Buka pratonton paparan ibu bapa ↗</a>
+      </div><div class="form-foot"><button type="button" id="cancelPublicSettings" class="btn btn-ghost">Batal</button><button type="submit" id="savePublicSettingsBtn" class="btn btn-primary">Simpan Tetapan</button></div></form>
+    </section>
+  </div>
   <div id="formOverlay" class="overlay" hidden>
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="formTitle">
       <div class="modal-head"><div><h2 id="formTitle">Daftar Murid Baharu</h2><p class="content-caption">Lengkapkan semua medan bertanda * untuk menyimpan rekod.</p></div><button type="button" class="close" id="closeModal" aria-label="Tutup">×</button></div>
