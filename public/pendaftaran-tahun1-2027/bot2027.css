@@ -1,0 +1,36 @@
+/* Pembantu Pertanyaan Tahun 1 2027 | panel terapung responsif */
+.t1chat-root{position:relative;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;z-index:42}
+.t1chat-launcher{position:fixed;right:24px;bottom:max(22px,env(safe-area-inset-bottom));z-index:42;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 18px;min-height:52px;border:1px solid #efd28e;border-radius:50px;background:linear-gradient(113deg,#6e193c,#9a3553);color:#fff;font-size:13px;font-weight:800;box-shadow:0 10px 29px #3c0d2f70;cursor:pointer}
+.t1chat-launcher>span{font-size:23px;line-height:1}
+.t1chat-launcher:hover{background:linear-gradient(113deg,#842345,#a93a59)}
+.t1chat-panel{position:fixed;right:20px;bottom:calc(max(22px,env(safe-area-inset-bottom)) + 68px);width:min(395px,calc(100vw - 24px));height:min(630px,calc(100dvh - 114px));max-height:calc(100dvh - 105px);z-index:43;display:flex;flex-direction:column;min-height:300px;overflow:hidden;border:1px solid #e7c283;border-radius:17px;background:#fffaf5;box-shadow:0 22px 70px #290c27a6;color:#4b263c}
+.t1chat-panel[hidden]{display:none!important}
+.t1chat-header{display:flex;align-items:center;gap:11px;flex:none;padding:14px 15px;background:linear-gradient(110deg,#4c1534,#752346);color:#fff;border-bottom:2px solid #deb977}
+.t1chat-avatar{display:grid;place-items:center;background:#f5cc83;color:#5b1b37;border-radius:11px;width:40px;height:40px;flex:none;font-size:25px;font-weight:800}
+.t1chat-header div{flex:1;min-width:0}
+.t1chat-header strong{display:block;color:#fff;font-size:13px;line-height:1.5}
+.t1chat-header small{display:block;color:#f1d5df;font-size:10px;line-height:1.6}
+.t1chat-close{background:#ffffff12;border:1px solid #ffffff55;color:#fff;border-radius:9px;font-size:23px;line-height:1;min-width:34px;height:34px;cursor:pointer}
+.t1chat-messages{padding:16px 14px;display:flex;flex:1;flex-direction:column;align-items:stretch;gap:13px;overflow-y:auto;overscroll-behavior:contain;background:linear-gradient(145deg,#fdf7ef,#fbf1f5)}
+.t1chat-bubble{max-width:93%;border-radius:13px;padding:12px 13px;font-size:12px;line-height:1.7;overflow-wrap:anywhere}
+.t1chat-bubble p{margin:0;white-space:pre-wrap;line-height:1.65}
+.t1chat-bot{background:#fff;border:1px solid #ead5bf;color:#594053;align-self:flex-start;border-bottom-left-radius:4px}
+.t1chat-user{background:#74244a;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.t1chat-links{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.t1chat-links a{background:#fff4df;border:1px solid #d4ac78;border-radius:9px;padding:8px 9px;text-decoration:none;font-size:11px;font-weight:800;color:#6d2445;line-height:1.45}
+.t1chat-links a:hover{background:#f6e0bf}
+.t1chat-quick{flex:none;display:flex;gap:7px;overflow-x:auto;padding:10px 12px;background:#fffaf5;border-top:1px solid #eeddd1;scrollbar-width:thin}
+.t1chat-quick button{flex:none;background:#fae9d9;color:#75334f;border:1px solid #ebcda3;border-radius:30px;padding:9px 11px;font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap;line-height:1.4}
+.t1chat-quick button:hover{background:#f2d6bc}
+.t1chat-form{flex:none;display:flex;gap:8px;padding:10px 12px;background:#fff;border-top:1px solid #eee0d4}
+.t1chat-form input{font-size:12px!important;flex:1;min-width:0;height:43px;padding:9px 12px!important;border:1px solid #d8bcae;border-radius:10px;background:#fffdfb;color:#3c293b}
+.t1chat-form button{flex:none;display:grid;place-items:center;width:45px;height:43px;border:0;border-radius:10px;background:#802c50;color:#fff;font-size:19px;cursor:pointer}
+.t1chat-privacy{flex:none;font-size:9px;text-align:center;line-height:1.5;color:#8e7383;background:#fff;padding:0 9px 10px;margin:0}
+.t1chat-root button:focus-visible,.t1chat-root input:focus-visible,.t1chat-root a:focus-visible{outline:3px solid #d4a76a;outline-offset:2px}
+@media(max-width:650px){
+ .t1chat-launcher{right:14px;bottom:max(13px,env(safe-area-inset-bottom));min-height:49px;padding:10px 14px;font-size:12px}
+ .t1chat-panel{right:8px;bottom:calc(max(13px,env(safe-area-inset-bottom)) + 62px);width:calc(100vw - 16px);height:min(590px,calc(100dvh - 103px));border-radius:16px}
+ .t1chat-header{padding:11px 12px}
+}
+@media print{.t1chat-root{display:none!important}}
+@media(prefers-reduced-motion:reduce){.t1chat-launcher{transition:none}}
