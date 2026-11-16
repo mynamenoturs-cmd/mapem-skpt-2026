@@ -512,7 +512,7 @@
       </section>
 
       <div id="dashboardClasses" class="dashboard-classes"><div class="dashboard-classes-title"><h3>Ringkasan Mengikut Kelas</h3><p>Nama guru kelas dan slot gambar pasport. Pilih kelas untuk melihat senarai murid.</p></div><div id="classCards" class="class-card-grid"></div><div class="dashboard-bottom-actions"><button id="showTeachersBtn" type="button" class="btn btn-ghost">Lihat Semua Guru Kelas & Gambar Pasport</button><a href="/ibu-bapa/" class="btn btn-ghost">Paparan Ibu Bapa ↗</a></div></div>
-      <section id="teacherSection" class="teacher-section" hidden><div class="dashboard-greeting"><span>GURU KELAS SESI 2027</span><h2>Profil Guru Kelas Tahun 1</h2><p>Sembilan guru kelas. Ruang gambar menggunakan nisbah pasport 35 × 50 mm (7:10).</p></div><div id="teacherCards" class="teacher-card-grid"></div><p class="teacher-footnote">Gambar hanya boleh dimuat naik oleh pentadbir atau guru kelas yang diberi akses. Dalam mod setempat, gambar boleh dilihat tetapi tidak boleh dimuat naik ke server.</p></section>
+      <section id="teacherSection" class="teacher-section" hidden><div class="dashboard-greeting"><span>GURU KELAS SESI 2027</span><h2>Profil Guru Kelas Tahun 1</h2><p>Sembilan guru kelas. Ruang gambar menggunakan nisbah pasport 35 × 50 mm (7:10).</p></div><div id="teacherCards" class="teacher-card-grid"></div><p class="teacher-footnote">Foto pasport beresolusi tinggi sehingga 600 KB boleh dimuat naik oleh pentadbir atau guru yang diberi akses. Guru lain hanya boleh melihat. Dalam mod setempat, gambar boleh dilihat tetapi tidak boleh dimuat naik ke server.</p></section>
       <div class="layout" id="listLayout" hidden>
         <aside class="panel class-nav" id="classNav" aria-label="Pilih kelas">
           <div class="nav-caption">Senarai kelas</div>
@@ -530,6 +530,11 @@
         </aside>
         <section class="panel content-panel" aria-labelledby="listTitle">
           <div class="content-head"><div><h2 id="listTitle">Semua Pendaftaran</h2><p class="content-caption" id="listCaption">Senarai murid untuk semua kelas Tahun 1</p></div><button type="button" class="btn btn-primary" id="addBtnHead"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Tambah Murid</button></div>
+          <section id="classTeacherHero" class="selected-class-teacher" aria-label="Guru kelas yang dipilih" hidden>
+            <div id="selectedTeacherPhoto" class="selected-teacher-photo"><span aria-label="Gambar belum tersedia">▧</span></div>
+            <div class="selected-teacher-info"><small>GURU KELAS TAHUN 1</small><h3 id="selectedTeacherClass">1 Emerald</h3><p id="selectedTeacherName">Nama Guru Kelas</p><span id="selectedTeacherNote">Gambar guru belum dimuat naik.</span></div>
+            <button type="button" id="selectedTeacherUpload" class="btn btn-ghost" hidden>＋ Muat Naik / Tukar Foto</button>
+          </section>
           <div class="toolbar">
             <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 5 5"/></svg><input id="searchInput" type="search" placeholder="Cari nama, ID murid, penjaga, telefon..."></div>
             <select id="praFilter" class="filter" aria-label="Tapis status PRA"><option value="Semua">Semua PRA</option><option value="Ya">PRA: Ya</option><option value="Tidak">PRA: Tidak</option><option value="Belum Pasti">PRA: Belum Pasti</option></select>
@@ -556,7 +561,7 @@
       <form id="teacherForm"><div class="form-body">
         <div class="teacher-edit-layout">
           <div id="teacherPhotoPreview" class="passport-preview"><span>▧</span></div>
-          <div class="teacher-edit-fields"><label class="field"><span>Kelas</span><input id="teacherClass" readonly></label><label class="field"><span>Nama Guru Kelas</span><input id="teacherName" maxlength="150" required></label><label class="field"><span>Gambar Guru (JPG, PNG atau WebP)</span><input id="teacherPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"><small>Gambar dipotong automatik kepada 7:10 dan dimampatkan sebelum simpan.</small></label><button type="button" class="btn btn-ghost" id="teacherRemovePhoto">Kosongkan Gambar</button></div>
+          <div class="teacher-edit-fields"><label class="field"><span>Kelas</span><input id="teacherClass" readonly></label><label class="field"><span>Nama Guru Kelas</span><input id="teacherName" maxlength="150" required></label><label class="field"><span>Gambar Guru (JPG, PNG atau WebP)</span><input id="teacherPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"><small>Fail asal boleh sehingga 12 MB. Sistem menghasilkan foto pasport <strong>1050 × 1500 piksel</strong> (7:10) dan menyimpan hasil berkualiti tinggi sehingga <strong>600 KB</strong>.</small></label><button type="button" class="btn btn-ghost" id="teacherRemovePhoto">Kosongkan Gambar</button></div>
         </div><div id="teacherPhotoStatus" class="content-caption" role="status"></div>
       </div><div class="form-foot"><button type="button" id="cancelTeacher" class="btn btn-ghost">Batal</button><button type="submit" id="saveTeacherBtn" class="btn btn-primary">Simpan Profil Guru</button></div></form>
     </section>
