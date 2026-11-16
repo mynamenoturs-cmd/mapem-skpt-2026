@@ -7,6 +7,7 @@ import {onRequest} from '../functions/api/[[path]].js';
 import {onRequest as registrationApi} from '../registration-site/functions/api/[[path]].js';
 import {handleRegistration2027} from '../functions/api/_registration2027.js';
 import {answerRegistrationQuestion,DEFAULT_TEACHERS,QUICK_QUESTIONS,containsPrivateRegistrationDetails} from '../public/pendaftaran-tahun1-2027/bot2027.mjs';
+import {tidyRegistrationAIAnswer} from '../registration-site/functions/api/_ai2027.js';
 import {parseCsv,mapImportRows,createExcelTemplate} from '../public/pendaftaran-tahun1-2027/import2027.mjs';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
@@ -493,4 +494,28 @@ test('editable FAQ is available for the local fallback, AI prompt and the linked
  assert.match(adminPage,/Simpan Semua Perubahan/);
  assert.match(workflow,/bot-admin\/index\.html/);
  assert.match(ai,/officialFaqs/);
+});
+
+test('Cikgu Wanwan BOT replies naturally, without restarting with salam on every answer',()=>{
+ const natural=tidyRegistrationAIAnswer(
+  'Assalamualaikum dan salam sejahtera! Guru kelas 1 Ruby ialah Airin Bin Alin.',
+  'Siapa guru kelas 1 Ruby?'
+ );
+ assert.equal(natural,'Guru kelas 1 Ruby ialah Airin Bin Alin.');
+ assert.equal(tidyRegistrationAIAnswer(
+  'Waalaikumussalam! Nama guru kelas Topaz ialah Raisah Sandau.',
+  'Boleh beri nama guru kelas Topaz?'
+ ),'Nama guru kelas Topaz ialah Raisah Sandau.');
+ assert.equal(tidyRegistrationAIAnswer(
+  'Saya Cikgu Wanwan BOT, pembantu pendaftaran sekolah. Sila hubungi sekolah.',
+  'Bila tarikh pendaftaran?'
+ ),'Sila hubungi sekolah.');
+ assert.equal(tidyRegistrationAIAnswer('Assalamualaikum! Ada yang boleh saya bantu?','Assalamualaikum'), 'Assalamualaikum! Ada yang boleh saya bantu?');
+ assert.match(answerRegistrationQuestion('Assalamualaikum').text,/Waalaikumussalam/);
+ assert.doesNotMatch(answerRegistrationQuestion('Assalamualaikum').text,/Saya Cikgu Wanwan BOT/);
+ assert.match(answerRegistrationQuestion('Hai').text,/Ada apa yang boleh saya bantu/);
+ assert.match(answerRegistrationQuestion('Hai, saya nak tahu guru kelas Ruby?').text,/Airin Bin Alin/);
+ const source=file('../registration-site/functions/api/_ai2027.js');
+ assert.match(source,/UCAPAN PEMBUKAAN SUDAH DIPAPARKAN/);
+ assert.doesNotMatch(source,/Untuk menyapa, mulakan dengan Assalamualaikum/);
 });
