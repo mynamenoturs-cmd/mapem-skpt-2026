@@ -51,12 +51,12 @@ async function listTeachers(env) {
 }
 function validateTeacherImage(value) {
  if(value===null||value==='')return null;
- if(typeof value!=='string'||value.length>140000)error('Gambar pasport terlalu besar. Had 100 KB.',413);
+ if(typeof value!=='string'||value.length>820000)error('Gambar pasport terlalu besar. Had maksimum 600 KB selepas pemprosesan.',413);
  const match=/^data:image\/(webp|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/.exec(value);
  if(!match)error('Format gambar mesti JPG atau WebP.');
  let bytes;
  try{bytes=atob(match[2]);}catch{error('Data gambar tidak sah.');}
- if(bytes.length<350||bytes.length>100000)error('Gambar pasport mesti antara 350 B dan 100 KB.',413);
+ if(bytes.length<350||bytes.length>600000)error('Gambar pasport mesti antara 350 B dan 600 KB.',413);
  if(match[1]==='webp'&&!(bytes.slice(0,4)==='RIFF'&&bytes.slice(8,12)==='WEBP'))error('Fail WebP tidak sah.');
  if(match[1]==='jpeg'&&!(bytes.charCodeAt(0)===255&&bytes.charCodeAt(1)===216&&bytes.charCodeAt(2)===255))error('Fail JPEG tidak sah.');
  return value;
@@ -105,7 +105,7 @@ export async function handleRegistration2027({request,env,user,path}) {
   return json({teachers:await listTeachers(env)});
  }
  if(path==='registration2027/teachers/save'&&request.method==='POST'){
-  const b=await parseBody(request,155000),kelas=safeText(b.kelas,'Kelas',20);
+  const b=await parseBody(request,900000),kelas=safeText(b.kelas,'Kelas',20);
   if(!CLASSES.includes(kelas)||!allowed(access,kelas))error('Tiada kebenaran mengurus guru kelas ini.',403);
   const previous=await env.DB.prepare('SELECT teacher_name AS namaGuru,photo_data_url AS gambarPasport FROM registration_2027_teachers WHERE class_name=?').bind(kelas).first();
   if(!previous)error('Kelas tidak dijumpai.',404);
