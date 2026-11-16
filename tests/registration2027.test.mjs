@@ -365,7 +365,8 @@ test('Cloudflare AI endpoint uses approved facts, caps requests, and falls back 
   assert.match(opts.messages[0].content,/Nur Amalina Binti Mali/);
   assert.match(opts.messages[0].content,/belum diumumkan/);
   assert.doesNotMatch(opts.messages[0].content,/PENJAGA UJIAN|000000000000/);
-  return {response:'Sila hubungi sekolah untuk perkara tersebut.'};
+  assert.equal(opts.chat_template_kwargs.enable_thinking,false);
+  return {choices:[{message:{content:'Sila hubungi sekolah untuk perkara tersebut.'}}]};
  }};
  const real=await (await call('Bagaimanakah urusan pendaftaran dibuat?')).json();
  assert.equal(real.mode,'ai');
@@ -378,6 +379,7 @@ test('Cloudflare AI endpoint uses approved facts, caps requests, and falls back 
  assert.equal(times,1);
  assert.equal(containsPrivateRegistrationDetails('MyKid 120101-12-1234'),true);
  assert.equal(containsPrivateRegistrationDetails('anak saya di kelas mana'),true);
+ assert.equal(containsPrivateRegistrationDetails('Anak saya Amin ke sekolah ini?'),true);
  assert.equal(containsPrivateRegistrationDetails('Berapa kelas tahun 1?'),false);
  const blocked=await (await call('anak saya di kelas mana')).json();
  assert.equal(blocked.mode,'faq');
