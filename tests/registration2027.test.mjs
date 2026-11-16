@@ -5,6 +5,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {webcrypto} from 'node:crypto';
 import {onRequest} from '../functions/api/[[path]].js';
 import {onRequest as registrationApi} from '../registration-site/functions/api/[[path]].js';
+import {answerRegistrationQuestion,DEFAULT_TEACHERS,QUICK_QUESTIONS} from '../public/pendaftaran-tahun1-2027/bot2027.mjs';
 import {parseCsv,mapImportRows,createExcelTemplate} from '../public/pendaftaran-tahun1-2027/import2027.mjs';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
@@ -283,4 +284,63 @@ test('all nine class options render photographs, teacher names and selected teac
  assert.match(html,/\[\[1050,1500\],\[840,1200\],\[700,1000\]\]/);
  assert.match(html,/output.length<=790000/);
  assert.match(html,/12\*1024\*1024/);
+});
+
+test('bot answers official facts and does not invent dates or required documents',()=>{
+ assert.equal(DEFAULT_TEACHERS.length,9);
+ assert.equal(QUICK_QUESTIONS.length,5);
+ const ruby=answerRegistrationQuestion('Siapa guru kelas 1 Ruby?');
+ assert.match(ruby.text,/Airin Bin Alin/);
+ const emerald=answerRegistrationQuestion('Guru kelas Emerald');
+ assert.match(emerald.text,/Kamelia Nur Binti Raisin/);
+ const list=answerRegistrationQuestion('Senarai guru kelas');
+ assert.match(list.text,/1 Crystal/);
+ assert.match(list.text,/Nur Amalina Binti Mali/);
+ const date=answerRegistrationQuestion('Bila tarikh pendaftaran tutup?');
+ assert.match(date.text,/belum dinyatakan/);
+ assert.doesNotMatch(date.text,/\d{1,2}[\/-]\d{1,2}[\/-]2027/);
+ const documents=answerRegistrationQuestion('Apa dokumen diperlukan?');
+ assert.match(documents.text,/belum dinyatakan/);
+ const closed=answerRegistrationQuestion('Cara semak kelas anak');
+ assert.match(closed.text,/belum dibuka/);
+ const opened=answerRegistrationQuestion('Cara semak kelas anak',{canSearchStudents:true});
+ assert.match(opened.text,/Paparan Ibu Bapa/);
+ const phone=answerRegistrationQuestion('Hubungi admin',{adminPhone:'0123456789'});
+ assert.equal(phone.links[0].href.startsWith('https://wa.me/60123456789'),true);
+ assert.equal(phone.links[1].href,'tel:+60123456789');
+ const pii=answerRegistrationQuestion('MyKid anak 120101-12-1234');
+ assert.match(pii.text,/Jangan kongsi/);
+ const unknown=answerRegistrationQuestion('Bila dapat buku teks?');
+ assert.match(unknown.text,/belum dinyatakan|belum mempunyai/);
+});
+test('bot endpoint is public but returns only approved teacher names and contact settings',async()=>{
+ const {env,cookie,call}=fixture();
+ const admin=await cookie('admin@gmail.com');
+ const origin='https://pendaftaran-tahun1-2027-skpt.pages.dev';
+ const request=()=>registrationApi({env,request:new Request(origin+'/api/public/assistant')});
+ const initial=await request();assert.equal(initial.status,200);
+ const data=await initial.json();
+ assert.equal(data.teachers.length,9);
+ assert.deepEqual(Object.keys(data.teachers[0]).sort(),['kelas','namaGuru']);
+ assert.equal(data.canSearchStudents,false);
+ assert.equal(data.adminPhone,'');
+ assert.doesNotMatch(JSON.stringify(data),/(noIc|noTelefon|guardian_ic|gambarPasport|alamat)/);
+ await call('registration2027/settings/save',{who:admin,method:'POST',body:{adminPhone:'0123456789',parentLookupEnabled:true}});
+ const changed=await (await request()).json();
+ assert.equal(changed.canSearchStudents,true);
+ assert.equal(changed.adminPhone,'0123456789');
+});
+test('both portal pages load chat module and workflow deploys its assets',()=>{
+ const main=file('../public/pendaftaran-tahun1-2027/index.html');
+ const parents=file('../public/pendaftaran-tahun1-2027/ibu-bapa/index.html');
+ const workflow=file('../.github/workflows/pendaftaran-2027-cloudflare.yml');
+ for(const html of [main,parents]){
+  assert.match(html,/href="\/bot2027\.css"/);
+  assert.match(html,/src="\/bot2027\.mjs"/);
+ }
+ assert.match(workflow,/bot2027\.mjs/);
+ assert.match(workflow,/bot2027\.css/);
+ const bot=file('../public/pendaftaran-tahun1-2027/bot2027.mjs');
+ assert.match(bot,/Jangan taip IC, MyKid atau alamat murid/);
+ assert.doesNotMatch(bot,/localStorage|sessionStorage|fetch\([^)]*question/);
 });
