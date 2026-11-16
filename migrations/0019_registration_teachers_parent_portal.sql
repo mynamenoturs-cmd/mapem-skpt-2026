@@ -30,3 +30,10 @@ CREATE TABLE IF NOT EXISTS registration_2027_parent_limits (
  hits INTEGER NOT NULL DEFAULT 0 CHECK(hits>=0),
  expires_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS registration_2027_teacher_audit (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ actor_email TEXT NOT NULL,
+ class_name TEXT NOT NULL,
+ action TEXT NOT NULL CHECK(action IN ('update','clear-photo')),
+ at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
