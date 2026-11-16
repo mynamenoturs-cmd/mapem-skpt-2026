@@ -1304,6 +1304,20 @@
       $('quickImport').addEventListener('click',openImport);
       $('quickTemplate').addEventListener('click',downloadExcelTemplate);
       $('quickList').addEventListener('click',()=>switchView('list'));
+      $('showTeachersBtn').addEventListener('click',()=>switchView('teachers'));
+      $('teacherCards').addEventListener('click',e=>{
+        const btn=e.target.closest('[data-edit-teacher]');if(btn)openTeacherEditor(btn.dataset.editTeacher);
+      });
+      $('teacherForm').addEventListener('submit',saveTeacher);
+      $('teacherPhotoFile').addEventListener('change',prepareTeacherPhoto);
+      $('teacherRemovePhoto').addEventListener('click',()=>{
+        teacherPhotoData=null;paintTeacherPhoto();$('teacherPhotoStatus').textContent='Gambar dikosongkan. Tekan Simpan Profil untuk menyimpan.';
+      });
+      $('closeTeacher').addEventListener('click',closeTeacher);
+      $('cancelTeacher').addEventListener('click',closeTeacher);
+      $('closePublicSettings').addEventListener('click',()=>$('publicSettingsOverlay').hidden=true);
+      $('cancelPublicSettings').addEventListener('click',()=>$('publicSettingsOverlay').hidden=true);
+      $('publicSettingsForm').addEventListener('submit',savePublicSettings);
       $('searchInput').addEventListener('input',render); $('praFilter').addEventListener('change',render);
       [$('addBtnHead'),$('emptyAdd')].forEach(b=>b.addEventListener('click',()=>openForm()));
       [$('closeModal'),$('cancelModal')].forEach(b=>b.addEventListener('click',closeForm));
