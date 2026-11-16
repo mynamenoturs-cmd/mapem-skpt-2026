@@ -54,17 +54,22 @@ export function answerRegistrationQuestion(question,info={}){
   return {text:'Foto guru kelas akan dipaparkan apabila tersedia. Ibu bapa tidak perlu memuat naik gambar.',links:[parent]};
  return {text:'Saya belum mempunyai maklumat rasmi untuk soalan itu. Saya boleh bantu tentang kelas, guru kelas, cara semak kelas, pendaftaran dan hubungan admin.',links};
 }
+export function containsPrivateRegistrationDetails(question){
+ const q=String(question||'');
+ return /@|(?:\\d[\\s-]?){10,}|mykid|kad\\s*pengenalan|alamat\\s*(?:rumah|anak)|nama\\s*anak\\s*saya|anak\\s*saya\\s*bernama/i.test(q)||
+  /(?:kelas|semak|cari).{0,35}(?:anak saya|nama anak)|anak saya.{0,35}(?:nama|kelas)/i.test(q);
+}
 function boot(){
  if(document.getElementById('t1chat-launcher'))return;
  const root=document.createElement('div');root.className='t1chat-root';
  root.innerHTML=[
  '<button type="button" id="t1chat-launcher" class="t1chat-launcher" aria-label="Buka bot pertanyaan" aria-expanded="false" aria-controls="t1chat-panel"><span aria-hidden="true">☏</span> Tanya Bot</button>',
  '<section id="t1chat-panel" class="t1chat-panel" role="dialog" aria-label="Pembantu Pendaftaran Tahun 1" hidden>',
- '<header class="t1chat-header"><span class="t1chat-avatar">✦</span><div><strong>Pembantu Pendaftaran</strong><small>SK Pekan Telipok · Tahun 1 2027</small></div><button type="button" class="t1chat-close" aria-label="Tutup bot">×</button></header>',
+ '<header class="t1chat-header"><span class="t1chat-avatar">✦</span><div><strong>Pembantu AI Pendaftaran</strong><small>SK Pekan Telipok · Tahun 1 2027</small></div><button type="button" class="t1chat-close" aria-label="Tutup bot">×</button></header>',
  '<div class="t1chat-messages" role="log" aria-live="polite" aria-relevant="additions text"></div>',
  '<div class="t1chat-quick" aria-label="Soalan lazim"></div>',
  '<form class="t1chat-form"><input type="text" maxlength="220" autocomplete="off" required placeholder="Taip pertanyaan..." aria-label="Taip soalan pendaftaran"><button type="submit" aria-label="Hantar soalan">➤</button></form>',
- '<p class="t1chat-privacy">Bot automatik · Jangan taip IC, MyKid atau alamat murid.</p></section>'
+ '<p class="t1chat-privacy">AI Cloudflare + FAQ sandaran · Jangan taip IC, MyKid atau alamat murid.</p></section>'
  ].join('');
  document.body.append(root);
  const launcher=root.querySelector('#t1chat-launcher'),panel=root.querySelector('#t1chat-panel'),close=root.querySelector('.t1chat-close'),
@@ -92,10 +97,34 @@ function boot(){
   }
   messages.append(el);messages.scrollTop=messages.scrollHeight;
  }
- function ask(question){
+ async function ask(question){
   const val=String(question||'').trim();if(!val)return;
-  add(val,true);const reply=answerRegistrationQuestion(val,info);
-  add(reply.text,false,reply.links||[]);
+  const fallback=answerRegistrationQuestion(val,info);
+  if(containsPrivateRegistrationDetails(val)){
+   add('Untuk keselamatan, maklumat berkaitan anak tidak dihantar kepada AI. '+fallback.text,false,fallback.links||[]);
+   return;
+  }
+  add(val,true);
+  const pending=document.createElement('div');
+  pending.className='t1chat-bubble t1chat-bot';
+  pending.textContent='AI sedang menyediakan jawapan...';
+  messages.append(pending);messages.scrollTop=messages.scrollHeight;
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),10000);
+  try{
+   const r=await fetch('/api/public/ai',{
+    method:'POST',credentials:'omit',cache:'no-store',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({question:val}),signal:controller.signal
+   });
+   const data=r.ok?await r.json():{};
+   if(data.mode==='ai'&&typeof data.text==='string'&&data.text.trim()){
+    add(data.text.trim()+'\n\n— Jawapan AI berdasarkan maklumat sekolah',false,fallback.links||[]);
+   }else{
+    add(fallback.text+'\n\n— Jawapan FAQ automatik',false,fallback.links||[]);
+   }
+  }catch{
+   add(fallback.text+'\n\n— Jawapan FAQ automatik',false,fallback.links||[]);
+  }finally{clearTimeout(timeout);pending.remove();}
  }
  function openChat(open){
   panel.hidden=!open;launcher.setAttribute('aria-expanded',String(open));
