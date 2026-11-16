@@ -34,3 +34,14 @@
 }
 @media print{.t1chat-root{display:none!important}}
 @media(prefers-reduced-motion:reduce){.t1chat-launcher{transition:none}}
+
+/* Maskot animasi Cikgu Wanwan BOT: GIF sebenar melambai + terapung halus */
+.t1chat-launcher{padding:5px 17px 5px 7px;min-height:65px;gap:7px;overflow:visible}
+.t1chat-launcher-mascot{display:block;flex:none;width:49px;height:61px;object-fit:contain;transform-origin:center bottom;animation:t1wanwanFloat 2.8s ease-in-out infinite;filter:drop-shadow(0 4px 4px #360d2c66)}
+.t1chat-launcher-label{font-size:12px;font-weight:850;letter-spacing:.01em;white-space:nowrap}
+.t1chat-header .t1chat-avatar{width:58px;height:69px;flex:none;border:1px solid #e7b765;border-radius:15px;overflow:visible;background:radial-gradient(circle at center,#f9dbab33,#4b102600);display:grid;place-items:center}
+.t1chat-avatar img{width:56px;height:68px;max-width:100%;object-fit:contain;filter:drop-shadow(0 4px 5px #270c1b99);animation:t1wanwanFloat 2.8s ease-in-out infinite}
+.t1chat-header strong{font-size:15px;letter-spacing:.01em}
+@keyframes t1wanwanFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-3px) rotate(1deg)}}
+@media(max-width:650px){.t1chat-launcher{padding:4px 12px 4px 5px;min-height:56px;gap:4px}.t1chat-launcher-mascot{width:44px;height:53px}.t1chat-launcher-label{font-size:11px}.t1chat-panel{bottom:calc(max(13px,env(safe-area-inset-bottom)) + 69px)}}
+@media(prefers-reduced-motion:reduce){.t1chat-launcher-mascot,.t1chat-avatar img{animation:none!important}}

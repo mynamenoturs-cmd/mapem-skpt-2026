@@ -412,3 +412,17 @@ test('AI integration deploys a free-tier model binding and keeps FAQ fallback',(
  assert.match(client,/\/api\/public\/ai/);
  assert.match(client,/Jawapan FAQ automatik/);
 });
+
+test('Cikgu Wanwan BOT has an animated mascot and consistent identity on both pages',()=>{
+ const bot=file('../public/pendaftaran-tahun1-2027/bot2027.mjs');
+ const style=file('../public/pendaftaran-tahun1-2027/bot2027.css');
+ const ai=file('../registration-site/functions/api/_ai2027.js');
+ const workflow=file('../.github/workflows/pendaftaran-2027-cloudflare.yml');
+ assert.match(bot,/Cikgu Wanwan BOT/);
+ assert.match(bot,/assets\/cikgu-wanwan-bot\.gif/);
+ assert.match(bot,/t1chat-launcher-mascot/);
+ assert.match(style,/t1wanwanFloat/);
+ assert.match(style,/prefers-reduced-motion/);
+ assert.match(ai,/Anda Cikgu Wanwan BOT/);
+ assert.match(workflow,/assets\/cikgu-wanwan-bot\.gif/);
+});

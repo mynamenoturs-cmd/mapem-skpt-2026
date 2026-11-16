@@ -40,6 +40,8 @@ jobs:
           cp public/pendaftaran-tahun1-2027/import2027.mjs .registration-deploy/public/import2027.mjs
           cp public/pendaftaran-tahun1-2027/bot2027.mjs .registration-deploy/public/bot2027.mjs
           cp public/pendaftaran-tahun1-2027/bot2027.css .registration-deploy/public/bot2027.css
+          cp public/pendaftaran-tahun1-2027/assets/cikgu-wanwan-bot.gif .registration-deploy/public/assets/cikgu-wanwan-bot.gif
+          test -s .registration-deploy/public/assets/cikgu-wanwan-bot.gif
           cp public/pendaftaran-tahun1-2027/_headers .registration-deploy/public/_headers
           cp public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027-logo-rasmi.webp .registration-deploy/public/assets/header-pendaftaran-2027-logo-rasmi.webp
           cp public/pendaftaran-tahun1-2027/assets/logo-sekolah-rasmi-2027.webp .registration-deploy/public/assets/logo-sekolah-rasmi-2027.webp
@@ -81,6 +83,9 @@ jobs:
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ibu-bapa/ | grep -q 'Paparan Ibu Bapa'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -q 'answerRegistrationQuestion'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.css | grep -q 't1chat-panel'
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/cikgu-wanwan-bot.gif -o /tmp/cikgu-wanwan-bot-live.gif
+          test "$(wc -c < /tmp/cikgu-wanwan-bot-live.gif)" -ge 200000
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -q 'Cikgu Wanwan BOT'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/assistant > /tmp/year1-bot.json
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/ai > /tmp/year1-ai-status.json
           node -e 'const d=JSON.parse(require("fs").readFileSync("/tmp/year1-ai-status.json"));if(d.available!==true)process.exit(1);console.log("Cloudflare Workers AI binding active");'
