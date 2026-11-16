@@ -10,7 +10,7 @@ const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 function fixture(){
  const db=new DatabaseSync(':memory:');
- for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql'])db.exec(file('../migrations/'+migration));
+ for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql'])db.exec(file('../migrations/'+migration));
  const DB={prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first(){return stmt.get(...values)||null;},all(){return {results:stmt.all(...values)};},run(){return {meta:{changes:stmt.run(...values).changes}};}};},first(){return stmt.get()||null;},all(){return {results:stmt.all()};}}}};
  const env={DB,GOOGLE_CLIENT_ID:'fake',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
  async function cookie(email){
@@ -161,4 +161,89 @@ test('new interface contains accessible mobile navigation, landing and administr
  assert.match(html,/Portal Pendaftaran Tahun 1 2027/);
  assert.match(html,/pendaftaran-tahun1-2027-skpt.pages.dev/);
  assert.doesNotMatch(html,/<script[^>]+src=["']https?:\/\//);
+});
+
+test('9 classroom teachers are seeded with exact class names and passport photo slots',async()=>{
+ const {env,cookie,call}=fixture();
+ const admin=await cookie('admin@gmail.com'),emerald=await cookie('emerald@sample.com');
+ const response=await call('registration2027/teachers',{who:admin});
+ assert.equal(response.status,200);
+ const body=await response.json();
+ assert.equal(body.teachers.length,9);
+ const expected={
+  Emerald:'Kamelia Nur Binti Raisin',
+  Ruby:'Airin Bin Alin',
+  Sapphire:'Ahmad Rifa’I Bin Syamsuddin',
+  Topaz:'Raisah Sandau',
+  Diamond:'Hayati Binti Abdul Rahim',
+  Jade:'Nur Ainun Arinah Binti Ramlee',
+  Pearl:'Nurul Umaierah Binti Abdul Rapi',
+  Crystal:'Nur Amalina Binti Mali',
+  Amber:'Mazniza Binti Mahadzir'
+ };
+ for(const t of body.teachers){assert.equal(t.namaGuru,expected[t.kelas]);assert.equal(t.gambarPasport,null);}
+ const unauth=await call('registration2027/teachers');assert.equal(unauth.status,401);
+ const publicInfo=await registrationApi({env,request:new Request('https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/teachers')});
+ assert.equal(publicInfo.status,200);
+ const publicData=await publicInfo.json();
+ assert.equal(publicData.teachers.length,9);
+ assert.equal(publicData.canSearchStudents,false);
+ assert.equal(publicData.adminPhone,'');
+ assert(!JSON.stringify(publicData).includes('guardian_ic'));
+ assert.equal((await call('registration2027/teachers/save',{who:emerald,method:'POST',body:{kelas:'Emerald',namaGuru:'NAMA BARU'}})).status,403);
+});
+test('only authorized class teacher or admin can update passport photo, not other class',async()=>{
+ const {env,cookie,call}=fixture();
+ const admin=await cookie('admin@gmail.com'),teacher=await cookie('teacher@sample.com');
+ assert.equal((await call('registration2027/access/save',{who:admin,method:'POST',body:{email:'teacher@sample.com',kelas:'Emerald'}})).status,200);
+ const image=Buffer.alloc(540,17);image[0]=255;image[1]=216;image[2]=255;
+ const photo='data:image/jpeg;base64,'+image.toString('base64');
+ const allowed=await call('registration2027/teachers/save',{who:teacher,method:'POST',body:{kelas:'Emerald',namaGuru:'Kamelia Nur Binti Raisin',gambarPasport:photo}});
+ assert.equal(allowed.status,200);
+ const pub=await (await registrationApi({env,request:new Request('https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/teachers')})).json();
+ assert.equal(pub.teachers.find(t=>t.kelas==='Emerald').gambarPasport,photo);
+ assert.equal((await call('registration2027/teachers/save',{who:teacher,method:'POST',body:{kelas:'Ruby',namaGuru:'Airin Bin Alin',gambarPasport:photo}})).status,403);
+ assert.equal((await call('registration2027/teachers/save',{who:teacher,method:'POST',body:{kelas:'Emerald',namaGuru:'BUKAN GURU SEBENAR'}})).status,403);
+ assert.equal((await call('registration2027/teachers/save',{who:admin,method:'POST',body:{kelas:'Ruby',gambarPasport:'data:text/html;base64,PGh0bWw+'}})).status,400);
+ assert.equal((await call('registration2027/teachers/save',{who:admin,method:'POST',body:{kelas:'Emerald',gambarPasport:''}})).status,200);
+ const removed=await (await call('registration2027/teachers',{who:admin})).json();
+ assert.equal(removed.teachers.find(t=>t.kelas==='Emerald').gambarPasport,null);
+});
+test('parent lookup off by default; explicit admin publish reveals only name/class with rate limit',async()=>{
+ const {env,cookie,call}=fixture();
+ const base='https://pendaftaran-tahun1-2027-skpt.pages.dev';
+ const admin=await cookie('admin@gmail.com'),teacher=await cookie('teacher@sample.com');
+ await call('registration2027/access/save',{who:admin,method:'POST',body:{email:'teacher@sample.com',kelas:'Emerald'}});
+ await call('registration2027/students/save',{who:admin,method:'POST',body:{record:{...record('Emerald','CHILD-001'),namaMurid:'ANAK MURID TELIPOK'}}});
+ const lookup=()=>registrationApi({env,request:new Request(base+'/api/public/lookup?q=ANAK%20MURID',{headers:{'cf-connecting-ip':'203.0.113.10'}})});
+ assert.equal((await lookup()).status,403);
+ assert.equal((await call('registration2027/settings',{who:teacher})).status,403);
+ assert.equal((await call('registration2027/settings/save',{who:teacher,method:'POST',body:{parentLookupEnabled:true,adminPhone:'0123456789'}})).status,403);
+ const publish=await call('registration2027/settings/save',{who:admin,method:'POST',body:{parentLookupEnabled:true,adminPhone:'0123456789'}});
+ assert.equal(publish.status,200);
+ const info=await (await registrationApi({env,request:new Request(base+'/api/public/teachers')})).json();
+ assert.equal(info.canSearchStudents,true);assert.equal(info.adminPhone,'0123456789');
+ const search=await lookup();assert.equal(search.status,200);
+ const parent=await search.json();
+ assert.equal(parent.results.length,1);
+ assert.deepEqual(Object.keys(parent.results[0]).sort(),['kelas','namaMurid']);
+ assert.equal(parent.results[0].namaMurid,'ANAK MURID TELIPOK');
+ assert.equal((await registrationApi({env,request:new Request(base+'/api/public/lookup?q=AN')})).status,400);
+ assert.equal((await registrationApi({env,request:new Request(base+'/api/registration2027/students')})).status,401);
+ for(let i=0;i<34;i++)await lookup();
+ assert.equal((await lookup()).status,429);
+ assert.equal((await call('registration2027/settings/save',{who:admin,method:'POST',body:{parentLookupEnabled:false,adminPhone:''}})).status,200);
+ assert.equal((await lookup()).status,403);
+});
+test('student parent page exposes no private fields or edit controls',()=>{
+ const html=file('../public/pendaftaran-tahun1-2027/ibu-bapa/index.html');
+ assert.match(html,/Paparan Ibu Bapa \/ Penjaga/);
+ assert.match(html,/\/api\/public\/teachers/);
+ assert.match(html,/\/api\/public\/lookup/);
+ assert.doesNotMatch(html,/(guardian_ic|noIc|namaPenjaga|alamatTerkini|\/api\/registration2027\/students\/save)/);
+ const main=file('../public/pendaftaran-tahun1-2027/index.html');
+ for(const id of ['teacherSection','teacherCards','teacherOverlay','teacherPhotoFile','teacherPhotoPreview','publicSettingsOverlay','publicSettingsForm','parentLookupSwitch','publicAdminPhone'])
+  assert.match(main,new RegExp('id="'+id+'"'));
+ assert.match(main,/Kamelia Nur Binti Raisin/);
+ assert.match(main,/Ahmad Rifa’I Bin Syamsuddin/);
 });
