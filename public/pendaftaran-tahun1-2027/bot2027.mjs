@@ -56,7 +56,7 @@ export function answerRegistrationQuestion(question,info={}){
 }
 export function containsPrivateRegistrationDetails(question){
  const q=String(question||'');
- return /@|(?:\\d[\\s-]?){10,}|mykid|kad\\s*pengenalan|alamat\\s*(?:rumah|anak)|nama\\s*anak\\s*saya|anak\\s*saya\\s*bernama/i.test(q)||
+ return /@|(?:\d[\s-]?){10,}|mykid|kad\s*pengenalan|alamat\s*(?:rumah|anak)|nama\s*anak\s*saya|anak\s*saya\s*bernama/i.test(q)||
   /(?:kelas|semak|cari).{0,35}(?:anak saya|nama anak)|anak saya.{0,35}(?:nama|kelas)/i.test(q);
 }
 function boot(){
