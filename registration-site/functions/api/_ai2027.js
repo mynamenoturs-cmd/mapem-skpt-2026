@@ -22,6 +22,19 @@ async function takeQuota(env,key,limit,end){
  ).bind(key,end,limit).first();
  return !!row;
 }
+export function tidyRegistrationAIAnswer(answer,question){
+ const original=String(answer||'').trim();
+ if(!original)return '';
+ // The opening greeting has already been shown in the chat widget.
+ // Only return a greeting when the visitor explicitly sends a standalone greeting.
+ const greetingOnly=/^(?:assalamualaikum(?:\s+warahmatullahi\s+wabarakatuh)?|salam(?:\s+sejahtera)?|hai|hi|hello)[!?.\s]*$/i.test(String(question||'').trim());
+ if(greetingOnly)return original;
+ let natural=original.replace(/^(?:(?:assalamualaikum(?:\s+dan\s+salam\s+sejahtera|\s+warahmatullahi\s+wabarakatuh)?|waalaikumussalam|salam\s+sejahtera|selamat\s+(?:pagi|petang|malam|tengah\s+hari))\s*[!.,:\-–—]*\s*)+/i,'').trim();
+ // The bot's identity is already in the heading; do not reintroduce it every time.
+ natural=natural.replace(/^saya\s+(?:ialah\s+|adalah\s+)?cikgu\s+wanwan\s+bot[^.!?\n]*[.!?]\s*/i,'').trim();
+ return natural||original;
+}
+
 export async function registrationAI({request,env}){
  if(request.method==='GET'){
   return reply({available:typeof env.AI?.run==='function',model:'GLM-4.7-Flash',fallback:true});
@@ -64,8 +77,10 @@ export async function registrationAI({request,env}){
   'Hanya guru berdaftar boleh mengisi atau mengubah maklumat murid.'
  ].join('\n');
  const prompt=[
-  'Anda Cikgu Wanwan BOT, pembantu AI rasmi Pendaftaran Tahun 1 SK Pekan Telipok. Bersikap mesra dan ceria tanpa menambah fakta rekaan. Untuk menyapa, mulakan dengan Assalamualaikum dan salam sejahtera.',
-  'Jawab dalam Bahasa Melayu, ringkas, sopan dan tepat, maksimum 110 patah perkataan.',
+  'Anda Cikgu Wanwan BOT, pembantu AI rasmi Pendaftaran Tahun 1 SK Pekan Telipok. Bersikap mesra, sopan dan membantu tanpa menambah fakta rekaan.',
+  'Gunakan Bahasa Melayu Malaysia yang natural, mudah difahami dan tidak terlalu formal. Jawab terus kepada soalan, dengan ayat bervariasi seperti seorang pembantu sekolah yang ramah. Ringkas, tepat, maksimum 110 patah perkataan.',
+  'UCAPAN PEMBUKAAN SUDAH DIPAPARKAN DALAM CHAT. Jangan mulakan setiap jawapan dengan Assalamualaikum, salam sejahtera, selamat pagi atau perkenalkan diri. Balas salam secara ringkas hanya apabila pengguna memang memberi salam.',
+  'Elakkan ayat klise yang diulang, pendahuluan panjang, gelaran berulang, atau emoji yang berlebihan. Boleh jawab satu atau dua ayat sahaja jika soalan mudah.',
   'HANYA fakta di bawah ialah sumber yang sah. Utamakan SOALAN DAN JAWAPAN RASMI DISAHKAN PENTADBIR; untuk pertanyaan yang sepadan gunakan jawapan rasmi itu.',
   'Jangan mereka tarikh, dokumen, syarat, kelas seseorang murid, nombor telefon atau fakta lain.',
   'Jika maklumat tiada, jelaskan belum diumumkan dan cadangkan hubungi pihak sekolah.',
@@ -75,12 +90,12 @@ export async function registrationAI({request,env}){
  try{
   const result=await env.AI.run(MODEL,{
    messages:[{role:'system',content:prompt},{role:'user',content:question}],
-   max_completion_tokens:320,temperature:0.2,chat_template_kwargs:{enable_thinking:false}
+   max_completion_tokens:320,temperature:0.35,chat_template_kwargs:{enable_thinking:false}
   });
   // GLM-4.7-Flash uses chat completion choices rather than the older .response shape.
   const message=result?.choices?.[0]?.message;
-  const output=(typeof message?.content==='string'?message.content:
-   typeof result?.response==='string'?result.response:'').trim();
+  const output=tidyRegistrationAIAnswer(typeof message?.content==='string'?message.content:
+   typeof result?.response==='string'?result.response:'',question);
   if(!output||output.length>1700)return fallback('empty-response');
   return reply({mode:'ai',text:output.slice(0,1200),model:'GLM-4.7-Flash'});
  }catch{return fallback('ai-error');}
