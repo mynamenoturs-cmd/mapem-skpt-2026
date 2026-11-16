@@ -26,8 +26,11 @@ export function answerRegistrationQuestion(question,info={}){
  if(!q)return {text:'Sila taip pertanyaan mengenai pendaftaran Tahun 1 2027.'};
  if(/\b\d{6}[- ]?\d{2}[- ]?\d{4}\b/.test(q)||/\b01\d[- ]?\d{7,8}\b/.test(q))
   return {text:'Jangan kongsi nombor MyKid, IC, telefon, alamat atau data peribadi murid melalui chat ini. Hubungi admin untuk urusan rekod.',links};
- if(/\b(hai|hi|hello|salam|assalamualaikum)\b/.test(q))
-  return {text:DEFAULT_GREETING};
+ // Ucapan pembukaan sudah tertera. Balas salam ringkas tanpa mengulangi pengenalan.
+ if(/^(?:assalamualaikum(?:\s+warahmatullahi\s+wabarakatuh)?)[!?.\s]*$/.test(q))
+  return {text:'Waalaikumussalam! 😊 Ada apa yang boleh saya bantu tentang pendaftaran Tahun 1 2027?'};
+ if(/^(?:hai|hi|hello|salam(?:\s+sejahtera)?)[!?.\s]*$/.test(q))
+  return {text:'Hai! 😊 Ada apa yang boleh saya bantu tentang pendaftaran Tahun 1 2027?'};
  const custom=(Array.isArray(info.faqs)?info.faqs:[]).find(f=>f&&normal(f.question)===q&&typeof f.answer==='string'&&f.answer.trim());
  if(custom)return {text:custom.answer.trim(),links:[parent,...links],curated:true};
  const named=teachers.find(t=>normal(q).includes(normal(t.kelas)));
