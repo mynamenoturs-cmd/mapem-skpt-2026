@@ -627,7 +627,7 @@
       <form id="teacherForm"><div class="form-body">
         <div class="teacher-edit-layout">
           <div id="teacherPhotoPreview" class="passport-preview"><span>▧</span></div>
-          <div class="teacher-edit-fields"><label class="field"><span>Kelas</span><input id="teacherClass" readonly></label><label class="field"><span>Nama Guru Kelas</span><input id="teacherName" maxlength="150" required></label><label class="field"><span>Gambar Guru (JPG, PNG atau WebP)</span><input id="teacherPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"><small>Fail asal boleh sehingga 12 MB. Sistem menghasilkan foto pasport <strong>1050 × 1500 piksel</strong> (7:10) dan menyimpan hasil berkualiti tinggi sehingga <strong>600 KB</strong>.</small></label><button type="button" class="btn btn-ghost" id="teacherRemovePhoto">Kosongkan Gambar</button></div>
+          <div class="teacher-edit-fields"><label class="field"><span>Kelas</span><input id="teacherClass" readonly></label><label class="field"><span>Nama Guru Kelas</span><input id="teacherName" maxlength="150" required></label><label class="field"><span>Gambar Guru (JPG, PNG atau WebP)</span><input id="teacherPhotoFile" type="file" accept="image/jpeg,image/png,image/webp"><small>Fail asal sehingga <strong>12 MB</strong>. Sistem menghasilkan foto pasport sehingga <strong>1050 × 1500 piksel</strong> (7:10), dengan kualiti gambar dipelihara dan had simpanan <strong>600 KB</strong>.</small></label><button type="button" class="btn btn-ghost" id="teacherRemovePhoto">Kosongkan Gambar</button></div>
         </div><div id="teacherPhotoStatus" class="content-caption" role="status"></div>
       </div><div class="form-foot"><button type="button" id="cancelTeacher" class="btn btn-ghost">Batal</button><button type="submit" id="saveTeacherBtn" class="btn btn-primary">Simpan Profil Guru</button></div></form>
     </section>
@@ -1153,32 +1153,48 @@
       async function prepareTeacherPhoto(){
         const file=$('teacherPhotoFile').files?.[0];
         if(!file)return;
-        if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){
-          $('teacherPhotoFile').value='';return toast('Pilih imej JPG, PNG atau WebP di bawah 5 MB.');
+        if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>12*1024*1024){
+          $('teacherPhotoFile').value='';
+          return toast('Pilih gambar JPG, PNG atau WebP berukuran maksimum 12 MB.');
         }
-        $('teacherPhotoStatus').textContent='Memproses dan memangkas gambar pasport...';
+        $('teacherPhotoStatus').textContent='Menyediakan gambar pasport berkualiti tinggi...';
+        let picture;
         try{
-          const picture=await createImageBitmap(file);
+          picture=await createImageBitmap(file);
           const canvas=document.createElement('canvas');
-          canvas.width=350;canvas.height=500;
-          const ctx=canvas.getContext('2d',{alpha:false});
-          ctx.fillStyle='#f7f3f0';ctx.fillRect(0,0,350,500);
-          const target=350/500;
+          let output='';
+          let actualWidth=1050,actualHeight=1500;
+          // Crop centrally at the true 7:10 passport aspect ratio. Preserve a larger
+          // resolution and choose high-quality encoding before reducing resolution.
+          const targetRatio=7/10;
           let sx=0,sy=0,sw=picture.width,sh=picture.height;
-          if(sw/sh>target){const w=sh*target;sx=(sw-w)/2;sw=w;}
-          else{const h=sw/target;sy=(sh-h)/2;sh=h;}
-          ctx.drawImage(picture,sx,sy,sw,sh,0,0,350,500);
-          picture.close?.();
-          let output;
-          for(const quality of [0.82,0.70,0.57,0.43]){
-            output=canvas.toDataURL('image/webp',quality);
-            if(!output.startsWith('data:image/webp'))output=canvas.toDataURL('image/jpeg',quality);
-            if(output.length<130000)break;
+          if(sw/sh>targetRatio){const w=sh*targetRatio;sx=(sw-w)/2;sw=w;}
+          else{const h=sw/targetRatio;sy=(sh-h)/2;sh=h;}
+          for(const [width,height] of [[1050,1500],[840,1200],[700,1000]]){
+            canvas.width=width;canvas.height=height;
+            const ctx=canvas.getContext('2d',{alpha:false});
+            if(!ctx)throw Error('Pelayar tidak menyokong penyediaan gambar.');
+            ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);
+            ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+            ctx.drawImage(picture,sx,sy,sw,sh,0,0,width,height);
+            actualWidth=width;actualHeight=height;
+            for(const quality of [0.95,0.90,0.85,0.78,0.70,0.62]){
+              output=canvas.toDataURL('image/webp',quality);
+              if(!output.startsWith('data:image/webp,'))output=canvas.toDataURL('image/jpeg',quality);
+              if(output.length<=790000)break;
+            }
+            if(output.length<=790000)break;
           }
-          if(output.length>130000)throw Error('Gambar terlalu besar. Pilih foto lain atau kurangkan resolusi.');
-          teacherPhotoData=output;paintTeacherPhoto();
-          $('teacherPhotoStatus').textContent='Gambar pasport 35:50 sedia untuk disimpan ('+Math.ceil(output.length*0.75/1024)+' KB).';
-        }catch(e){toast(e.message||'Gagal memproses gambar.');$('teacherPhotoStatus').textContent='Gagal membaca imej. Cuba fail JPG atau PNG.';}
+          if(!output||output.length>790000)throw Error('Gambar masih melebihi 600 KB selepas pemampatan. Cuba foto lain.');
+          teacherPhotoData=output;
+          paintTeacherPhoto();
+          $('teacherPhotoStatus').textContent='Foto pasport '+actualWidth+' × '+actualHeight+' piksel, '+Math.ceil((output.length-output.indexOf(',')-1)*0.75/1024)+' KB — sedia untuk disimpan.';
+        }catch(e){
+          toast(e.message||'Gagal memproses foto pasport.');
+          $('teacherPhotoStatus').textContent='Gambar gagal diproses. Cuba fail JPG atau PNG yang lain.';
+        }finally{
+          picture?.close?.();
+        }
       }
       function closeTeacher(){
         if($('saveTeacherBtn').disabled)return;
