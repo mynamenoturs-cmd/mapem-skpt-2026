@@ -41,6 +41,10 @@ jobs:
           cp public/pendaftaran-tahun1-2027/bot2027.mjs .registration-deploy/public/bot2027.mjs
           cp public/pendaftaran-tahun1-2027/bot2027.css .registration-deploy/public/bot2027.css
           cp public/pendaftaran-tahun1-2027/assets/cikgu-wanwan-bot.gif .registration-deploy/public/assets/cikgu-wanwan-bot.gif
+          cp public/pendaftaran-tahun1-2027/assets/cikgu-wanwan-bot-v2.gif .registration-deploy/public/assets/cikgu-wanwan-bot-v2.gif
+          cp public/pendaftaran-tahun1-2027/assets/cikgu-wanwan-bot-v2-still.webp .registration-deploy/public/assets/cikgu-wanwan-bot-v2-still.webp
+          test -s .registration-deploy/public/assets/cikgu-wanwan-bot-v2.gif
+          test -s .registration-deploy/public/assets/cikgu-wanwan-bot-v2-still.webp
           test -s .registration-deploy/public/assets/cikgu-wanwan-bot.gif
           cp public/pendaftaran-tahun1-2027/_headers .registration-deploy/public/_headers
           cp public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027-logo-rasmi.webp .registration-deploy/public/assets/header-pendaftaran-2027-logo-rasmi.webp
@@ -85,6 +89,12 @@ jobs:
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.css | grep -q 't1chat-panel'
           curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/cikgu-wanwan-bot.gif -o /tmp/cikgu-wanwan-bot-live.gif
           test "$(wc -c < /tmp/cikgu-wanwan-bot-live.gif)" -ge 200000
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/cikgu-wanwan-bot-v2.gif -o /tmp/cikgu-wanwan-bot-v2.gif
+          test "$(wc -c < /tmp/cikgu-wanwan-bot-v2.gif)" -ge 180000
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/cikgu-wanwan-bot-v2-still.webp -o /tmp/cikgu-wanwan-bot-v2-still.webp
+          test "$(wc -c < /tmp/cikgu-wanwan-bot-v2-still.webp)" -ge 10000
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -q '/assets/cikgu-wanwan-bot-v2.gif'
+          curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.css | grep -q 'font-size:11px!important'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -q 'Cikgu Wanwan BOT'
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/assistant > /tmp/year1-bot.json
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/api/public/ai > /tmp/year1-ai-status.json

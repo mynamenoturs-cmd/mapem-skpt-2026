@@ -426,3 +426,16 @@ test('Cikgu Wanwan BOT has an animated mascot and consistent identity on both pa
  assert.match(ai,/Anda Cikgu Wanwan BOT/);
  assert.match(workflow,/assets\/cikgu-wanwan-bot\.gif/);
 });
+
+test('avatar v2 fixes mobile label size and provides a colorful animated avatar with fallback',()=>{
+ const bot=file('../public/pendaftaran-tahun1-2027/bot2027.mjs');
+ const css=file('../public/pendaftaran-tahun1-2027/bot2027.css');
+ const wf=file('../.github/workflows/pendaftaran-2027-cloudflare.yml');
+ assert.match(bot,/cikgu-wanwan-bot-v2\.gif/);
+ assert.match(bot,/stillFallback/);
+ assert.match(css,/\.t1chat-launcher>\.t1chat-launcher-label\{font-size:11px!important/);
+ assert.match(css,/cikgu-wanwan-bot-v2-still\.webp/);
+ assert.match(css,/prefers-reduced-motion/);
+ assert.match(wf,/cikgu-wanwan-bot-v2\.gif/);
+ assert.match(wf,/cikgu-wanwan-bot-v2-still\.webp/);
+});

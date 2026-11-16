@@ -63,15 +63,24 @@ function boot(){
  if(document.getElementById('t1chat-launcher'))return;
  const root=document.createElement('div');root.className='t1chat-root';
  root.innerHTML=[
- '<button type="button" id="t1chat-launcher" class="t1chat-launcher" aria-label="Buka Cikgu Wanwan BOT" aria-expanded="false" aria-controls="t1chat-panel"><img class="t1chat-launcher-mascot" src="/assets/cikgu-wanwan-bot.gif" alt="" aria-hidden="true" width="48" height="64"><span class="t1chat-launcher-label">Cikgu Wanwan BOT</span></button>',
+ '<button type="button" id="t1chat-launcher" class="t1chat-launcher" aria-label="Buka Cikgu Wanwan BOT" aria-expanded="false" aria-controls="t1chat-panel"><img class="t1chat-launcher-mascot" src="/assets/cikgu-wanwan-bot-v2.gif" alt="" aria-hidden="true" width="48" height="64"><span class="t1chat-launcher-label">Cikgu Wanwan BOT</span></button>',
  '<section id="t1chat-panel" class="t1chat-panel" role="dialog" aria-label="Cikgu Wanwan BOT, pembantu AI pendaftaran Tahun 1" hidden>',
- '<header class="t1chat-header"><span class="t1chat-avatar"><img src="/assets/cikgu-wanwan-bot.gif" alt="Avatar Cikgu Wanwan BOT sedang melambai" width="56" height="78"></span><div><strong>Cikgu Wanwan BOT</strong><small>Pembantu AI · Pendaftaran Tahun 1 2027</small></div><button type="button" class="t1chat-close" aria-label="Tutup bot">×</button></header>',
+ '<header class="t1chat-header"><span class="t1chat-avatar"><img src="/assets/cikgu-wanwan-bot-v2.gif" alt="Avatar Cikgu Wanwan BOT sedang melambai" width="56" height="78"></span><div><strong>Cikgu Wanwan BOT</strong><small>Pembantu AI · Pendaftaran Tahun 1 2027</small></div><button type="button" class="t1chat-close" aria-label="Tutup bot">×</button></header>',
  '<div class="t1chat-messages" role="log" aria-live="polite" aria-relevant="additions text"></div>',
  '<div class="t1chat-quick" aria-label="Soalan lazim"></div>',
  '<form class="t1chat-form"><input type="text" maxlength="220" autocomplete="off" required placeholder="Taip pertanyaan..." aria-label="Taip soalan pendaftaran"><button type="submit" aria-label="Hantar soalan">➤</button></form>',
  '<p class="t1chat-privacy">AI Cloudflare + FAQ sandaran · Jangan taip IC, MyKid atau alamat murid.</p></section>'
  ].join('');
  document.body.append(root);
+ // A still image is a reliable fallback in Android embedded browsers that do not animate GIFs.
+ root.querySelectorAll('.t1chat-launcher-mascot,.t1chat-avatar img').forEach(img=>{
+  img.addEventListener('error',()=>{
+   if(img.dataset.stillFallback)return;
+   img.dataset.stillFallback='true';
+   img.src='/assets/cikgu-wanwan-bot-v2-still.webp';
+  });
+ });
+
  const launcher=root.querySelector('#t1chat-launcher'),panel=root.querySelector('#t1chat-panel'),close=root.querySelector('.t1chat-close'),
   messages=root.querySelector('.t1chat-messages'),quick=root.querySelector('.t1chat-quick'),form=root.querySelector('form'),input=form.querySelector('input');
  let info={teachers:DEFAULT_TEACHERS,canSearchStudents:false,adminPhone:''},loaded=false;

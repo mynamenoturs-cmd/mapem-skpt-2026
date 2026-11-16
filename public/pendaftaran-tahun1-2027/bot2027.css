@@ -45,3 +45,73 @@
 @keyframes t1wanwanFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-3px) rotate(1deg)}}
 @media(max-width:650px){.t1chat-launcher{padding:4px 12px 4px 5px;min-height:56px;gap:4px}.t1chat-launcher-mascot{width:44px;height:53px}.t1chat-launcher-label{font-size:11px}.t1chat-panel{bottom:calc(max(13px,env(safe-area-inset-bottom)) + 69px)}}
 @media(prefers-reduced-motion:reduce){.t1chat-launcher-mascot,.t1chat-avatar img{animation:none!important}}
+
+
+/* v2: avatar cerah dan lebih besar, tulisan butang padat untuk skrin telefon */
+.t1chat-launcher{
+  width:auto!important;
+  max-width:calc(100vw - 20px);
+  min-height:57px;
+  padding:5px 14px 5px 6px;
+  gap:8px;
+  border-radius:999px;
+  box-shadow:0 9px 20px #3c0d2f55;
+}
+.t1chat-launcher>span{font-size:inherit;line-height:normal}
+.t1chat-launcher>.t1chat-launcher-label{
+  display:inline-block;
+  font-size:12px!important;
+  line-height:1.25!important;
+  font-weight:800;
+  letter-spacing:0;
+  white-space:nowrap;
+}
+.t1chat-launcher>.t1chat-launcher-mascot{
+  display:block;
+  width:48px;
+  height:48px;
+  min-width:48px;
+  max-width:none;
+  flex:none;
+  object-fit:cover;
+  border:2px solid #ffe4a5;
+  border-radius:50%;
+  background:#fff4e0 url('/assets/cikgu-wanwan-bot-v2-still.webp') center/cover no-repeat;
+  box-shadow:inset 0 0 0 2px #fff8ee,0 2px 7px #2d0d2a58;
+  animation:t1wanwanFloat 3s ease-in-out infinite;
+}
+.t1chat-header .t1chat-avatar{
+  display:grid;
+  place-items:center;
+  flex:0 0 62px;
+  width:62px;
+  height:62px;
+  overflow:hidden;
+  border:2px solid #ffe2a1;
+  border-radius:50%;
+  background:#fff4e0 url('/assets/cikgu-wanwan-bot-v2-still.webp') center/cover no-repeat;
+  box-shadow:0 3px 9px #1b06257a;
+}
+.t1chat-header .t1chat-avatar img{
+  display:block;
+  width:100%;
+  height:100%;
+  min-width:0;
+  max-width:none;
+  object-fit:cover;
+  border-radius:50%;
+  animation:none;
+  filter:none;
+}
+.t1chat-header strong{font-size:14px;line-height:1.35}
+@media(max-width:650px){
+  .t1chat-launcher{right:12px;bottom:max(12px,env(safe-area-inset-bottom));min-height:54px;padding:4px 12px 4px 5px;gap:6px}
+  .t1chat-launcher>.t1chat-launcher-mascot{width:44px;height:44px;min-width:44px}
+  .t1chat-launcher>.t1chat-launcher-label{font-size:11px!important;line-height:1.2!important}
+  .t1chat-header .t1chat-avatar{flex-basis:58px;width:58px;height:58px}
+  .t1chat-panel{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 61px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .t1chat-launcher>.t1chat-launcher-mascot{animation:none}
+  .t1chat-header .t1chat-avatar img{visibility:hidden}
+}
