@@ -1030,6 +1030,100 @@
         catch(e){toast(e.message);}
         finally{$('refreshBtn').disabled=false;}
       }
+      
+      const teacherFor=kelas=>teachers.find(t=>t.kelas===kelas)||{kelas,namaGuru:TEACHER_DEFAULTS[kelas],gambarPasport:null};
+      const photoThumb=(t,cls)=>'<span class="'+cls+'">'+(t.gambarPasport?'<img src="'+esc(t.gambarPasport)+'" alt="Foto '+esc(t.namaGuru)+'">':'<span aria-label="Foto belum dimuat naik">▧</span>')+'</span>';
+      function teacherEditable(kelas){return !!cloudMode&&(cloudInfo?.role==='admin'||cloudInfo?.kelas===kelas);}
+      function renderTeachers(){
+        const viewable=cloudMode&&cloudInfo?.role!=='admin'?[cloudInfo.kelas]:CLASSES;
+        $('teacherCards').innerHTML=viewable.map(kelas=>{
+          const t=teacherFor(kelas);
+          return '<article class="teacher-card">'+photoThumb(t,'passport')+'<div class="teacher-card-data"><small>GURU KELAS 1 '+esc(kelas).toUpperCase()+'</small><strong>'+esc(t.namaGuru)+'</strong>'+(teacherEditable(kelas)?'<button type="button" class="teacher-card-action" data-edit-teacher="'+esc(kelas)+'">✎ Tambah / Tukar Gambar</button>':'<span class="content-caption">Foto pasport belum dimuat naik</span>')+'</div></article>';
+        }).join('');
+      }
+      function openTeacherEditor(kelas){
+        if(!teacherEditable(kelas))return toast('Log masuk Cloudflare dengan akses kelas ini untuk memuat naik gambar.');
+        const t=teacherFor(kelas);
+        editingTeacherClass=kelas;teacherPhotoData=t.gambarPasport??null;
+        $('teacherForm').reset();$('teacherClass').value='1 '+kelas;$('teacherName').value=t.namaGuru;
+        $('teacherName').readOnly=cloudInfo.role!=='admin';
+        $('teacherPhotoStatus').textContent='Gambar akan disimpan dalam Cloudflare D1 selepas menekan Simpan Profil.';
+        paintTeacherPhoto();$('teacherOverlay').hidden=false;
+      }
+      function paintTeacherPhoto(){
+        $('teacherPhotoPreview').innerHTML=teacherPhotoData?'<img src="'+esc(teacherPhotoData)+'" alt="Pratonton gambar guru kelas">':'<span aria-label="Gambar belum dimuat naik">▧</span>';
+      }
+      async function prepareTeacherPhoto(){
+        const file=$('teacherPhotoFile').files?.[0];
+        if(!file)return;
+        if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024){
+          $('teacherPhotoFile').value='';return toast('Pilih imej JPG, PNG atau WebP di bawah 5 MB.');
+        }
+        $('teacherPhotoStatus').textContent='Memproses dan memangkas gambar pasport...';
+        try{
+          const picture=await createImageBitmap(file);
+          const canvas=document.createElement('canvas');
+          canvas.width=350;canvas.height=500;
+          const ctx=canvas.getContext('2d',{alpha:false});
+          ctx.fillStyle='#f7f3f0';ctx.fillRect(0,0,350,500);
+          const target=350/500;
+          let sx=0,sy=0,sw=picture.width,sh=picture.height;
+          if(sw/sh>target){const w=sh*target;sx=(sw-w)/2;sw=w;}
+          else{const h=sw/target;sy=(sh-h)/2;sh=h;}
+          ctx.drawImage(picture,sx,sy,sw,sh,0,0,350,500);
+          picture.close?.();
+          let output;
+          for(const quality of [0.82,0.70,0.57,0.43]){
+            output=canvas.toDataURL('image/webp',quality);
+            if(!output.startsWith('data:image/webp'))output=canvas.toDataURL('image/jpeg',quality);
+            if(output.length<130000)break;
+          }
+          if(output.length>130000)throw Error('Gambar terlalu besar. Pilih foto lain atau kurangkan resolusi.');
+          teacherPhotoData=output;paintTeacherPhoto();
+          $('teacherPhotoStatus').textContent='Gambar pasport 35:50 sedia untuk disimpan ('+Math.ceil(output.length*0.75/1024)+' KB).';
+        }catch(e){toast(e.message||'Gagal memproses gambar.');$('teacherPhotoStatus').textContent='Gagal membaca imej. Cuba fail JPG atau PNG.';}
+      }
+      function closeTeacher(){
+        if($('saveTeacherBtn').disabled)return;
+        $('teacherOverlay').hidden=true;editingTeacherClass=null;teacherPhotoData=null;
+      }
+      async function saveTeacher(e){
+        e.preventDefault();
+        if(!editingTeacherClass||!cloudMode)return;
+        const kelas=editingTeacherClass,name=$('teacherName').value.trim();
+        if(name.length<3)return toast('Masukkan nama guru kelas.');
+        $('saveTeacherBtn').disabled=true;
+        let ok=false;
+        try{
+          await cloudApi('teachers/save',{kelas,namaGuru:name,gambarPasport:teacherPhotoData});
+          await loadCloudTeachers();ok=true;
+          render();toast('Profil guru kelas '+kelas+' telah disimpan.');
+        }catch(e){toast(e.message);}
+        finally{$('saveTeacherBtn').disabled=false;}
+        if(ok)closeTeacher();
+      }
+      async function openPublicSettings(){
+        if(!cloudMode||cloudInfo?.role!=='admin')return toast('Tetapan hanya untuk pentadbir.');
+        $('publicSettingsOverlay').hidden=false;
+        try{
+          const data=await cloudApi('settings');
+          $('publicAdminPhone').value=data.adminPhone||'';
+          $('parentLookupSwitch').checked=!!data.parentLookupEnabled;
+        }catch(e){toast(e.message);}
+      }
+      async function savePublicSettings(e){
+        e.preventDefault();
+        if(!cloudMode||cloudInfo?.role!=='admin')return;
+        const enabled=$('parentLookupSwitch').checked;
+        if(enabled&&!confirm('Aktifkan carian nama murid kepada semua pelawat yang mempunyai pautan? Hanya nama murid dan kelas akan dipaparkan.'))return;
+        $('savePublicSettingsBtn').disabled=true;
+        try{
+          await cloudApi('settings/save',{adminPhone:$('publicAdminPhone').value.trim(),parentLookupEnabled:enabled});
+          $('publicSettingsOverlay').hidden=true;toast('Tetapan paparan ibu bapa dan nombor admin berjaya disimpan.');
+        }catch(e){toast(e.message);}
+        finally{$('savePublicSettingsBtn').disabled=false;}
+      }
+
       function countFor(c) { return students.filter(s=>c==='Semua'||s.kelas===c).length; }
       function filtered() {
         const q=$('searchInput').value.trim().toLocaleLowerCase('ms'); const pra=$('praFilter').value;
