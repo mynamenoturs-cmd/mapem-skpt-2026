@@ -342,7 +342,9 @@ test('both portal pages load chat module and workflow deploys its assets',()=>{
  assert.match(workflow,/bot2027\.css/);
  const bot=file('../public/pendaftaran-tahun1-2027/bot2027.mjs');
  assert.match(bot,/Jangan taip IC, MyKid atau alamat murid/);
- assert.doesNotMatch(bot,/localStorage|sessionStorage|fetch\([^)]*question/);
+ assert.doesNotMatch(bot,/localStorage|sessionStorage/);
+ assert.match(bot,/containsPrivateRegistrationDetails\(val\)/);
+ assert.match(bot,/fetch\('\/api\/public\/ai'/);
 });
 
 test('Cloudflare AI endpoint uses approved facts, caps requests, and falls back without binding',async()=>{
