@@ -69,9 +69,12 @@ export async function registrationAI({request,env}){
  try{
   const result=await env.AI.run(MODEL,{
    messages:[{role:'system',content:prompt},{role:'user',content:question}],
-   max_completion_tokens:320,temperature:0.2
+   max_completion_tokens:320,temperature:0.2,chat_template_kwargs:{enable_thinking:false}
   });
-  const output=typeof result?.response==='string'?result.response.trim():'';
+  // GLM-4.7-Flash uses chat completion choices rather than the older .response shape.
+  const message=result?.choices?.[0]?.message;
+  const output=(typeof message?.content==='string'?message.content:
+   typeof result?.response==='string'?result.response:'').trim();
   if(!output||output.length>1700)return fallback('empty-response');
   return reply({mode:'ai',text:output.slice(0,1200),model:'GLM-4.7-Flash'});
  }catch{return fallback('ai-error');}
