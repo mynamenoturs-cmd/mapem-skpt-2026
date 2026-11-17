@@ -54,11 +54,17 @@ function validateTeacherImage(value) {
  if(typeof value!=='string'||value.length>820000)error('Gambar pasport terlalu besar. Had maksimum 600 KB selepas pemprosesan.',413);
  const match=/^data:image\/(webp|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/.exec(value);
  if(!match)error('Format gambar mesti JPG atau WebP.');
- let bytes;
- try{bytes=atob(match[2]);}catch{error('Data gambar tidak sah.');}
- if(bytes.length<350||bytes.length>600000)error('Gambar pasport mesti antara 350 B dan 600 KB.',413);
- if(match[1]==='webp'&&!(bytes.slice(0,4)==='RIFF'&&bytes.slice(8,12)==='WEBP'))error('Fail WebP tidak sah.');
- if(match[1]==='jpeg'&&!(bytes.charCodeAt(0)===255&&bytes.charCodeAt(1)===216&&bytes.charCodeAt(2)===255))error('Fail JPEG tidak sah.');
+ // Do not decode 250–600 KB in a Workers Free request: check length and
+ // magic bytes using only the first 32 base64 characters. D1 stores base64 as text.
+ const base64=match[2];
+ if(base64.length%4!==0)error('Data gambar tidak lengkap.');
+ const padding=base64.endsWith('==')?2:base64.endsWith('=')?1:0;
+ const byteCount=base64.length/4*3-padding;
+ if(byteCount<350||byteCount>600000)error('Gambar pasport mesti antara 350 B dan 600 KB.',413);
+ let header;
+ try{header=atob(base64.slice(0,32));}catch{error('Data gambar tidak sah.');}
+ if(match[1]==='webp'&&!(header.slice(0,4)==='RIFF'&&header.slice(8,12)==='WEBP'))error('Fail WebP tidak sah.');
+ if(match[1]==='jpeg'&&!(header.charCodeAt(0)===255&&header.charCodeAt(1)===216&&header.charCodeAt(2)===255))error('Fail JPEG tidak sah.');
  return value;
 }
 function validAdminPhone(value){
@@ -123,9 +129,22 @@ export async function handleRegistration2027({request,env,user,path}) {
   const name=b.namaGuru===undefined?previous.namaGuru:safeText(b.namaGuru,'Nama guru',150,3);
   if(access.role!=='admin'&&name!==previous.namaGuru)error('Hanya pentadbir boleh mengubah nama guru kelas.',403);
   const photo=b.gambarPasport===undefined?previous.gambarPasport:validateTeacherImage(b.gambarPasport);
-  await env.DB.prepare('UPDATE registration_2027_teachers SET teacher_name=?,photo_data_url=?,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE class_name=?').bind(name,photo,user.email,kelas).run();
-  await env.DB.prepare('INSERT INTO registration_2027_teacher_audit(actor_email,class_name,action) VALUES(?,?,?)').bind(user.email,kelas,photo===null?'clear-photo':'update').run();
-  return json({ok:true});
+  // The update is idempotent. Distinguish an actual D1 write failure from a
+  // successful write whose audit log or subsequent UI refresh fails.
+  try{
+   await env.DB.prepare('UPDATE registration_2027_teachers SET teacher_name=?,photo_data_url=?,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE class_name=?').bind(name,photo,user.email,kelas).run();
+  }catch(e){
+   console.error('REG2027_TEACHER_SAVE_D1',e?.cause?.message||e?.message||'unknown');
+   error('Gambar belum dapat disimpan ke Cloudflare D1 (kod GURU-D1). Cuba lagi selepas beberapa saat.',503);
+  }
+  try{
+   await env.DB.prepare('INSERT INTO registration_2027_teacher_audit(actor_email,class_name,action) VALUES(?,?,?)').bind(user.email,kelas,photo===null?'clear-photo':'update').run();
+  }catch(e){
+   // A completed photo save must not be reported as failed because the audit
+   // table was temporarily unavailable. Log without attaching image or PII.
+   console.error('REG2027_TEACHER_AUDIT',e?.cause?.message||e?.message||'unknown');
+  }
+  return json({ok:true,kelas,photoSaved:true});
  }
  if(path==='registration2027/bot/config'&&request.method==='GET'){
   if(access.role!=='admin')error('Hanya pentadbir boleh mengurus soalan dan jawapan bot.',403);
