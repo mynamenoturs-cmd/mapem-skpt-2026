@@ -866,7 +866,7 @@
       let classPopupClass = null, classPopupOpener = null;
       let editId = null, hideSensitive = true, pendingSave = Promise.resolve(), toastTimer;
       let cloudMode = false, cloudInfo = null, importRows = null, importing = false, currentView = 'dashboard';
-      let teachers=CLASSES.map(kelas=>({kelas,namaGuru:TEACHER_DEFAULTS[kelas],gambarPasport:null})),editingTeacherClass=null,teacherPhotoData=null;
+      let teachers=CLASSES.map(kelas=>({kelas,namaGuru:TEACHER_DEFAULTS[kelas],gambarPasport:null})),editingTeacherClass=null,teacherPhotoData=null,teacherPhotoChanged=false;
       const $ = id => document.getElementById(id);
       const enc = new TextEncoder(), dec = new TextDecoder();
       const esc = s => String(s ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -1263,7 +1263,7 @@
       function openTeacherEditor(kelas){
         if(!teacherEditable(kelas))return toast('Log masuk Cloudflare dengan akses kelas ini untuk memuat naik gambar.');
         const t=teacherFor(kelas);
-        editingTeacherClass=kelas;teacherPhotoData=t.gambarPasport??null;
+        editingTeacherClass=kelas;teacherPhotoData=t.gambarPasport??null;teacherPhotoChanged=false;
         $('teacherForm').reset();$('teacherClass').value='1 '+kelas;$('teacherName').value=t.namaGuru;
         $('teacherName').readOnly=cloudInfo.role!=='admin';
         $('teacherPhotoStatus').textContent='Gambar akan disimpan dalam Cloudflare D1 selepas menekan Simpan Profil.';
@@ -1308,7 +1308,7 @@
             if(output.length<=790000)break;
           }
           if(!output||output.length>790000)throw Error('Gambar masih melebihi 600 KB selepas pemampatan. Cuba foto lain.');
-          teacherPhotoData=output;
+          teacherPhotoData=output;teacherPhotoChanged=true;
           paintTeacherPhoto();
           $('teacherPhotoStatus').textContent='Foto pasport '+actualWidth+' × '+actualHeight+' piksel, '+Math.ceil((output.length-output.indexOf(',')-1)*0.75/1024)+' KB — sedia untuk disimpan.';
         }catch(e){
@@ -1320,7 +1320,7 @@
       }
       function closeTeacher(){
         if($('saveTeacherBtn').disabled)return;
-        $('teacherOverlay').hidden=true;editingTeacherClass=null;teacherPhotoData=null;
+        $('teacherOverlay').hidden=true;editingTeacherClass=null;teacherPhotoData=null;teacherPhotoChanged=false;
       }
       async function saveTeacher(e){
         e.preventDefault();
@@ -1330,12 +1330,30 @@
         $('saveTeacherBtn').disabled=true;
         let ok=false;
         try{
-          await cloudApi('teachers/save',{kelas,namaGuru:name,gambarPasport:teacherPhotoData});
-          await loadCloudTeachers();ok=true;
-          render();toast('Profil guru kelas '+kelas+' telah disimpan.');
-        }catch(e){toast(e.message);}
-        finally{$('saveTeacherBtn').disabled=false;}
-        if(ok)closeTeacher();
+          // Only upload the image when it has actually changed. Sending the same
+          // 300–800 KB data URL for a name-only edit wastes Worker CPU and D1 I/O.
+          const payload={kelas,namaGuru:name};
+          if(teacherPhotoChanged)payload.gambarPasport=teacherPhotoData;
+          $('teacherPhotoStatus').textContent='Menyimpan profil guru ke Cloudflare D1...';
+          const result=await cloudApi('teachers/save',payload);
+          if(!result.ok)throw Error('Pelayan belum mengesahkan penyimpanan.');
+          // A failed secondary GET must never make a successful POST look failed.
+          const original=teacherFor(kelas);
+          const updated={...original,namaGuru:name,
+            gambarPasport:teacherPhotoChanged?teacherPhotoData:original.gambarPasport};
+          teachers=teachers.map(t=>t.kelas===kelas?updated:t);
+          ok=true;
+          render();
+          toast('Profil guru kelas '+kelas+' berjaya disimpan.');
+        }catch(e){
+          $('teacherPhotoStatus').textContent='Belum berjaya disimpan: '+e.message;
+          toast(e.message);
+        }finally{$('saveTeacherBtn').disabled=false;}
+        if(ok){
+          closeTeacher();
+          // Refresh in the background only; preserve the locally confirmed save.
+          loadCloudTeachers().then(()=>render()).catch(()=>{});
+        }
       }
       async function openPublicSettings(){
         if(!cloudMode||cloudInfo?.role!=='admin')return toast('Tetapan hanya untuk pentadbir.');
@@ -1632,7 +1650,7 @@
       $('teacherForm').addEventListener('submit',saveTeacher);
       $('teacherPhotoFile').addEventListener('change',prepareTeacherPhoto);
       $('teacherRemovePhoto').addEventListener('click',()=>{
-        teacherPhotoData=null;paintTeacherPhoto();$('teacherPhotoStatus').textContent='Gambar dikosongkan. Tekan Simpan Profil untuk menyimpan.';
+        teacherPhotoData=null;teacherPhotoChanged=true;paintTeacherPhoto();$('teacherPhotoStatus').textContent='Gambar dikosongkan. Tekan Simpan Profil untuk menyimpan.';
       });
       $('closeTeacher').addEventListener('click',closeTeacher);
       $('cancelTeacher').addEventListener('click',closeTeacher);
