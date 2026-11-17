@@ -566,3 +566,32 @@ test('PWA service worker only caches static shell and never caches registration 
   assert.ok(workflow.includes(p),'missing PWA deployment: '+p);
  }
 });
+
+test('realistic 249 KB teacher passport WebP saves successfully without decoding the full image',async()=>{
+ const {cookie,call}=fixture();
+ const admin=await cookie('admin@gmail.com');
+ const bytes=Buffer.alloc(249*1024,16);
+ bytes.write('RIFF',0,'ascii');
+ bytes.writeUInt32LE(bytes.length-8,4);
+ bytes.write('WEBP',8,'ascii');
+ bytes.write('VP8 ',12,'ascii');
+ const photo='data:image/webp;base64,'+bytes.toString('base64');
+ const stored=await call('registration2027/teachers/save',{
+  who:admin,method:'POST',body:{kelas:'Ruby',namaGuru:'Airin Bin Alin',gambarPasport:photo}
+ });
+ assert.equal(stored.status,200);
+ assert.equal((await stored.json()).photoSaved,true);
+ const teachers=await (await call('registration2027/teachers',{who:admin})).json();
+ assert.equal(teachers.teachers.find(t=>t.kelas==='Ruby').gambarPasport,photo);
+ const backend=file('../functions/api/_registration2027.js');
+ assert.match(backend,/atob\(base64\.slice\(0,32\)\)/);
+ assert.doesNotMatch(backend,/atob\(match\[2\]\)/);
+});
+test('successful teacher save updates the UI without requiring another successful network request',()=>{
+ const html=file('../public/pendaftaran-tahun1-2027/index.html');
+ assert.match(html,/if\(teacherPhotoChanged\)payload\.gambarPasport=teacherPhotoData/);
+ assert.match(html,/const result=await cloudApi\('teachers\/save',payload\)/);
+ assert.match(html,/teachers=teachers\.map\(t=>t\.kelas===kelas\?updated:t\)/);
+ assert.match(html,/loadCloudTeachers\(\)\.then\(\(\)=>render\(\)\)\.catch/);
+ assert.match(html,/Belum berjaya disimpan:/);
+});
