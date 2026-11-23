@@ -605,7 +605,7 @@
         <button class="auth-link" type="button" id="authRestore">Pulihkan daripada fail sandaran</button>
         <button class="auth-link" type="button" id="forgotPasswordBtn" hidden>Lupa kata laluan? Reset storan setempat</button>
       </div></details></div>
-      <div class="cloud-login"><a class="btn btn-primary" id="cloudAuthBtn" href="https://mapem-skpt-2026.pages.dev/api/registration2027/transfer/start">Teruskan dengan Google <span class="arrow">→</span></a><p>Akses untuk guru dan pentadbir yang didaftarkan sahaja.</p><a class="parent-login-link" href="/ibu-bapa/">☷ &nbsp;Paparan Ibu Bapa / Penjaga (lihat sahaja)</a><div id="loginNotice" class="login-notice" role="alert" hidden></div></div>
+      <div class="cloud-login"><a class="btn btn-primary" id="cloudAuthBtn" href="https://mapem-skpt-2026.pages.dev/api/registration2027/transfer/start">Teruskan dengan Google <span class="arrow">→</span></a><p>Akses untuk guru dan pentadbir yang didaftarkan sahaja.</p><a class="parent-login-link" href="/ibu-bapa/">☷ &nbsp;Paparan Ibu Bapa / Penjaga (lihat sahaja)</a><div id="loginNotice" class="login-notice" role="alert" hidden></div><button id="retrySession" class="btn btn-ghost" type="button" hidden>Cuba semula</button></div>
     </section>
   </main>
 
@@ -929,7 +929,7 @@
       }
       function showAuth() {
          $('app').hidden=true;$('authPage').hidden=false;setAuthMode();
-         $('loginNotice').hidden=true;
+         $('loginNotice').hidden=true;$('retrySession').hidden=true;
          const status=new URL(location.href).searchParams.get('login');
          if(status==='not-authorized'){
            $('loginNotice').textContent='Akaun Google ini belum diberikan akses. Hubungi pentadbir pendaftaran untuk mendapatkan kebenaran.';
@@ -1002,17 +1002,31 @@
         const response=await cloudApi('teachers',undefined,signal);
         teachers=response.teachers;
       }
-      async function enterCloud(signal){
-        const info=await cloudApi('me',undefined,signal);
-        if(!info.authorized)throw Error('Akses akaun Google belum dibenarkan.');
+      async function readOnLogin(endpoint,label){
+        const controller=new AbortController();
+        const timer=setTimeout(()=>controller.abort(),30000);
+        try{return await cloudApi(endpoint,undefined,controller.signal);}
+        catch(e){
+          if(e.status===401 || e.status===403)throw e;
+          throw new Error(label+(e.status?' (HTTP '+e.status+').':e.name==='AbortError'?' mengambil masa terlalu lama.':' gagal dimuatkan.'));
+        }finally{clearTimeout(timer);}
+      }
+      async function enterCloud(){
+        const info=await readOnLogin('me','Semakan akaun');
+        if(!info.authorized || !info.user)throw Error('Respons semakan akaun tidak lengkap.');
         await pendingSave.catch(()=>{});
-        await Promise.all([loadCloudStudents(signal),loadCloudTeachers(signal)]);
+        const roster=await readOnLogin('students','Senarai murid');
+        if(!Array.isArray(roster.records))throw Error('Respons senarai murid tidak lengkap.');
+        students=roster.records;
         cloudInfo=info;cloudMode=true;vault=null;vaultKey=null;
         activeClass=info.role==='admin'?'Semua':info.kelas;
         hideSensitive=true;
         $('searchInput').value='';$('praFilter').value='Semua';
         showApp();
         toast('Cloudflare D1 aktif — '+info.user.email);
+        readOnLogin('teachers','Profil guru').then(data=>{
+          if(cloudInfo===info && cloudMode && Array.isArray(data.teachers)){teachers=data.teachers;render();}
+        }).catch(()=>{if(cloudInfo===info && cloudMode)toast('Profil guru belum dimuatkan. Gunakan Muat Semula untuk mencuba lagi.');});
       }
       async function cloudLogin(){
         $('cloudAuthBtn').disabled=true;
@@ -1571,12 +1585,16 @@
       }
       async function lock() { try { await pendingSave; } catch(e) {} students=[]; vault=null; vaultKey=null; activeClass='Semua'; $('searchInput').value=''; $('praFilter').value='Semua'; hideSensitive=true; showAuth(); }
       async function boot() {
-        const controller=new AbortController();
-        const timer=setTimeout(()=>controller.abort(),12000);
-        try{await enterCloud(controller.signal);return;}catch(e){
+        $('retrySession').hidden=true;
+        $('offlineOptions').hidden=true;
+        try{await enterCloud();return;}catch(e){
           showAuth();
-          if(e.status!==401){$('loginNotice').textContent='Sesi portal gagal dimuatkan. Semak sambungan dan cuba lagi.';$('loginNotice').hidden=false;}
-        }finally{clearTimeout(timer);controller.abort();}
+          if(e.status!==401){
+            $('loginNotice').textContent=e.status===403?'Akaun Google ini belum diberikan akses pendaftaran Tahun 1. Gunakan akaun yang diberi akses oleh pentadbir.':e.message;
+            $('loginNotice').hidden=false;
+            $('retrySession').hidden=e.status===403;
+          }
+        }
         $('offlineOptions').hidden=false;
         if(!isSupported()) {
           $('authPage').hidden=false; setAuthMode();
@@ -1584,6 +1602,7 @@
           $('authSubmit').disabled=true;return;
         }
       }
+      $('retrySession').addEventListener('click',boot);
       $('authForm').addEventListener('submit',submitAuth);
       if(location.hostname==='mapem-skpt-2026.pages.dev')$('cloudAuthBtn').href='/api/auth/google/start?next=registration2027';
       $('openCloudBtn').addEventListener('click',cloudLogin);
