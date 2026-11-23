@@ -579,6 +579,11 @@
 <link rel="stylesheet" href="/bot2027.css">
 </head>
 <body>
+  <section id="startup" aria-live="polite" style="max-width:32rem;margin:14vh auto;padding:1.5rem">
+    <strong>Portal Pendaftaran Tahun 1 · SK Pekan Telipok</strong>
+    <p>Sedang membuka portal. Jika paparan ini berterusan, muat semula halaman.</p>
+    <a href="">Muat semula portal</a>
+  </section>
   <main id="authPage" class="auth-page" hidden>
     <section class="login-intro" aria-label="Selamat datang">
       <div class="login-logo"><span class="brand-crest"><img class="crest-image" src="./assets/logo-sekolah-rasmi-2027.webp" alt="Lencana SK Pekan Telipok" loading="eager"></span><div><strong>SK PEKAN TELIPOK</strong><small>Tuaran, Sabah</small></div></div>
@@ -845,7 +850,7 @@
   <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
   <script type="module">
-    import {readTable,mapImportRows,createExcelTemplate} from './import2027.mjs';
+    const loadImportTools=()=>import('./import2027.mjs');
     (() => {
       'use strict';
       const CLASSES = ['Emerald', 'Ruby', 'Sapphire', 'Diamond', 'Jade', 'Crystal', 'Topaz', 'Amber', 'Pearl'];
@@ -928,6 +933,7 @@
         $('forgotPasswordBtn').hidden=isNew;
       }
       function showAuth() {
+         $('startup').hidden=true;
          $('app').hidden=true;$('authPage').hidden=false;setAuthMode();
          $('loginNotice').hidden=true;
          const status=new URL(location.href).searchParams.get('login');
@@ -942,6 +948,7 @@
          $('cloudAuthBtn').focus();
        }
       function showApp() {
+         $('startup').hidden=true;
          $('authPage').hidden=true;$('app').hidden=false;
          switchView('dashboard');render();
        }
@@ -986,28 +993,28 @@
         finally { $('authSubmit').disabled=false; }
       }
       // Google login uses the existing MaPeM HttpOnly session. PII is never cached in localStorage.
-      async function cloudApi(endpoint, body) {
-        const options={credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}};
+      async function cloudApi(endpoint, body, signal) {
+        const options={signal,credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}};
         if(body!==undefined){options.method='POST';options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}
         const resp=await fetch('/api/registration2027/'+endpoint,options);
         const data=await resp.json().catch(()=>({error:'Respons pelayan tidak sah.'}));
         if(!resp.ok){const err=new Error(data.error||'Ralat Cloudflare ('+resp.status+').');err.status=resp.status;throw err;}
         return data;
       }
-      async function loadCloudStudents(){
-        const response=await cloudApi('students');
+      async function loadCloudStudents(signal){
+        const response=await cloudApi('students',undefined,signal);
         students=response.records;
       }
-      async function loadCloudTeachers(){
-        const response=await cloudApi('teachers');
+      async function loadCloudTeachers(signal){
+        const response=await cloudApi('teachers',undefined,signal);
         teachers=response.teachers;
       }
-      async function enterCloud(){
-        const info=await cloudApi('me');
+      async function enterCloud(signal){
+        const info=await cloudApi('me',undefined,signal);
         if(!info.authorized)throw Error('Akses akaun Google belum dibenarkan.');
         await pendingSave.catch(()=>{});
+        await Promise.all([loadCloudStudents(signal),loadCloudTeachers(signal)]);
         cloudInfo=info;cloudMode=true;vault=null;vaultKey=null;
-        await Promise.all([loadCloudStudents(),loadCloudTeachers()]);
         activeClass=info.role==='admin'?'Semua':info.kelas;
         hideSensitive=true;
         $('searchInput').value='';$('praFilter').value='Semua';
@@ -1136,8 +1143,10 @@
         try{await cloudApi('admins/revoke',{email});await openAdmins();toast('Akses admin telah dibatalkan.');}
         catch(e){toast(e.message);}
       }
-      function downloadExcelTemplate(){
+      async function downloadExcelTemplate(){
         const kelas=cloudMode&&cloudInfo.role!=='admin'?cloudInfo.kelas:activeClass;
+        let createExcelTemplate;
+        try{({createExcelTemplate}=await loadImportTools());}catch{toast('Templat gagal dimuatkan. Sila cuba lagi.');return;}
         const blob=createExcelTemplate(kelas==='Semua'?'':kelas);
         download(blob,blob.type,'Templat-Pendaftaran-Tahun1-2027-'+(kelas==='Semua'?'9-Kelas':kelas)+'.xlsx');
         toast('Templat Excel berjaya dijana.');
@@ -1160,6 +1169,7 @@
         if(!file){$('importStatus').textContent='Pilih fail Excel atau CSV.';return;}
         $('importStatus').textContent='Membaca fail dan menyemak lajur...';
         try{
+          const {readTable,mapImportRows}=await loadImportTools();
           const table=await readTable(file);
           const defaultClass=cloudMode&&cloudInfo.role!=='admin'?cloudInfo.kelas:activeClass;
           const result=mapImportRows(table,{defaultClass,allowedClass:cloudMode&&cloudInfo.role!=='admin'?cloudInfo.kelas:null});
@@ -1568,13 +1578,17 @@
       }
       async function lock() { try { await pendingSave; } catch(e) {} students=[]; vault=null; vaultKey=null; activeClass='Semua'; $('searchInput').value=''; $('praFilter').value='Semua'; hideSensitive=true; showAuth(); }
       async function boot() {
-        try{await enterCloud();return;}catch(e){}
+        const controller=new AbortController();
+        const timer=setTimeout(()=>controller.abort(),12000);
+        try{await enterCloud(controller.signal);return;}catch(e){
+          showAuth();
+          if(e.status!==401){$('loginNotice').textContent='Sesi portal gagal dimuatkan. Semak sambungan dan cuba lagi.';$('loginNotice').hidden=false;}
+        }finally{clearTimeout(timer);controller.abort();}
         if(!isSupported()) {
           $('authPage').hidden=false; setAuthMode();
           authError('Pelayar atau mod ini tidak menyokong penyulitan/storan. Gunakan Chrome, Edge atau Firefox terkini melalui HTTPS atau localhost.');
           $('authSubmit').disabled=true;return;
         }
-        showAuth();
       }
       $('authForm').addEventListener('submit',submitAuth);
       $('cloudAuthBtn').addEventListener('click',cloudLogin);
