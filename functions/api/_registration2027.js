@@ -161,7 +161,7 @@ export async function handleRegistration2027({request,env,user,path}) {
  if(path==='registration2027/bot/save'&&request.method==='POST'){
   if(access.role!=='admin')error('Hanya pentadbir boleh mengurus soalan dan jawapan bot.',403);
   const body=await parseBody(request,26000);
-  const greeting=safeText(body.greeting,'Ucapan Cikgu Wanwan BOT',650,40);
+  const greeting=safeText(body.greeting,'Ucapan Delima PTG BOT',650,40);
   if(!Array.isArray(body.faqs)||body.faqs.length>20)error('Maksimum 20 soalan lazim dibenarkan.');
   const seen=new Set(),faqs=[];
   for(const item of body.faqs){

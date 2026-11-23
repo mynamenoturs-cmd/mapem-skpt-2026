@@ -11,7 +11,7 @@ export const DEFAULT_TEACHERS=[
  {kelas:'Amber',namaGuru:'Mazniza Binti Mahadzir'},
  {kelas:'Pearl',namaGuru:'Nurul Umaierah Binti Abdul Rapi'}
 ];
-export const DEFAULT_GREETING="Assalamualaikum dan salam sejahtera! 🌸 Saya Cikgu Wanwan BOT 🤖, pembantu maya Pendaftaran Tahun 1 Sesi 2027 SK Pekan Telipok. Saya sedia membantu ibu bapa dan penjaga mendapatkan maklumat tentang pendaftaran, guru kelas, semakan kelas anak dan cara menghubungi pihak sekolah. Pilih soalan di bawah atau taip pertanyaan anda. 😊";
+export const DEFAULT_GREETING="Assalamualaikum dan salam sejahtera! 🌸 Saya Delima PTG BOT 🤖, pembantu maya Pendaftaran Tahun 1 Sesi 2027 SK Pekan Telipok. Saya sedia membantu ibu bapa dan penjaga mendapatkan maklumat tentang pendaftaran, guru kelas, semakan kelas anak dan cara menghubungi pihak sekolah. Pilih soalan di bawah atau taip pertanyaan anda. 😊";
 export const QUICK_QUESTIONS=['Cara semak kelas anak','Senarai guru kelas','Dokumen diperlukan','Tarikh pendaftaran','Hubungi admin'];
 const normal=x=>String(x??'').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('ms').replace(/[’‘]/g,"'").trim();
 export function answerRegistrationQuestion(question,info={}){
@@ -69,9 +69,9 @@ function boot(){
  if(document.getElementById('t1chat-launcher'))return;
  const root=document.createElement('div');root.className='t1chat-root';
  root.innerHTML=[
- '<button type="button" id="t1chat-launcher" class="t1chat-launcher" aria-label="Buka Cikgu Wanwan BOT" aria-expanded="false" aria-controls="t1chat-panel"><img class="t1chat-launcher-mascot" src="/assets/cikgu-wanwan-bot-v2.gif" alt="" aria-hidden="true" width="48" height="64"><span class="t1chat-launcher-label">Cikgu Wanwan BOT</span></button>',
- '<section id="t1chat-panel" class="t1chat-panel" role="dialog" aria-label="Cikgu Wanwan BOT, pembantu AI pendaftaran Tahun 1" hidden>',
- '<header class="t1chat-header"><span class="t1chat-avatar"><img src="/assets/cikgu-wanwan-bot-v2.gif" alt="Avatar Cikgu Wanwan BOT sedang melambai" width="56" height="78"></span><div><strong>Cikgu Wanwan BOT</strong><small>Pembantu AI · Pendaftaran Tahun 1 2027</small></div><button type="button" class="t1chat-close" aria-label="Tutup bot">×</button></header>',
+ '<button type="button" id="t1chat-launcher" class="t1chat-launcher" aria-label="Buka Delima PTG BOT" aria-expanded="false" aria-controls="t1chat-panel"><img class="t1chat-launcher-mascot" src="/assets/cikgu-wanwan-bot-v2.gif" alt="" aria-hidden="true" width="48" height="64"><span class="t1chat-launcher-label">Delima PTG BOT</span></button>',
+ '<section id="t1chat-panel" class="t1chat-panel" role="dialog" aria-label="Delima PTG BOT, pembantu AI pendaftaran Tahun 1" hidden>',
+ '<header class="t1chat-header"><span class="t1chat-avatar"><img src="/assets/cikgu-wanwan-bot-v2.gif" alt="Avatar Delima PTG BOT sedang melambai" width="56" height="78"></span><div><strong>Delima PTG BOT</strong><small>Pembantu AI · Pendaftaran Tahun 1 2027</small></div><button type="button" class="t1chat-close" aria-label="Tutup bot">×</button></header>',
  '<div class="t1chat-messages" role="log" aria-live="polite" aria-relevant="additions text"></div>',
  '<div class="t1chat-quick" aria-label="Soalan lazim"></div>',
  '<form class="t1chat-form"><input type="text" maxlength="220" autocomplete="off" required placeholder="Taip pertanyaan..." aria-label="Taip soalan pendaftaran"><button type="submit" aria-label="Hantar soalan">➤</button></form>',
@@ -122,7 +122,7 @@ function boot(){
   add(val,true);
   const pending=document.createElement('div');
   pending.className='t1chat-bubble t1chat-bot';
-  pending.textContent='Cikgu Wanwan BOT sedang fikir... ✨';
+  pending.textContent='Delima PTG BOT sedang fikir... ✨';
   messages.append(pending);messages.scrollTop=messages.scrollHeight;
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),10000);

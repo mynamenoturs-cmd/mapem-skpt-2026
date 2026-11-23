@@ -13,7 +13,7 @@ const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 function fixture(){
  const db=new DatabaseSync(':memory:');
- for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql','0021_registration2027_bot_config.sql','0022_registration_profile_transfers.sql'])db.exec(file('../migrations/'+migration));
+ for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql','0021_registration2027_bot_config.sql','0022_registration_profile_transfers.sql','0023_registration_bot_name.sql'])db.exec(file('../migrations/'+migration));
  const DB={prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first(){return stmt.get(...values)||null;},all(){return {results:stmt.all(...values)};},run(){return {meta:{changes:stmt.run(...values).changes}};}};},first(){return stmt.get()||null;},all(){return {results:stmt.all()};}}}};
  const env={DB,GOOGLE_CLIENT_ID:'fake',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
  async function cookie(email){
@@ -415,17 +415,17 @@ test('AI integration deploys a free-tier model binding and keeps FAQ fallback',(
  assert.match(client,/Jawapan FAQ automatik/);
 });
 
-test('Cikgu Wanwan BOT has an animated mascot and consistent identity on both pages',()=>{
+test('Delima PTG BOT has an animated mascot and consistent identity on both pages',()=>{
  const bot=file('../public/pendaftaran-tahun1-2027/bot2027.mjs');
  const style=file('../public/pendaftaran-tahun1-2027/bot2027.css');
  const ai=file('../registration-site/functions/api/_ai2027.js');
  const workflow=file('../.github/workflows/pendaftaran-2027-cloudflare.yml');
- assert.match(bot,/Cikgu Wanwan BOT/);
+ assert.match(bot,/Delima PTG BOT/);
  assert.match(bot,/assets\/cikgu-wanwan-bot-v2\.gif/);
  assert.match(bot,/t1chat-launcher-mascot/);
  assert.match(style,/t1wanwanFloat/);
  assert.match(style,/prefers-reduced-motion/);
- assert.match(ai,/Anda Cikgu Wanwan BOT/);
+ assert.match(ai,/Anda Delima PTG BOT/);
  assert.match(workflow,/assets\/cikgu-wanwan-bot\.gif/);
 });
 
@@ -456,7 +456,7 @@ test('pentadbir can edit official BOT greetings and FAQs without changing code; 
  assert.match(initial.greeting,/Assalamualaikum dan salam sejahtera/);
  assert.equal(initial.faqs.length,5);
  await assert.rejects(get(user),{status:403});
- const body={greeting:'Assalamualaikum dan salam sejahtera! Saya Cikgu Wanwan BOT. Selamat datang ke SK Pekan Telipok bagi pendaftaran Tahun 1 sesi 2027.',faqs:[
+ const body={greeting:'Assalamualaikum dan salam sejahtera! Saya Delima PTG BOT. Selamat datang ke SK Pekan Telipok bagi pendaftaran Tahun 1 sesi 2027.',faqs:[
   {question:'Bilakah pendaftaran Tahun 1 bermula?',answer:'Sila hadir mengikut makluman rasmi sekolah yang akan diumumkan kemudian.',enabled:true},
   {question:'Soalan dinyahaktifkan',answer:'Tidak diterbitkan kepada pengguna awam.',enabled:false}
  ]};
@@ -496,7 +496,7 @@ test('editable FAQ is available for the local fallback, AI prompt and the linked
  assert.match(ai,/officialFaqs/);
 });
 
-test('Cikgu Wanwan BOT replies naturally, without restarting with salam on every answer',()=>{
+test('Delima PTG BOT replies naturally, without restarting with salam on every answer',()=>{
  const natural=tidyRegistrationAIAnswer(
   'Assalamualaikum dan salam sejahtera! Guru kelas 1 Ruby ialah Airin Bin Alin.',
   'Siapa guru kelas 1 Ruby?'
@@ -507,12 +507,12 @@ test('Cikgu Wanwan BOT replies naturally, without restarting with salam on every
   'Boleh beri nama guru kelas Topaz?'
  ),'Nama guru kelas Topaz ialah Raisah Sandau.');
  assert.equal(tidyRegistrationAIAnswer(
-  'Saya Cikgu Wanwan BOT, pembantu pendaftaran sekolah. Sila hubungi sekolah.',
+  'Saya Delima PTG BOT, pembantu pendaftaran sekolah. Sila hubungi sekolah.',
   'Bila tarikh pendaftaran?'
  ),'Sila hubungi sekolah.');
  assert.equal(tidyRegistrationAIAnswer('Assalamualaikum! Ada yang boleh saya bantu?','Assalamualaikum'), 'Assalamualaikum! Ada yang boleh saya bantu?');
  assert.match(answerRegistrationQuestion('Assalamualaikum').text,/Waalaikumussalam/);
- assert.doesNotMatch(answerRegistrationQuestion('Assalamualaikum').text,/Saya Cikgu Wanwan BOT/);
+ assert.doesNotMatch(answerRegistrationQuestion('Assalamualaikum').text,/Saya Delima PTG BOT/);
  assert.match(answerRegistrationQuestion('Hai').text,/Ada apa yang boleh saya bantu/);
  assert.match(answerRegistrationQuestion('Hai, saya nak tahu guru kelas Ruby?').text,/Airin Bin Alin/);
  const source=file('../registration-site/functions/api/_ai2027.js');

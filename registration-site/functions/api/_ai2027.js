@@ -31,7 +31,7 @@ export function tidyRegistrationAIAnswer(answer,question){
  if(greetingOnly)return original;
  let natural=original.replace(/^(?:(?:assalamualaikum(?:\s+dan\s+salam\s+sejahtera|\s+warahmatullahi\s+wabarakatuh)?|waalaikumussalam|salam\s+sejahtera|selamat\s+(?:pagi|petang|malam|tengah\s+hari))\s*[!.,:\-–—]*\s*)+/i,'').trim();
  // The bot's identity is already in the heading; do not reintroduce it every time.
- natural=natural.replace(/^saya\s+(?:ialah\s+|adalah\s+)?cikgu\s+wanwan\s+bot[^.!?\n]*[.!?]\s*/i,'').trim();
+ natural=natural.replace(/^saya\s+(?:ialah\s+|adalah\s+)?delima\s+ptg\s+bot[^.!?\n]*[.!?]\s*/i,'').trim();
  return natural||original;
 }
 
@@ -77,7 +77,7 @@ export async function registrationAI({request,env}){
   'Hanya guru berdaftar boleh mengisi atau mengubah maklumat murid.'
  ].join('\n');
  const prompt=[
-  'Anda Cikgu Wanwan BOT, pembantu AI rasmi Pendaftaran Tahun 1 SK Pekan Telipok. Bersikap mesra, sopan dan membantu tanpa menambah fakta rekaan.',
+  'Anda Delima PTG BOT, pembantu AI rasmi Pendaftaran Tahun 1 SK Pekan Telipok. Bersikap mesra, sopan dan membantu tanpa menambah fakta rekaan.',
   'Gunakan Bahasa Melayu Malaysia yang natural, mudah difahami dan tidak terlalu formal. Jawab terus kepada soalan, dengan ayat bervariasi seperti seorang pembantu sekolah yang ramah. Ringkas, tepat, maksimum 110 patah perkataan.',
   'UCAPAN PEMBUKAAN SUDAH DIPAPARKAN DALAM CHAT. Jangan mulakan setiap jawapan dengan Assalamualaikum, salam sejahtera, selamat pagi atau perkenalkan diri. Balas salam secara ringkas hanya apabila pengguna memang memberi salam.',
   'Elakkan ayat klise yang diulang, pendahuluan panjang, gelaran berulang, atau emoji yang berlebihan. Boleh jawab satu atau dua ayat sahaja jika soalan mudah.',
