@@ -117,7 +117,7 @@ test('CSV import parses quoted fields, headers and validates rows; Excel templat
  assert.equal(bytes[0],0x50);assert.equal(bytes[1],0x4b);assert(bytes.length>10000);
  const html=file('../public/pendaftaran-tahun1-2027/index.html');
  assert.match(html,/Templat Excel/);assert.match(html,/Import Excel \/ CSV/);assert.match(html,/Admin Pendaftaran/);
- const script=html.split('<script type="module">')[1]?.split('</script>')[0];
+ const script=html.split('<script id="registrationApp">')[1]?.split('</script>')[0];
  assert.ok(script,'inline module should exist');
  assert.doesNotThrow(()=>new Function(script.slice(script.indexOf(';')+1)));
 });
@@ -606,4 +606,11 @@ test('roster import accepts three columns and stores absent guardian details as 
  const row=db.prepare('SELECT * FROM registration_2027_students WHERE student_id=?').get('0012');
  assert.equal(row.pra,'Belum Pasti');
  for(const key of ['guardian_name','guardian_ic','guardian_phone','address'])assert.equal(row[key],'');
+});
+
+test('registration sign-in is available in the first HTML before session or scripts load',()=>{
+ const html=file('../public/pendaftaran-tahun1-2027/index.html');
+ assert.match(html,/<main id="authPage" class="auth-page">/);
+ assert.match(html,/<a [^>]*id="cloudAuthBtn"[^>]*href="https:\/\/mapem-skpt-2026.pages.dev\/api\/registration2027\/transfer\/start"/);
+ assert.doesNotMatch(html,/id="startup"/);
 });

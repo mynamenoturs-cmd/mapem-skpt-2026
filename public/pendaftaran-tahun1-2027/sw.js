@@ -1,6 +1,6 @@
 /* SK Pekan Telipok Tahun 1 2027 — safe static-only service worker.
    NEVER cache API responses, auth endpoints, private data or non-GET requests. */
-const VERSION='skpt-tahun1-pwa-v1';
+const VERSION='skpt-tahun1-pwa-v2';
 const CACHE_PREFIX='skpt-tahun1-pwa-';
 const ASSETS=[
   '/', '/ibu-bapa/', '/bot-admin/',
@@ -47,7 +47,7 @@ self.addEventListener('fetch',event=>{
     const cache=await caches.open(VERSION);
     try{
       const response=await fetch(request);
-      if(response.ok&&response.type!=='opaque')await cache.put(url.pathname,response.clone());
+      if(response.ok&&response.type!=='opaque')event.waitUntil(cache.put(url.pathname,response.clone()).catch(()=>{}));
       return response;
     }catch(error){
       const stored=await cache.match(url.pathname);

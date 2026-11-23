@@ -579,12 +579,7 @@
 <link rel="stylesheet" href="/bot2027.css">
 </head>
 <body>
-  <section id="startup" aria-live="polite" style="max-width:32rem;margin:14vh auto;padding:1.5rem">
-    <strong>Portal Pendaftaran Tahun 1 · SK Pekan Telipok</strong>
-    <p>Sedang membuka portal. Jika paparan ini berterusan, muat semula halaman.</p>
-    <a href="">Muat semula portal</a>
-  </section>
-  <main id="authPage" class="auth-page" hidden>
+  <main id="authPage" class="auth-page">
     <section class="login-intro" aria-label="Selamat datang">
       <div class="login-logo"><span class="brand-crest"><img class="crest-image" src="./assets/logo-sekolah-rasmi-2027.webp" alt="Lencana SK Pekan Telipok" loading="eager"></span><div><strong>SK PEKAN TELIPOK</strong><small>Tuaran, Sabah</small></div></div>
       <div class="login-banner-visual"><img src="./assets/header-pendaftaran-2027-logo-rasmi.webp" alt="SK Pekan Telipok — Pendaftaran Murid Tahun 1 Sesi 2027" loading="eager" fetchpriority="high"></div>
@@ -599,7 +594,7 @@
       <div class="eyebrow" style="color:#8b659b">SK PEKAN TELIPOK • 2027</div>
       <h1 id="authTitle">Log Masuk Sistem</h1><p class="login-card-desc">Gunakan akaun Google yang telah diberikan kebenaran oleh pentadbir sekolah.</p>
       <p id="authDescription"></p>
-      <div class="offline-toggle"><details id="offlineDetails"><summary>Gunakan mod setempat / kata laluan peranti</summary><form id="authForm">
+      <div class="offline-toggle" id="offlineOptions" hidden><details id="offlineDetails"><summary>Gunakan mod setempat / kata laluan peranti</summary><form id="authForm">
         <label class="field"><span>Kata laluan <em>*</em></span><input id="passInput" type="password" autocomplete="current-password" required minlength="8" placeholder="Masukkan kata laluan"></label>
         <label id="confirmWrap" class="field" hidden><span>Sahkan kata laluan <em>*</em></span><input id="passConfirm" type="password" autocomplete="new-password" minlength="8" placeholder="Ulang kata laluan"></label>
         <div class="error" id="authError" role="alert" hidden></div>
@@ -610,7 +605,7 @@
         <button class="auth-link" type="button" id="authRestore">Pulihkan daripada fail sandaran</button>
         <button class="auth-link" type="button" id="forgotPasswordBtn" hidden>Lupa kata laluan? Reset storan setempat</button>
       </div></details></div>
-      <div class="cloud-login"><button type="button" class="btn btn-primary" id="cloudAuthBtn">Teruskan dengan Google <span class="arrow">→</span></button><p>Akses untuk guru dan pentadbir yang didaftarkan sahaja.</p><a class="parent-login-link" href="/ibu-bapa/">☷ &nbsp;Paparan Ibu Bapa / Penjaga (lihat sahaja)</a><div id="loginNotice" class="login-notice" role="alert" hidden></div></div>
+      <div class="cloud-login"><a class="btn btn-primary" id="cloudAuthBtn" href="https://mapem-skpt-2026.pages.dev/api/registration2027/transfer/start">Teruskan dengan Google <span class="arrow">→</span></a><p>Akses untuk guru dan pentadbir yang didaftarkan sahaja.</p><a class="parent-login-link" href="/ibu-bapa/">☷ &nbsp;Paparan Ibu Bapa / Penjaga (lihat sahaja)</a><div id="loginNotice" class="login-notice" role="alert" hidden></div></div>
     </section>
   </main>
 
@@ -849,7 +844,7 @@
   <input id="backupInput" type="file" accept=".json,application/json" hidden>
   <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
-  <script type="module">
+  <script id="registrationApp">
     const loadImportTools=()=>import('./import2027.mjs');
     (() => {
       'use strict';
@@ -933,7 +928,6 @@
         $('forgotPasswordBtn').hidden=isNew;
       }
       function showAuth() {
-         $('startup').hidden=true;
          $('app').hidden=true;$('authPage').hidden=false;setAuthMode();
          $('loginNotice').hidden=true;
          const status=new URL(location.href).searchParams.get('login');
@@ -948,7 +942,6 @@
          $('cloudAuthBtn').focus();
        }
       function showApp() {
-         $('startup').hidden=true;
          $('authPage').hidden=true;$('app').hidden=false;
          switchView('dashboard');render();
        }
@@ -1584,6 +1577,7 @@
           showAuth();
           if(e.status!==401){$('loginNotice').textContent='Sesi portal gagal dimuatkan. Semak sambungan dan cuba lagi.';$('loginNotice').hidden=false;}
         }finally{clearTimeout(timer);controller.abort();}
+        $('offlineOptions').hidden=false;
         if(!isSupported()) {
           $('authPage').hidden=false; setAuthMode();
           authError('Pelayar atau mod ini tidak menyokong penyulitan/storan. Gunakan Chrome, Edge atau Firefox terkini melalui HTTPS atau localhost.');
@@ -1591,7 +1585,7 @@
         }
       }
       $('authForm').addEventListener('submit',submitAuth);
-      $('cloudAuthBtn').addEventListener('click',cloudLogin);
+      if(location.hostname==='mapem-skpt-2026.pages.dev')$('cloudAuthBtn').href='/api/auth/google/start?next=registration2027';
       $('openCloudBtn').addEventListener('click',cloudLogin);
       $('cloudExitBtn').addEventListener('click',leaveCloud);
       $('changePasswordBtn').addEventListener('click',openChange);
