@@ -1,12 +1,12 @@
 /* SK Pekan Telipok Tahun 1 2027 — safe static-only service worker.
    NEVER cache API responses, auth endpoints, private data or non-GET requests. */
-const VERSION='skpt-tahun1-pwa-v3';
+const VERSION='skpt-tahun1-pwa-v4';
 const CACHE_PREFIX='skpt-tahun1-pwa-';
 const ASSETS=[
   '/', '/ibu-bapa/', '/bot-admin/',
   '/manifest.webmanifest',
   '/pwa2027.mjs', '/pwa2027.css',
-  '/import2027.mjs', '/bot2027.mjs', '/bot2027.css',
+  '/feedback.js', '/import2027.mjs', '/bot2027.mjs', '/bot2027.css',
   '/icons/icon-192.png','/icons/icon-512.png','/icons/icon-maskable-512.png',
   '/icons/apple-touch-icon.png',
   '/assets/logo-sekolah-rasmi-2027.webp',

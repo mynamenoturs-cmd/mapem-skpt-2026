@@ -62,6 +62,7 @@ footer{text-align:center;font-size:10px;color:#9c7686;padding:20px}
  <div class="actions"><a class="button secondary" href="/" style="text-decoration:none">Kembali</a><button class="button primary" id="saveBtn" type="submit">Simpan Semua Perubahan</button></div>
 </form>
 </main><footer>© 2027 SK Pekan Telipok • Powered by Cikgu Wanwan</footer>
+<script src="../feedback.js"></script>
 <script type="module">
 const $=id=>document.getElementById(id);
 const info=$('status'),list=$('faqList'),form=$('editor'),saveBtn=$('saveBtn');
@@ -103,12 +104,13 @@ form.addEventListener('submit',async e=>{
   enabled:item.querySelector('.active').checked
  }));
  const unique=new Set(faqs.map(x=>x.question.toLocaleLowerCase('ms').replace(/\s+/g,' ').trim()));
- if(unique.size!==faqs.length){info.textContent='Terdapat soalan berulang. Sila semak semula.';return;}
+ if(unique.size!==faqs.length){info.textContent='Terdapat soalan berulang. Sila semak semula.';showChangeResult('Semak soalan',info.textContent,'info');return;}
  saveBtn.disabled=true;info.textContent='Sedang menyimpan konfigurasi bot...';
  try{
   await api('bot/save',{greeting:$('botGreeting').value.trim(),faqs});
   info.textContent='Berjaya! Ucapan permulaan dan '+faqs.length+' soalan telah disimpan. Buka semula bot pada portal untuk melihat jawapan terkini.';
- }catch(err){info.textContent='Gagal menyimpan: '+err.message;}
+  showChangeResult('Tetapan bot berjaya disimpan',info.textContent);
+ }catch(err){info.textContent='Gagal menyimpan: '+err.message;showChangeResult('Tetapan bot belum disimpan',info.textContent,'error');}
  finally{saveBtn.disabled=false;}
 });
 async function boot(){

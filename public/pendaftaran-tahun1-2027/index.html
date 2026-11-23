@@ -855,6 +855,7 @@
   <input id="backupInput" type="file" accept=".json,application/json" hidden>
   <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
+  <script src="./feedback.js"></script>
   <script id="registrationApp">
     const loadImportTools=()=>import('./import2027.mjs');
     (() => {
@@ -1002,12 +1003,16 @@
         if(body!==undefined){options.method='POST';options.headers['Content-Type']='application/json';options.body=JSON.stringify(body);}
         const resp=await fetch('/api/registration2027/'+endpoint,options);
         const data=await resp.json().catch(()=>({error:'Respons pelayan tidak sah.'}));
-        if(!resp.ok){const err=new Error(data.error||'Ralat Cloudflare ('+resp.status+').');err.status=resp.status;throw err;}
+        if(!resp.ok||data?.error){const err=new Error(data.error||'Ralat Cloudflare ('+resp.status+').');if(!resp.ok)err.status=resp.status;throw err;}
         return data;
       }
       async function loadCloudStudents(signal){
         const response=await cloudApi('students',undefined,signal);
         students=response.records;
+      }
+      async function refreshAfterChange(){
+        try{await loadCloudStudents();render();return '';}
+        catch{return ' Muat semula halaman untuk melihat senarai terkini.';}
       }
       async function loadCloudTeachers(signal){
         const response=await cloudApi('teachers',undefined,signal);
@@ -1090,7 +1095,7 @@
       async function changePassword(e){
         e.preventDefault();
         const old=$('oldPass').value,next=$('newPass').value,again=$('newPassAgain').value;
-        const show=message=>{$('changeError').textContent=message;$('changeError').hidden=false;};
+        const show=message=>{$('changeError').textContent=message;$('changeError').hidden=false;showChangeResult('Semak perubahan kata laluan',message,'error');};
         if(next.length<8)return show('Gunakan sekurang-kurangnya 8 aksara.');
         if(next!==again)return show('Kata laluan baharu tidak sepadan.');
         if(cloudMode||!vaultKey)return show('Buka sistem setempat sebelum menukar kata laluan.');
@@ -1104,7 +1109,7 @@
           const payload={v:1,salt,iv:b64(iv),data:b64(cipher)};
           localStorage.setItem(STORE,JSON.stringify(payload));
           vault=payload;vaultKey=key;
-          closeChange();toast('Kata laluan berjaya ditukar. Semua rekod dikekalkan.');
+          closeChange();showChangeResult('Kata laluan berjaya ditukar','Semua rekod dikekalkan.');
         }catch(e){show('Kata laluan lama salah atau proses penyulitan semula gagal. Tiada perubahan dibuat.');}
         finally{$('confirmChange').disabled=false;}
       }
@@ -1112,12 +1117,12 @@
       function closeReset(){$('resetOverlay').hidden=true;}
       function resetLocal(e){
         e.preventDefault();
-        if($('resetPhrase').value.trim()!=='PADAM'){toast('Taip PADAM untuk meneruskan.');return;}
+        if($('resetPhrase').value.trim()!=='PADAM'){showChangeResult('Reset storan setempat','Taip PADAM untuk meneruskan.','error');return;}
         try{
           localStorage.removeItem(STORE);
           cloudMode=false;vault=null;vaultKey=null;students=[];closeReset();showAuth();
-          toast('Storan setempat dipadam. Sila cipta kata laluan baharu.');
-        }catch(e){toast('Tidak dapat memadam storan setempat.');}
+          showChangeResult('Reset storan setempat','Storan setempat dipadam. Sila cipta kata laluan baharu.');
+        }catch(e){showChangeResult('Reset storan setempat','Tidak dapat memadam storan setempat.','error');}
       }
       async function openAccess(){
         if(!cloudMode||cloudInfo?.role!=='admin')return;
@@ -1132,14 +1137,14 @@
         $('accessSaveBtn').disabled=true;
         try{
           await cloudApi('access/save',{email:$('accessEmail').value.trim(),kelas:$('accessClass').value});
-          $('accessEmail').value='';await openAccess();toast('Akses guru telah disimpan.');
-        }catch(e){toast(e.message);}
+          $('accessEmail').value='';await openAccess();showChangeResult('Akses guru','Akses guru telah disimpan.');
+        }catch(e){showChangeResult('Akses guru',e.message,'error');}
         finally{$('accessSaveBtn').disabled=false;}
       }
       async function revokeAccess(email){
         if(!confirm('Batalkan akses pendaftaran 2027 bagi '+email+'?'))return;
-        try{await cloudApi('access/revoke',{email});await openAccess();toast('Akses guru telah dibatalkan.');}
-        catch(e){toast(e.message);}
+        try{await cloudApi('access/revoke',{email});await openAccess();showChangeResult('Pembatalan akses guru','Akses guru telah dibatalkan.');}
+        catch(e){showChangeResult('Pembatalan akses guru',e.message,'error');}
       }
       async function openAdmins(){
         if(!cloudMode||cloudInfo?.canManageAdmins!==true)return;
@@ -1153,14 +1158,14 @@
         e.preventDefault();$('adminsSaveBtn').disabled=true;
         try{
           await cloudApi('admins/save',{email:$('adminsEmail').value.trim()});
-          $('adminsEmail').value='';await openAdmins();toast('Admin khusus Pendaftaran 2027 telah dilantik.');
-        }catch(e){toast(e.message);}
+          $('adminsEmail').value='';await openAdmins();showChangeResult('Pelantikan admin','Admin khusus Pendaftaran 2027 telah dilantik.');
+        }catch(e){showChangeResult('Pelantikan admin',e.message,'error');}
         finally{$('adminsSaveBtn').disabled=false;}
       }
       async function revokeAdmin(email){
         if(!confirm('Tarik balik hak Admin Pendaftaran 2027 untuk '+email+'?'))return;
-        try{await cloudApi('admins/revoke',{email});await openAdmins();toast('Akses admin telah dibatalkan.');}
-        catch(e){toast(e.message);}
+        try{await cloudApi('admins/revoke',{email});await openAdmins();showChangeResult('Pembatalan akses admin','Akses admin telah dibatalkan.');}
+        catch(e){showChangeResult('Pembatalan akses admin',e.message,'error');}
       }
       async function downloadExcelTemplate(){
         const kelas=cloudMode&&cloudInfo.role!=='admin'?cloudInfo.kelas:activeClass;
@@ -1208,7 +1213,7 @@
         if(importing||!importRows?.length)return;
         if(!confirm('Import '+importRows.length+' rekod ke '+(cloudMode?'Cloudflare D1':'storan setempat')+'? ID sedia ada akan dilangkau.'))return;
         importing=true;$('commitImportBtn').disabled=true;$('closeImport').disabled=true;$('cancelImport').disabled=true;
-        let inserted=0,skipped=0,processed=0;
+        let inserted=0,skipped=0,processed=0,refreshMessage='';
         try{
           if(cloudMode){
             // Server revalidates and enforces the class grant on every import batch.
@@ -1218,7 +1223,7 @@
               inserted+=result.inserted;skipped+=result.skipped;processed+=batch.length;
               $('importStatus').textContent='Cloudflare: '+processed+'/'+importRows.length+' rekod diproses...';
             }
-            await loadCloudStudents();
+            refreshMessage=await refreshAfterChange();
           }else{
             await pendingSave;
             const before=students.slice(),seen=new Set(before.map(s=>s.idMurid.toLocaleLowerCase('ms')));
@@ -1230,16 +1235,16 @@
                 seen.add(id);students.push({...record,uid:uid(),createdAt:stamp,updatedAt:stamp});inserted++;
               }
               await queueSave();
-            }catch(e){students=before;throw e;}
+            }catch(e){students=before;inserted=0;throw e;}
           }
           render();
           $('importStatus').textContent='Import selesai: '+inserted+' murid baharu, '+skipped+' ID sedia ada dilangkau.';
           importRows=null;
-          toast('Berjaya: '+inserted+' murid ditambah, '+skipped+' dilangkau.');
+          showChangeResult('Import selesai',inserted+' murid ditambah. '+skipped+' ID sedia ada dilangkau.'+refreshMessage);
         }catch(e){
           $('importStatus').textContent='Import terhenti selepas '+processed+' rekod. '+inserted+' ditambah, '+skipped+' dilangkau. '+e.message+' Boleh cuba semula kerana ID sedia ada akan dilangkau.';
           try{if(cloudMode){await loadCloudStudents();render();}}catch{}
-          toast('Import belum lengkap. Sila cuba semula.');
+          showChangeResult('Import belum lengkap',$('importStatus').textContent,'info');
         }finally{
           importing=false;$('closeImport').disabled=false;$('cancelImport').disabled=false;
           $('commitImportBtn').disabled=!importRows?.length;
@@ -1355,7 +1360,7 @@
         e.preventDefault();
         if(!editingTeacherClass||!cloudMode)return;
         const kelas=editingTeacherClass,name=$('teacherName').value.trim();
-        if(name.length<3)return toast('Masukkan nama guru kelas.');
+        if(name.length<3)return showChangeResult('Profil guru','Masukkan nama guru kelas.','error');
         $('saveTeacherBtn').disabled=true;
         let ok=false;
         try{
@@ -1373,10 +1378,10 @@
           teachers=teachers.map(t=>t.kelas===kelas?updated:t);
           ok=true;
           render();
-          toast('Profil guru kelas '+kelas+' berjaya disimpan.');
+          showChangeResult('Profil guru','Profil guru kelas '+kelas+' berjaya disimpan.');
         }catch(e){
           $('teacherPhotoStatus').textContent='Belum berjaya disimpan: '+e.message;
-          toast(e.message);
+          showChangeResult('Profil guru',e.message,'error');
         }finally{$('saveTeacherBtn').disabled=false;}
         if(ok){
           closeTeacher();
@@ -1401,8 +1406,8 @@
         $('savePublicSettingsBtn').disabled=true;
         try{
           await cloudApi('settings/save',{adminPhone:$('publicAdminPhone').value.trim(),parentLookupEnabled:enabled});
-          $('publicSettingsOverlay').hidden=true;toast('Tetapan paparan ibu bapa dan nombor admin berjaya disimpan.');
-        }catch(e){toast(e.message);}
+          $('publicSettingsOverlay').hidden=true;showChangeResult('Tetapan paparan ibu bapa','Tetapan paparan ibu bapa dan nombor admin berjaya disimpan.');
+        }catch(e){showChangeResult('Tetapan paparan ibu bapa',e.message,'error');}
         finally{$('savePublicSettingsBtn').disabled=false;}
       }
 
@@ -1529,7 +1534,7 @@
         const f=$('studentForm').elements;
         const record={};
         for(const field of ['kelas','idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat','emailPenjaga','agensiPra']) record[field]=f.namedItem(field).value.trim();
-        if(!CLASSES.includes(record.kelas)) return toast('Sila pilih kelas yang sah.');
+        if(!CLASSES.includes(record.kelas)) return showChangeResult('Rekod murid','Sila pilih kelas yang sah.','error');
         if(record.agensiPra)record.pra='Ya';
         if(students.some(s=>s.uid!==editId&&s.idMurid.toLowerCase()===record.idMurid.toLowerCase())) { f.namedItem('idMurid').setCustomValidity('ID murid ini sudah digunakan.'); f.namedItem('idMurid').reportValidity(); return; }
         if(cloudMode){
@@ -1537,19 +1542,21 @@
           $('saveStudentBtn').disabled=true;
           try{
             await cloudApi('students/save',{record,uid:editId,version:current?.version??0});
-            await loadCloudStudents();closeForm();render();
-            toast(current?'Maklumat berjaya dikemas kini dalam Cloudflare D1.':'Rekod berjaya disimpan dalam Cloudflare D1.');
-          }catch(e){toast(e.message);if(e.status===409){await loadCloudStudents();render();}}
+            closeForm();
+            const refreshMessage=await refreshAfterChange();
+            showChangeResult(current?'Maklumat murid dikemas kini':'Murid berjaya didaftarkan',record.namaMurid+refreshMessage);
+          }catch(e){showChangeResult('Rekod murid',e.message,'error');if(e.status===409){await loadCloudStudents();render();}}
           finally{$('saveStudentBtn').disabled=false;}
           return;
         }
         const stamp=new Date().toISOString();
         const wasEditing = !!editId;
+        const before=students.slice();
         if(editId) { const index=students.findIndex(s=>s.uid===editId); if(index<0) return; students[index]={...students[index],...record, updatedAt:stamp}; }
         else students.push({...record,uid:uid(),createdAt:stamp,updatedAt:stamp});
         $('saveStudentBtn').disabled=true;
-        try { await queueSave(); closeForm(); render(); toast(wasEditing?'Maklumat murid berjaya dikemaskini.':'Pendaftaran murid berjaya disimpan.'); }
-        catch { toast('Gagal menyimpan. Semak ruang storan pelayar.'); }
+        try { await queueSave(); closeForm(); render(); showChangeResult('Rekod murid',wasEditing?'Maklumat murid berjaya dikemaskini.':'Pendaftaran murid berjaya disimpan.'); }
+        catch { students=before;showChangeResult('Rekod murid','Gagal menyimpan. Semak ruang storan pelayar.','error'); }
         finally { $('saveStudentBtn').disabled=false; }
       }
       let moving=null;
@@ -1564,13 +1571,13 @@
       $('moveCancel').onclick=()=>$('moveDialog').close();
       $('moveForm').onsubmit=async e=>{
         e.preventDefault();
-        const student=moving,to=$('moveTo').value;
+        const student=moving,from=student.kelas,to=$('moveTo').value;
         $('moveSubmit').disabled=true;
         try{
           const result=await cloudApi('students/transfer',{uid:student.uid,version:student.version,from:student.kelas,to});
           $('moveDialog').close();
           if(cloudInfo.role==='admin'){student.kelas=to;student.version=result.version??student.version+1;}else students=students.filter(s=>s.uid!==student.uid);
-          render();toast(student.namaMurid+' dipindahkan ke 1 '+to+'.');
+          render();showChangeResult('Pindahan berjaya',student.namaMurid+'\n1 '+from+' → 1 '+to);
         }catch(err){
           if(err.status===409){
             try{
@@ -1579,7 +1586,7 @@
               render();
               if(!latest || latest.kelas!==student.kelas){
                 $('moveDialog').close();
-                toast(latest?student.namaMurid+' kini di 1 '+latest.kelas+'.':'Murid tiada dalam senarai kelas ini. Semak Log pindah kelas.');
+                showChangeResult('Status pindahan',latest?student.namaMurid+' kini di 1 '+latest.kelas+'.':student.namaMurid+' tiada dalam senarai kelas ini. Semak Log pindah kelas.','info');
                 return;
               }
               moving=latest;
@@ -1587,6 +1594,8 @@
             }catch{$('moveError').textContent='Kelas semasa belum dapat disemak. Tutup dialog dan muat semula senarai.';}
           }else $('moveError').textContent=err.message;
           $('moveError').hidden=false;
+          const uncertain=!err.status || err.status>=500;
+          showChangeResult(uncertain?'Pindahan belum disahkan':err.status===409?'Semak status pindahan':'Pindahan gagal',student.namaMurid+'\n1 '+from+' → 1 '+to+'\n'+$('moveError').textContent+(uncertain?' Semak log sebelum mencuba lagi.':''),uncertain||err.status===409?'info':'error');
         }
         finally{$('moveSubmit').disabled=false;}
       };
@@ -1606,13 +1615,13 @@
         const s=students.find(r=>r.uid===id); if(!s) return;
         if(!confirm('Padam rekod '+s.namaMurid+'? Tindakan ini tidak boleh dibatalkan.')) return;
         if(cloudMode){
-          try{await cloudApi('students/delete',{uid:s.uid,version:s.version});await loadCloudStudents();render();toast('Rekod Cloudflare telah dipadam.');}
-          catch(e){toast(e.message);if(e.status===409){await loadCloudStudents();render();}}
+          try{await cloudApi('students/delete',{uid:s.uid,version:s.version});const refreshMessage=await refreshAfterChange();showChangeResult('Rekod berjaya dipadam',s.namaMurid+refreshMessage);}
+          catch(e){showChangeResult('Pemadaman rekod',e.message,'error');if(e.status===409){await loadCloudStudents();render();}}
           return;
         }
         const old=students; students=students.filter(r=>r.uid!==id);
-        try { await queueSave(); render(); toast('Rekod telah dipadam.'); }
-        catch { students=old; render(); toast('Rekod gagal dipadam kerana masalah storan.'); }
+        try { await queueSave(); render(); showChangeResult('Pemadaman rekod','Rekod telah dipadam.'); }
+        catch { students=old; render(); showChangeResult('Pemadaman rekod','Rekod gagal dipadam kerana masalah storan.','error'); }
       }
       function csvSafe(value) { let v=String(value??''); if (/^[\s]*[=+@\-\t\r]/.test(v)) v="'"+v; return '"'+v.replace(/"/g,'""')+'"'; }
       function download(content,mime,filename) {
@@ -1638,15 +1647,15 @@
         if(!file) return;
         try {
           const payload=JSON.parse(await file.text());
-          if(!payload||payload.v!==1||!payload.salt||!payload.iv||!payload.data) return toast('Fail ini bukan sandaran sistem yang sah.');
+          if(!payload||payload.v!==1||!payload.salt||!payload.iv||!payload.data) return showChangeResult('Pemulihan sandaran','Fail ini bukan sandaran sistem yang sah.','error');
           const pass=prompt('Masukkan kata laluan asal bagi fail sandaran ini:');
           if(pass===null) return;
           const result=await decryptPayload(payload,pass);
           if(!confirm('Pulihkan '+result.records.length+' rekod daripada sandaran? Semua rekod pada pelayar ini akan digantikan.')) return;
           await pendingSave;
           localStorage.setItem(STORE,JSON.stringify(payload)); vault=payload; vaultKey=result.key; students=result.records;
-          $('searchInput').value=''; $('praFilter').value='Semua'; activeClass='Semua'; showApp(); toast('Sandaran berjaya dipulihkan ('+students.length+' rekod).');
-        } catch(e) { toast('Gagal pulih: kata laluan salah atau fail sandaran tidak sah.'); }
+          $('searchInput').value=''; $('praFilter').value='Semua'; activeClass='Semua'; showApp(); showChangeResult('Pemulihan sandaran','Sandaran berjaya dipulihkan ('+students.length+' rekod).');
+        } catch(e) { showChangeResult('Pemulihan sandaran','Gagal pulih: kata laluan salah atau fail sandaran tidak sah.','error'); }
         finally { $('backupInput').value=''; }
       }
       async function lock() { try { await pendingSave; } catch(e) {} students=[]; vault=null; vaultKey=null; activeClass='Semua'; $('searchInput').value=''; $('praFilter').value='Semua'; hideSensitive=true; showAuth(); }

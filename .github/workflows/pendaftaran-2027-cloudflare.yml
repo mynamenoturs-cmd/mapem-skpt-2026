@@ -39,6 +39,7 @@ jobs:
           cp public/pendaftaran-tahun1-2027/ibu-bapa/index.html .registration-deploy/public/ibu-bapa/index.html
           mkdir -p .registration-deploy/public/bot-admin
           cp public/pendaftaran-tahun1-2027/bot-admin/index.html .registration-deploy/public/bot-admin/index.html
+          cp public/pendaftaran-tahun1-2027/feedback.js .registration-deploy/public/feedback.js
           cp public/pendaftaran-tahun1-2027/import2027.mjs .registration-deploy/public/import2027.mjs
           cp public/pendaftaran-tahun1-2027/bot2027.mjs .registration-deploy/public/bot2027.mjs
           cp public/pendaftaran-tahun1-2027/bot2027.css .registration-deploy/public/bot2027.css
