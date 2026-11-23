@@ -575,6 +575,7 @@
     @media(prefers-reduced-motion:reduce){.class-popup-dialog{scroll-behavior:auto}}
     @media print{#classPopupOverlay{display:none!important}}
 
+  .transfer-dialog{width:min(92vw,720px);max-height:86dvh;overflow:auto;border:1px solid #e2c89f;border-radius:16px;padding:20px;color:#53263d}.transfer-dialog::backdrop{background:#230b22aa}
   </style>
 <link rel="stylesheet" href="/bot2027.css">
 </head>
@@ -635,6 +636,7 @@
           <button class="workspace-link" data-action="import" type="button"><span class="workspace-ico">⇪</span><span>Import Excel / CSV</span></button>
           <button class="workspace-link" data-action="template" type="button"><span class="workspace-ico">⇩</span><span>Templat Borang</span></button>
           <button class="workspace-link" data-action="export" type="button"><span class="workspace-ico">▤</span><span>Eksport Senarai</span></button>
+          <button class="workspace-link" id="navTransfers" type="button" hidden>Log pindah kelas</button>
           <button class="workspace-link" id="navRefresh" data-action="refresh" type="button"><span class="workspace-ico">↻</span><span>Muat Semula</span></button>
           <div class="workspace-divider"></div><div class="sidebar-label">TETAPAN & AKSES</div>
           <button class="workspace-link" id="navAccess" data-action="access" type="button" hidden><span class="workspace-ico">♙</span><span>Akses Guru</span></button>
@@ -772,6 +774,8 @@
           <label class="field"><span>ID Murid <em>*</em></span><input name="idMurid" required maxlength="45" placeholder="Contoh: M20270001" autocapitalize="characters"><small>ID tidak boleh berulang dalam sistem.</small></label>
           <label class="field full"><span>Nama Murid <em>*</em></span><input name="namaMurid" required maxlength="150" placeholder="Nama penuh seperti dokumen rasmi"></label>
           <label class="field"><span>PRA (Prasekolah) <em>*</em></span><select name="pra" required><option value="" selected disabled>Pilih status PRA</option><option value="Ya">Ya</option><option value="Tidak">Tidak</option><option value="Belum Pasti">Belum Pasti</option></select></label>
+          <label class="field"><span>Agensi prasekolah (PAKK)</span><select name="agensiPra"><option value="">Belum diisi</option><option>KEMAS</option><option>PASTI</option><option>PERPADUAN</option><option>PRASEKOLAH KPM</option><option>SWASTA</option><option>LAIN-LAIN</option></select></label>
+          <label class="field"><span>E-mel ibu bapa / penjaga</span><input type="email" name="emailPenjaga" maxlength="254" autocomplete="email"></label>
           <label class="field"><span>Nama Ibu Bapa / Penjaga <em>*</em></span><input name="namaPenjaga" required maxlength="150" placeholder="Nama penuh penjaga"></label>
           <label class="field"><span>No. IC Penjaga <em>*</em></span><input name="noIc" required maxlength="30" placeholder="No. MyKad / dokumen pengenalan"><small>MyKad 12 digit, atau nombor dokumen yang berkenaan.</small></label>
           <label class="field"><span>No. Telefon <em>*</em></span><input name="noTelefon" type="tel" inputmode="tel" required maxlength="25" placeholder="Contoh: 0123456789"></label>
@@ -841,6 +845,13 @@
       </div></form>
     </section>
   </div>
+  <dialog class="transfer-dialog" id="moveDialog"><form id="moveForm">
+    <h2>Pindah kelas</h2><p id="moveStudent"></p>
+    <label class="field"><span>Kelas baharu</span><select id="moveTo" required></select></label>
+    <p class="error" id="moveError" hidden></p>
+    <div class="form-foot"><button type="button" class="btn btn-ghost" id="moveCancel">Batal</button><button class="btn btn-primary" id="moveSubmit">Sahkan pindahan</button></div>
+  </form></dialog>
+  <dialog class="transfer-dialog" id="moveLog"><h2>Log pindah kelas</h2><p id="logStatus"></p><div class="table-scroll"><table><thead><tr><th>Masa (Sabah)</th><th>Murid</th><th>Kelas asal</th><th>Kelas baharu</th><th>Dipindahkan oleh</th></tr></thead><tbody id="moveHistory"></tbody></table></div><div class="form-foot"><button class="btn btn-primary" id="logClose">Tutup</button></div></dialog>
   <input id="backupInput" type="file" accept=".json,application/json" hidden>
   <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
@@ -1062,6 +1073,7 @@
         $('navAdmins').hidden=!cloudMode||cloudInfo?.canManageAdmins!==true;
         $('navPublicSettings').hidden=!cloudMode||cloudInfo?.role!=='admin';
         $('navBotSettings').hidden=!cloudMode||cloudInfo?.role!=='admin';
+        $('navTransfers').hidden=!cloudMode;
         $('navRefresh').hidden=!cloudMode;
         $('navPassword').hidden=cloudMode;
         $('navBackup').hidden=cloudMode;
@@ -1449,9 +1461,11 @@
             '<details class="class-popup-record-details"><summary>Lihat maklumat pendaftaran</summary><dl>'+
             '<dt>Penjaga</dt><dd>'+esc(s.namaPenjaga)+'</dd>'+
             '<dt>No. IC</dt><dd>'+viewValue(s.noIc)+'</dd>'+
+            '<dt>E-mel penjaga</dt><dd>'+esc(s.emailPenjaga||'—')+'</dd><dt>Agensi prasekolah</dt><dd>'+esc(s.agensiPra||'—')+'</dd>'+
             '<dt>Telefon</dt><dd>'+viewValue(s.noTelefon)+'</dd>'+
             '<dt>Alamat</dt><dd>'+esc(s.alamat)+'</dd>'+
             '</dl></details><div class="class-popup-record-actions">'+
+            (cloudMode?'<button type="button" data-popup-action="move" data-uid="'+esc(s.uid)+'">Pindah kelas</button>':'')+
             '<button type="button" data-popup-action="edit" data-uid="'+esc(s.uid)+'">✎ Kemaskini</button>'+
             '<button type="button" class="delete" data-popup-action="delete" data-uid="'+esc(s.uid)+'">× Padam</button>'+
             '</div></article>';
@@ -1487,7 +1501,7 @@
         $('maskBtn').textContent=hideSensitive?'◉  Paparkan Maklumat':'◉  Sembunyikan Maklumat';
         $('printHeading').textContent='SK PEKAN TELIPOK — PENDAFTARAN TAHUN 1 2027 — '+(activeClass==='Semua'?'SEMUA KELAS':activeClass.toUpperCase())+' | '+dateText(new Date().toISOString());
         const tb=$('tableBody');
-        tb.innerHTML=items.map((s,i)=>`<tr><td class="mono">${i+1}</td><td class="mono">${esc(s.idMurid)}</td><td><span class="student">${esc(s.namaMurid)}</span></td><td><span class="class-pill">${esc(s.kelas)}</span></td><td><span class="pra-pill ${s.pra==='Tidak'?'no':s.pra==='Belum Pasti'?'maybe':''}">${esc(s.pra)}</span></td><td>${esc(s.namaPenjaga)}</td><td class="mono">${viewValue(s.noIc)}</td><td class="mono">${viewValue(s.noTelefon)}</td><td><span class="truncate" title="${esc(s.alamat)}">${esc(s.alamat)}</span></td><td><div class="row-actions"><button type="button" class="icon-btn" data-action="edit" data-uid="${esc(s.uid)}" title="Kemaskini murid ${esc(s.namaMurid)}" aria-label="Kemaskini murid">✎</button><button type="button" class="icon-btn danger" data-action="delete" data-uid="${esc(s.uid)}" title="Padam rekod" aria-label="Padam rekod">✕</button></div></td></tr>`).join('');
+        tb.innerHTML=items.map((s,i)=>`<tr><td class="mono">${i+1}</td><td class="mono">${esc(s.idMurid)}</td><td><span class="student">${esc(s.namaMurid)}</span></td><td><span class="class-pill">${esc(s.kelas)}</span></td><td><span class="pra-pill ${s.pra==='Tidak'?'no':s.pra==='Belum Pasti'?'maybe':''}">${esc(s.pra)}</span></td><td>${esc(s.namaPenjaga)}</td><td class="mono">${viewValue(s.noIc)}</td><td class="mono">${viewValue(s.noTelefon)}</td><td><span class="truncate" title="${esc(s.alamat)}">${esc(s.alamat)}</span></td><td><div class="row-actions">${cloudMode?`<button type="button" class="btn btn-ghost" data-action="move" data-uid="${esc(s.uid)}">Pindah kelas</button>`:''}<button type="button" class="icon-btn" data-action="edit" data-uid="${esc(s.uid)}" title="Kemaskini murid ${esc(s.namaMurid)}" aria-label="Kemaskini murid">✎</button><button type="button" class="icon-btn danger" data-action="delete" data-uid="${esc(s.uid)}" title="Padam rekod" aria-label="Padam rekod">✕</button></div></td></tr>`).join('');
         const empty=items.length===0; tb.hidden=empty; $('emptyState').hidden=!empty;
         $('emptyTitle').textContent=students.length===0?'Belum ada pendaftaran':'Tiada rekod dijumpai';
         $('emptyText').textContent=students.length===0?'Tekan “Tambah Murid” untuk mula mendaftarkan murid baharu.':'Cuba tukar kelas, status PRA atau kata kunci carian.';
@@ -1503,7 +1517,9 @@
         f.namedItem('kelas').disabled=false;
         f.namedItem('kelas').value=s?.kelas??(activeClass==='Semua'?'':activeClass);
         if(cloudMode&&cloudInfo.role!=='admin'){f.namedItem('kelas').value=cloudInfo.kelas;f.namedItem('kelas').disabled=true;}
-        for(const key of ['idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat']) f.namedItem(key).value=s?.[key]??'';
+        for(const key of ['idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat','emailPenjaga','agensiPra']) f.namedItem(key).value=s?.[key]??'';
+        for(const key of ['namaPenjaga','noIc','noTelefon','alamat']){const input=f.namedItem(key);input.required=!s;input.closest('label').querySelector('em').hidden=!!s;}
+        f.agensiPra.disabled=f.pra.value==='Tidak';
         $('formOverlay').hidden=false; document.body.style.overflow='hidden';
         (f.namedItem('kelas').value?f.namedItem('idMurid'):f.namedItem('kelas')).focus();
       }
@@ -1512,9 +1528,9 @@
         e.preventDefault();
         const f=$('studentForm').elements;
         const record={};
-        for(const field of ['kelas','idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat']) record[field]=f.namedItem(field).value.trim();
+        for(const field of ['kelas','idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat','emailPenjaga','agensiPra']) record[field]=f.namedItem(field).value.trim();
         if(!CLASSES.includes(record.kelas)) return toast('Sila pilih kelas yang sah.');
-        if(Object.values(record).some(v=>!v)) return toast('Sila lengkapkan semua medan bertanda *.');
+        if(record.agensiPra)record.pra='Ya';
         if(students.some(s=>s.uid!==editId&&s.idMurid.toLowerCase()===record.idMurid.toLowerCase())) { f.namedItem('idMurid').setCustomValidity('ID murid ini sudah digunakan.'); f.namedItem('idMurid').reportValidity(); return; }
         if(cloudMode){
           const current=editId?students.find(s=>s.uid===editId):null;
@@ -1536,6 +1552,40 @@
         catch { toast('Gagal menyimpan. Semak ruang storan pelayar.'); }
         finally { $('saveStudentBtn').disabled=false; }
       }
+      let moving=null;
+      function openMove(student){
+        if(!cloudMode)return;
+        moving=student;
+        $('moveStudent').textContent=student.namaMurid+' · 1 '+student.kelas;
+        $('moveTo').replaceChildren(new Option('Pilih kelas',''),...CLASSES.filter(c=>c!==student.kelas).map(c=>new Option('1 '+c,c)));
+        $('moveError').hidden=true;
+        $('moveDialog').showModal();
+      }
+      $('moveCancel').onclick=()=>$('moveDialog').close();
+      $('moveForm').onsubmit=async e=>{
+        e.preventDefault();
+        const student=moving,to=$('moveTo').value;
+        $('moveSubmit').disabled=true;
+        try{
+          await cloudApi('students/transfer',{uid:student.uid,version:student.version,from:student.kelas,to});
+          $('moveDialog').close();
+          if(cloudInfo.role==='admin'){student.kelas=to;student.version++;}else students=students.filter(s=>s.uid!==student.uid);
+          render();toast(student.namaMurid+' dipindahkan ke 1 '+to+'.');
+        }catch(err){$('moveError').textContent=err.message;$('moveError').hidden=false;}
+        finally{$('moveSubmit').disabled=false;}
+      };
+      $('logClose').onclick=()=>$('moveLog').close();
+      $('navTransfers').onclick=async()=>{
+        closeSidebar();$('moveHistory').replaceChildren();$('logStatus').textContent='Memuatkan log…';$('moveLog').showModal();
+        try{
+          const {records}=await cloudApi('transfers');
+          $('logStatus').textContent=records.length?records.length+' pindahan':'Belum ada pindahan direkodkan.';
+          $('moveHistory').innerHTML=records.map(r=>'<tr>'+[
+            new Date(r.at.replace(' ','T')+'Z').toLocaleString('ms-MY',{timeZone:'Asia/Kuching'}),
+            r.student_name,'1 '+r.from_class,'1 '+r.to_class,r.actor_email
+          ].map(value=>'<td>'+esc(value)+'</td>').join('')+'</tr>').join('');
+        }catch(err){$('logStatus').textContent=err.message;}
+      };
       async function deleteStudent(id) {
         const s=students.find(r=>r.uid===id); if(!s) return;
         if(!confirm('Padam rekod '+s.namaMurid+'? Tindakan ini tidak boleh dibatalkan.')) return;
@@ -1555,9 +1605,9 @@
       }
       function exportCSV() {
         const rows=filtered(); if(!rows.length) return toast('Tiada rekod untuk dieksport.');
-        const headers=['Bil.','Kelas','ID Murid','Nama Murid','PRA','Nama Ibu Bapa/Penjaga','No. IC Penjaga','No. Telefon','Alamat Terkini','Tarikh Daftar'];
+        const headers=['Bil.','Kelas','ID Murid','Nama Murid','PRA','Nama Ibu Bapa/Penjaga','No. IC Penjaga','No. Telefon','Alamat Terkini','E-mel Penjaga','Agensi PAKK','Tarikh Daftar'];
         const lines=[headers.map(csvSafe).join(',')];
-        rows.forEach((r,i)=>lines.push([i+1,r.kelas,r.idMurid,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,dateText(r.createdAt??new Date().toISOString())].map(csvSafe).join(',')));
+        rows.forEach((r,i)=>lines.push([i+1,r.kelas,r.idMurid,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,r.emailPenjaga,r.agensiPra,dateText(r.createdAt??new Date().toISOString())].map(csvSafe).join(',')));
         const label=activeClass==='Semua'?'Semua-Kelas':activeClass;
         download('\uFEFF'+lines.join('\r\n'),'text/csv;charset=utf-8','Pendaftaran-Tahun1-2027-'+label+'.csv');
         toast('Fail CSV dimuat turun ('+rows.length+' murid).');
@@ -1640,6 +1690,7 @@
         const b=e.target.closest('[data-popup-action]');if(!b)return;
         const s=students.find(r=>r.uid===b.dataset.uid&&r.kelas===classPopupClass);
         if(!s)return;
+        if(b.dataset.popupAction==='move')openMove(s);
         if(b.dataset.popupAction==='edit')openForm(s);
         if(b.dataset.popupAction==='delete')deleteStudent(s.uid);
       });
@@ -1689,9 +1740,15 @@
       [$('closeModal'),$('cancelModal')].forEach(b=>b.addEventListener('click',closeForm));
       $('formOverlay').addEventListener('click',e=>{if(e.target===$('formOverlay'))closeForm();});
       document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('formOverlay').hidden)closeForm();});
+      $('studentForm').elements.pra.addEventListener('change',e=>{
+        const agency=$('studentForm').elements.agensiPra;
+        agency.disabled=e.target.value==='Tidak';
+        if(e.target.value!=='Ya')agency.value='';
+      });
+      $('studentForm').elements.agensiPra.addEventListener('change',e=>{if(e.target.value)$('studentForm').elements.pra.value='Ya';});
       $('studentForm').addEventListener('submit',saveStudent);
       $('studentForm').elements.namedItem('idMurid').addEventListener('input',e=>e.target.setCustomValidity(''));
-      $('tableBody').addEventListener('click',e=>{ const btn=e.target.closest('[data-action]'); if(!btn)return; const s=students.find(x=>x.uid===btn.dataset.uid); if(!s)return; if(btn.dataset.action==='edit')openForm(s); else if(btn.dataset.action==='delete')deleteStudent(s.uid); });
+      $('tableBody').addEventListener('click',e=>{ const btn=e.target.closest('[data-action]'); if(!btn)return; const s=students.find(x=>x.uid===btn.dataset.uid); if(!s)return; if(btn.dataset.action==='move')openMove(s); if(btn.dataset.action==='edit')openForm(s); else if(btn.dataset.action==='delete')deleteStudent(s.uid); });
       $('maskBtn').addEventListener('click',()=>{hideSensitive=!hideSensitive;render();});
       $('csvBtn').addEventListener('click',exportCSV);
       $('printBtn').addEventListener('click',()=>{if(!filtered().length)return toast('Tiada rekod untuk dicetak.'); window.print();});

@@ -13,7 +13,7 @@ const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 function fixture(){
  const db=new DatabaseSync(':memory:');
- for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql','0021_registration2027_bot_config.sql'])db.exec(file('../migrations/'+migration));
+ for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql','0021_registration2027_bot_config.sql','0022_registration_profile_transfers.sql'])db.exec(file('../migrations/'+migration));
  const DB={prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first(){return stmt.get(...values)||null;},all(){return {results:stmt.all(...values)};},run(){return {meta:{changes:stmt.run(...values).changes}};}};},first(){return stmt.get()||null;},all(){return {results:stmt.all()};}}}};
  const env={DB,GOOGLE_CLIENT_ID:'fake',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
  async function cookie(email){
@@ -613,4 +613,26 @@ test('registration sign-in is available in the first HTML before session or scri
  assert.match(html,/<main id="authPage" class="auth-page">/);
  assert.match(html,/<a [^>]*id="cloudAuthBtn"[^>]*href="https:\/\/mapem-skpt-2026.pages.dev\/api\/registration2027\/transfer\/start"/);
  assert.doesNotMatch(html,/id="startup"/);
+});
+
+test('class transfers preserve profiles, check source and version, and log exactly once',async()=>{
+ const {db,call,cookie}=fixture();
+ const admin=await cookie('admin@gmail.com'),teacher=await cookie('ruby@example.com'),other=await cookie('amber@example.com');
+ const post=(route,who,body)=>call('registration2027/'+route,{who,body,method:'POST'});
+ for(const [email,kelas] of [['ruby@example.com','Ruby'],['amber@example.com','Amber']])
+  assert.equal((await post('access/save',admin,{email,kelas})).status,200);
+ const profile={...record('Ruby','TEST-001'),emailPenjaga:'parent@example.com',agensiPra:'KEMAS'};
+ const {uid}=await (await post('students/save',admin,{record:profile})).json();
+ const move={uid,version:1,from:'Ruby',to:'Sapphire'};
+ assert.equal((await post('students/transfer',other,move)).status,403);
+ assert.equal((await post('students/transfer',teacher,move)).status,200);
+ assert.equal((await post('students/transfer',teacher,move)).status,409);
+ const row=db.prepare('SELECT * FROM registration_2027_students WHERE uid=?').get(uid);
+ assert.equal(row.class_name,'Sapphire');assert.equal(row.guardian_email,profile.emailPenjaga);assert.equal(row.preschool_agency,'KEMAS');
+ assert.equal((await post('students/transfer',admin,{uid,version:2,from:'Sapphire',to:'Amber'})).status,200);
+ for(const [who,n] of [[admin,2],[teacher,1],[other,1]]){
+  const {records}=await (await call('registration2027/transfers',{who})).json();assert.equal(records.length,n);
+ }
+ const history=db.prepare('SELECT * FROM registration_2027_transfers ORDER BY id').all();
+ assert.equal(history[0].actor_email,'ruby@example.com');assert.equal(history[1].actor_email,'admin@gmail.com');
 });
