@@ -10,20 +10,22 @@ function safeText(value,key,max,min=1){
  if(s.length<min||s.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(s))error('Panjang/kandungan medan '+key+' tidak sah.');
  return s;
 }
-function validateRecord(v) {
+function validateRecord(v, partialImport=false) {
  if(!v || typeof v!=='object'||Array.isArray(v))error('Rekod murid tidak sah.');
  const kelas=safeText(v.kelas,'Kelas',20);
  if(!CLASSES.includes(kelas))error('Kelas tidak sah.');
- const pra=safeText(v.pra,'PRA',20);
+ const blank=value=>value==null || (typeof value==='string' && !value.trim());
+ const detail=(value,label,max,min)=>partialImport && blank(value) ? '' : safeText(value,label,max,min);
+ const pra=partialImport && blank(v.pra) ? 'Belum Pasti' : safeText(v.pra,'PRA',20);
  if(!['Ya','Tidak','Belum Pasti'].includes(pra))error('Pilihan PRA tidak sah.');
  const idMurid=safeText(v.idMurid,'ID murid',45,2);
  if(!/^[\p{L}\p{N} _./-]+$/u.test(idMurid))error('ID murid mengandungi aksara tidak dibenarkan.');
- const noTelefon=safeText(v.noTelefon,'No. telefon',25,7);
- if(!/^[+\d ()-]+$/.test(noTelefon))error('No. telefon tidak sah.');
+ const noTelefon=detail(v.noTelefon,'No. telefon',25,7);
+ if(noTelefon && !/^[+\d ()-]+$/.test(noTelefon))error('No. telefon tidak sah.');
  return {kelas,pra,idMurid,namaMurid:safeText(v.namaMurid,'Nama murid',150,2),
- namaPenjaga:safeText(v.namaPenjaga,'Nama penjaga',150,2),
- noIc:safeText(v.noIc,'No. IC penjaga',30,4),
- noTelefon,alamat:safeText(v.alamat,'Alamat',500,5)};
+ namaPenjaga:detail(v.namaPenjaga,'Nama penjaga',150,2),
+ noIc:detail(v.noIc,'No. IC penjaga',30,4),
+ noTelefon,alamat:detail(v.alamat,'Alamat',500,5)};
 }
 async function accessFor(env,user) {
  if(user.role==='admin')return {role:'admin',kelas:'Semua',canManageAdmins:true};
@@ -195,7 +197,7 @@ export async function handleRegistration2027({request,env,user,path}) {
  if(path==='registration2027/students/import'&&request.method==='POST') {
   const b=await parseBody(request,80000);
   if(!b||!Array.isArray(b.records)||b.records.length<1||b.records.length>25)error('Import mesti mengandungi 1–25 murid bagi setiap kelompok.',400);
-  const rows=b.records.map(validateRecord);
+  const rows=b.records.map(record=>validateRecord(record,true));
   const seen=new Set();
   for(const r of rows){
    if(!allowed(access,r.kelas))error('Fail mengandungi kelas yang tidak dibenarkan: '+r.kelas,403);

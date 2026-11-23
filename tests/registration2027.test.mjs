@@ -595,3 +595,15 @@ test('successful teacher save updates the UI without requiring another successfu
  assert.match(html,/loadCloudTeachers\(\)\.then\(\(\)=>render\(\)\)\.catch/);
  assert.match(html,/Belum berjaya disimpan:/);
 });
+
+test('roster import accepts three columns and stores absent guardian details as empty',async()=>{
+ const {db,cookie,call}=fixture();
+ const {records,errors}=mapImportRows([['Kelas','ID Murid','Nama Murid'],['Ruby','0012','Murid Ujian']]);
+ assert.deepEqual(errors,[]);
+ const who=await cookie('admin@gmail.com');
+ const response=await call('registration2027/students/import',{who,method:'POST',body:{records}});
+ assert.equal((await response.json()).inserted,1);
+ const row=db.prepare('SELECT * FROM registration_2027_students WHERE student_id=?').get('0012');
+ assert.equal(row.pra,'Belum Pasti');
+ for(const key of ['guardian_name','guardian_ic','guardian_phone','address'])assert.equal(row[key],'');
+});

@@ -122,7 +122,7 @@ export function mapImportRows(table,{defaultClass='Semua',allowedClass=null}={})
  const head=table[0].map(cleanHeader);
  const index={};
  for(const [key,aliases] of Object.entries(ALIASES))index[key]=head.findIndex(h=>aliases.some(a=>cleanHeader(a)===h));
- const required=['idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat'];
+ const required=['idMurid','namaMurid'];
  const missing=required.filter(k=>index[k]<0);
  if(missing.length)throw Error('Lajur tidak dijumpai: '+missing.map(k=>ALIASES[k][0]).join(', '));
  if(index.kelas<0&&defaultClass==='Semua')throw Error('Lajur Kelas wajib ada apabila memilih Semua Kelas.');
@@ -135,19 +135,19 @@ export function mapImportRows(table,{defaultClass='Semua',allowedClass=null}={})
   const item={};
   const rawClass=get('kelas')||defaultClass;
   item.kelas=CLASSES.find(c=>c.toLowerCase()===rawClass.toLowerCase())||rawClass;
-  for(const key of required)item[key]=get(key);
+  for(const key of Object.keys(ALIASES))if(key!=='kelas')item[key]=get(key);
   const pra=item.pra.toLowerCase().replace(/\s+/g,' ');
-  item.pra=['y','yes','ya'].includes(pra)?'Ya':['n','no','tidak'].includes(pra)?'Tidak':['belum pasti','belumpasti','bp'].includes(pra)?'Belum Pasti':item.pra;
+  item.pra=['y','yes','ya'].includes(pra)?'Ya':['n','no','tidak'].includes(pra)?'Tidak':['','belum pasti','belumpasti','bp'].includes(pra)?'Belum Pasti':item.pra;
   const problems=[];
   if(!CLASSES.includes(item.kelas))problems.push('kelas tidak sah');
   if(allowedClass&&item.kelas!==allowedClass)problems.push('bukan kelas '+allowedClass);
   if(!/^[\p{L}\p{N} _./-]{2,45}$/u.test(item.idMurid))problems.push('ID murid tidak sah');
   if(item.namaMurid.length<2||item.namaMurid.length>150)problems.push('nama murid');
   if(!['Ya','Tidak','Belum Pasti'].includes(item.pra))problems.push('PRA');
-  if(item.namaPenjaga.length<2||item.namaPenjaga.length>150)problems.push('nama penjaga');
-  if(item.noIc.length<4||item.noIc.length>30)problems.push('No IC');
-  if(item.noTelefon.length<7||item.noTelefon.length>25||!/^[+\d ()-]+$/.test(item.noTelefon))problems.push('telefon');
-  if(item.alamat.length<5||item.alamat.length>500)problems.push('alamat');
+  if(item.namaPenjaga && (item.namaPenjaga.length<2||item.namaPenjaga.length>150))problems.push('nama penjaga');
+  if(item.noIc && (item.noIc.length<4||item.noIc.length>30))problems.push('No IC Penjaga');
+  if(item.noTelefon && (item.noTelefon.length<7||item.noTelefon.length>25||!/^[+\d ()-]+$/.test(item.noTelefon)))problems.push('telefon');
+  if(item.alamat && (item.alamat.length<5||item.alamat.length>500))problems.push('alamat');
   if(seen.has(item.idMurid.toLocaleLowerCase('ms')))problems.push('ID berulang dalam fail');
   if(problems.length){errors.push({row:n+1,message:problems.join(', ')});continue;}
   seen.add(item.idMurid.toLocaleLowerCase('ms'));records.push(item);
