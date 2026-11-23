@@ -1567,11 +1567,27 @@
         const student=moving,to=$('moveTo').value;
         $('moveSubmit').disabled=true;
         try{
-          await cloudApi('students/transfer',{uid:student.uid,version:student.version,from:student.kelas,to});
+          const result=await cloudApi('students/transfer',{uid:student.uid,version:student.version,from:student.kelas,to});
           $('moveDialog').close();
-          if(cloudInfo.role==='admin'){student.kelas=to;student.version++;}else students=students.filter(s=>s.uid!==student.uid);
+          if(cloudInfo.role==='admin'){student.kelas=to;student.version=result.version??student.version+1;}else students=students.filter(s=>s.uid!==student.uid);
           render();toast(student.namaMurid+' dipindahkan ke 1 '+to+'.');
-        }catch(err){$('moveError').textContent=err.message;$('moveError').hidden=false;}
+        }catch(err){
+          if(err.status===409){
+            try{
+              await loadCloudStudents();
+              const latest=students.find(s=>s.uid===student.uid);
+              render();
+              if(!latest || latest.kelas!==student.kelas){
+                $('moveDialog').close();
+                toast(latest?student.namaMurid+' kini di 1 '+latest.kelas+'.':'Murid tiada dalam senarai kelas ini. Semak Log pindah kelas.');
+                return;
+              }
+              moving=latest;
+              $('moveError').textContent='Rekod sudah dimuat semula. Semak kelas baharu dan sahkan semula jika betul.';
+            }catch{$('moveError').textContent='Kelas semasa belum dapat disemak. Tutup dialog dan muat semula senarai.';}
+          }else $('moveError').textContent=err.message;
+          $('moveError').hidden=false;
+        }
         finally{$('moveSubmit').disabled=false;}
       };
       $('logClose').onclick=()=>$('moveLog').close();

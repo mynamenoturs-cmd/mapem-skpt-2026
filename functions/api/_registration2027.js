@@ -202,10 +202,10 @@ export async function handleRegistration2027({request,env,user,path}) {
   const {uid,version,from,to}=await parseBody(request);
   if(typeof uid!=='string'||!Number.isSafeInteger(version)||version<1||!CLASSES.includes(from)||!CLASSES.includes(to)||from===to)error('Maklumat pindah kelas tidak sah.');
   if(!allowed(access,from))error('Guru hanya boleh memindahkan murid kelas sendiri.',403);
-  const done=await env.DB.prepare('UPDATE registration_2027_students SET class_name=?,updated_by=?,updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE uid=? AND class_name=? AND version=?')
-   .bind(to,user.email,uid,from,version).run();
-  if(done.meta?.changes!==1)error('Kelas atau rekod telah berubah. Muat semula senarai.',409);
-  return json({ok:true});
+  const done=await env.DB.prepare('UPDATE registration_2027_students SET class_name=?,updated_by=?,updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE uid=? AND class_name=? AND version=? RETURNING version')
+   .bind(to,user.email,uid,from,version).first();
+  if(!done)error('Kelas atau rekod telah berubah. Muat semula senarai.',409);
+  return json({ok:true,version:done.version});
  }
  if(path==='registration2027/transfers' && request.method==='GET'){
   const sql='SELECT student_name,from_class,to_class,actor_email,at FROM registration_2027_transfers';
@@ -248,9 +248,9 @@ export async function handleRegistration2027({request,env,user,path}) {
    if(!allowed(access,old.kelas))error('Rekod kelas lain tidak dibenarkan.',403);
    if(old.version!==b.version)error('Rekod telah diubah pengguna lain. Muat semula.',409);
    try{
-    const done=await env.DB.prepare("UPDATE registration_2027_students SET student_id=?,class_name=?,name=?,pra=?,guardian_name=?,guardian_ic=?,guardian_phone=?,address=?,guardian_email=COALESCE(?,guardian_email),preschool_agency=COALESCE(?,preschool_agency),version=version+1,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE uid=? AND version=?")
-     .bind(r.idMurid,r.kelas,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,b.record.emailPenjaga===undefined?null:r.emailPenjaga,b.record.agensiPra===undefined && r.pra!=='Tidak'?null:r.agensiPra,user.email,uid,b.version).run();
-    if(done.meta?.changes!==1)error('Rekod diubah di peranti lain. Muat semula.',409);
+    const done=await env.DB.prepare("UPDATE registration_2027_students SET student_id=?,class_name=?,name=?,pra=?,guardian_name=?,guardian_ic=?,guardian_phone=?,address=?,guardian_email=COALESCE(?,guardian_email),preschool_agency=COALESCE(?,preschool_agency),version=version+1,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE uid=? AND version=? RETURNING version")
+     .bind(r.idMurid,r.kelas,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,b.record.emailPenjaga===undefined?null:r.emailPenjaga,b.record.agensiPra===undefined && r.pra!=='Tidak'?null:r.agensiPra,user.email,uid,b.version).first();
+    if(!done)error('Rekod diubah di peranti lain. Muat semula.',409);
    }catch(e){if(/UNIQUE constraint failed/i.test(e.message||''))error('ID murid telah didaftarkan.',409);throw e;}
    await audit(env,user.email,'update',uid,r.kelas);
    return json({ok:true,uid,version:b.version+1});
