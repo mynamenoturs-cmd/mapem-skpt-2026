@@ -1,6 +1,6 @@
 /* SK Pekan Telipok Tahun 1 2027 — safe static-only service worker.
    NEVER cache API responses, auth endpoints, private data or non-GET requests. */
-const VERSION='skpt-tahun1-pwa-v4';
+const VERSION='skpt-tahun1-pwa-v5';
 const CACHE_PREFIX='skpt-tahun1-pwa-';
 const ASSETS=[
   '/', '/ibu-bapa/', '/bot-admin/',
@@ -10,7 +10,7 @@ const ASSETS=[
   '/icons/icon-192.png','/icons/icon-512.png','/icons/icon-maskable-512.png',
   '/icons/apple-touch-icon.png',
   '/assets/logo-sekolah-rasmi-2027.webp',
-  '/assets/header-pendaftaran-2027-lima-pentadbir.avif'
+  '/assets/header-pendaftaran-2027-enam-pentadbir.avif'
 ];
 const STATIC=new Set(ASSETS);
 const isAllowed=(request,url)=>{

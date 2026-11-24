@@ -60,9 +60,9 @@ jobs:
           test -s .registration-deploy/public/assets/cikgu-wanwan-bot-v2-still.webp
           test -s .registration-deploy/public/assets/cikgu-wanwan-bot.gif
           cp public/pendaftaran-tahun1-2027/_headers .registration-deploy/public/_headers
-          cp public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027-lima-pentadbir.avif .registration-deploy/public/assets/header-pendaftaran-2027-lima-pentadbir.avif
+          cp public/pendaftaran-tahun1-2027/assets/header-pendaftaran-2027-enam-pentadbir.avif .registration-deploy/public/assets/header-pendaftaran-2027-enam-pentadbir.avif
           cp public/pendaftaran-tahun1-2027/assets/logo-sekolah-rasmi-2027.webp .registration-deploy/public/assets/logo-sekolah-rasmi-2027.webp
-          test -s .registration-deploy/public/assets/header-pendaftaran-2027-lima-pentadbir.avif
+          test -s .registration-deploy/public/assets/header-pendaftaran-2027-enam-pentadbir.avif
           test -s .registration-deploy/public/assets/logo-sekolah-rasmi-2027.webp
           cp 'registration-site/functions/api/[[path]].js' '.registration-deploy/functions/api/[[path]].js'
           cp registration-site/functions/api/_ai2027.js .registration-deploy/functions/api/_ai2027.js
@@ -106,11 +106,11 @@ jobs:
           echo "Android dan iOS PWA installation assets verified."
           node -e 'const fs=require("fs");const h=JSON.parse(fs.readFileSync("/tmp/year1-health.json"));if(!(h.ok&&h.databaseBound&&h.databaseConnected))process.exit(1);console.log("Year 1 registration portal ready");'
           # Verify that both supplied branded images are publicly served, not missing assets.
-          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/header-pendaftaran-2027-lima-pentadbir.avif -o /tmp/registration-banner-live.avif
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/header-pendaftaran-2027-enam-pentadbir.avif -o /tmp/registration-banner-live.avif
           test "$(wc -c < /tmp/registration-banner-live.avif)" -ge 15000
           curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/assets/logo-sekolah-rasmi-2027.webp -o /tmp/registration-logo-live.webp
           test "$(wc -c < /tmp/registration-logo-live.webp)" -ge 5000
-          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ | grep -F 'header-pendaftaran-2027-lima-pentadbir.avif' > /dev/null
+          curl --fail --silent --show-error --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ | grep -F 'header-pendaftaran-2027-enam-pentadbir.avif' > /dev/null
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/ibu-bapa/ | grep -F 'Paparan Ibu Bapa' > /dev/null
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot-admin/ | grep -F 'Soalan & Jawapan Delima PTG BOT' > /dev/null
           curl -fsS --max-time 25 https://pendaftaran-tahun1-2027-skpt.pages.dev/bot2027.mjs | grep -F 'answerRegistrationQuestion' > /dev/null
