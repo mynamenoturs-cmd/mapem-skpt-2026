@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {onRequest} from '../functions/api/[[path]].js';
 import {onRequest as registrationApi} from '../registration-site/functions/api/[[path]].js';
 import {handleRegistration2027} from '../functions/api/_registration2027.js';
-import {answerRegistrationQuestion,DEFAULT_TEACHERS,QUICK_QUESTIONS,containsPrivateRegistrationDetails} from '../public/pendaftaran-tahun1-2027/bot2027.mjs';
+import {answerRegistrationQuestion,DEFAULT_TEACHERS,QUICK_QUESTIONS,containsPrivateRegistrationDetails,staffIntent,staffQuestion,privateStaffQuestion} from '../public/pendaftaran-tahun1-2027/bot2027.mjs';
 import {tidyRegistrationAIAnswer} from '../registration-site/functions/api/_ai2027.js';
 import {parseCsv,mapImportRows,createExcelTemplate} from '../public/pendaftaran-tahun1-2027/import2027.mjs';
 const ORIGIN='https://mapem-skpt-2026.pages.dev';
@@ -691,4 +691,13 @@ test('assistant aggregates enforce class grants and omit individual records',asy
  const full=await (await get(viewer)).json();
  assert.equal(full.classes.length,9);assert.equal(full.classes.reduce((n,c)=>n+c.total,0),2);
  assert.equal((await post('assistant-summary',viewer,{})).status,403);
+});
+
+test('smart routing does not force staff users to type a public AI prefix',()=>{
+ for(const q of ['ni sekolah sk pekan apa?','mana ai?','Apa program transisi?','Berapa kelas Tahun 1?','Siapa guru kelas Ruby?','Hai'])assert.equal(staffIntent(q),false,q);
+ for(const q of ['Jumlah murid','berapa murid lelaki?','Statistik demografi','Rekod belum lengkap','Agihan kelas','Buat laporan pendaftaran','Buka senarai murid 1 Ruby'])assert.equal(staffIntent(q),true,q);
+ assert.match(answerRegistrationQuestion('ni sekolah sk pekan apa?').text,/SK Pekan Telipok/);
+ assert.match(answerRegistrationQuestion('mana ai?').text,/Delima PTG BOT/);
+ assert.match(staffQuestion('Sapphire pula?','Jumlah murid Ruby'),/Jumlah murid Sapphire/);
+ assert.equal(privateStaffQuestion('Senarai nama murid'),true);
 });

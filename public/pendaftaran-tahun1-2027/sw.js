@@ -1,6 +1,6 @@
 /* SK Pekan Telipok Tahun 1 2027 — safe static-only service worker.
    NEVER cache API responses, auth endpoints, private data or non-GET requests. */
-const VERSION='skpt-tahun1-pwa-v5';
+const VERSION='skpt-tahun1-pwa-v6';
 const CACHE_PREFIX='skpt-tahun1-pwa-';
 const ASSETS=[
   '/', '/ibu-bapa/', '/bot-admin/',

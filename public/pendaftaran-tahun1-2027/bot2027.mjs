@@ -33,6 +33,8 @@ export function answerRegistrationQuestion(question,info={}){
   return {text:'Hai! 😊 Ada apa yang boleh saya bantu tentang pendaftaran Tahun 1 2027?'};
  const custom=(Array.isArray(info.faqs)?info.faqs:[]).find(f=>f&&normal(f.question)===q&&typeof f.answer==='string'&&f.answer.trim());
  if(custom)return {text:custom.answer.trim(),links:[parent,...links],curated:true};
+ if(/(?:sekolah|sk pekan).*(?:apa|mana|nama)|(?:nama|apa|mana).*(?:sekolah|sk pekan)/.test(q))return {text:'Ini portal Pendaftaran Tahun 1 2027 SK Pekan Telipok, Tuaran, Sabah.',known:true};
+ if(/^(?:mana ai|ai mana|kau siapa|awak siapa|siapa (?:awak|kamu)|apa (?:fungsi|kelebihan) ai|bot ni apa)[?!. ]*$/.test(q))return {text:'Saya Delima PTG BOT, pembantu AI portal SK Pekan Telipok. Saya boleh membantu dengan panduan pendidikan, maklumat sekolah dan, selepas log masuk, statistik mengikut akses anda.',known:true};
  const named=teachers.find(t=>normal(q).includes(normal(t.kelas)));
  if(named&&!/kelas\s+anak|kelas\s+murid|semak.*anak|nama\s+anak/.test(q))
   return {text:'Guru kelas 1 '+named.kelas+' ialah '+named.namaGuru+'.',links:[parent]};
@@ -65,6 +67,34 @@ export function containsPrivateRegistrationDetails(question){
  return /@|(?:\d[\s-]?){10,}|mykid|kad\s*pengenalan|alamat\s*(?:rumah|anak)|nama\s*anak|anak\s*saya|anak\s*aku|anak\s*saya\s*bernama/i.test(q)||
   /(?:kelas|semak|cari).{0,35}(?:anak saya|nama anak)|anak saya.{0,35}(?:nama|kelas)/i.test(q);
 }
+// Route only clearly data-oriented questions into the verified aggregate tools.
+const classNames=['Emerald','Ruby','Sapphire','Diamond','Jade','Crystal','Topaz','Amber','Pearl'];
+const mentionedClass=q=>classNames.find(c=>new RegExp('\\b'+normal(c)+'\\b').test(normal(q)));
+export function staffIntent(question){
+ const q=normal(question);
+ if(/^panduan umum\s*:/.test(q))return false;
+ if(/^(buka|papar(?:kan)?|lihat)\b.*\b(senarai murid|kelas|rekod murid)\b/.test(q))return true;
+ if(/\b(padam|delete|hapus|tukar|ubah|edit|pindah)\b.*\b(murid|rekod|kelas|data)\b/.test(q)&&!/\b(cara|macam mana|bagaimana|kenapa)\b/.test(q))return true;
+ if(/rekod.*(?:belum lengkap|tidak lengkap|kosong)|(?:belum lengkap|tidak lengkap).*rekod|agihan kelas|statistik|demografi|(?:laporan|ringkasan).*(?:murid|pendaftaran|kelas)|kelas.*(?:paling ramai|paling sedikit|terbanyak|terendah)|(?:banding|seimbang).*kelas/.test(q))return true;
+ if(/\b(berapa|brp|bapa|jumlah|bilangan|ramai|hitung|kira|total|count)\b/.test(q)&&(/\b(murid|pelajar|lelaki|perempuan|muslim|warganegara|pra|prasekolah|rekod|pendaftaran)\b/.test(q)||mentionedClass(q)))return true;
+ return /^(?:dan\s+)?(?:murid\s+)?(?:lelaki|perempuan|muslim|bukan muslim|warganegara|bukan warganegara|pra|bukan pra)(?:\s+pula)?[?!. ]*$/.test(q);
+}
+export function staffQuestion(question,previous=''){
+ const q=normal(question);
+ if(staffIntent(question)){
+  const old=mentionedClass(previous);
+  return old&&!mentionedClass(question)&&/^(dan |pula |bagaimana dengan |kalau )|\bpula\b/.test(q)?question+' 1 '+old:question;
+ }
+ if(previous&&mentionedClass(question)&&/^(dan |pula |bagaimana dengan |kalau )|\bpula\b/.test(q)){
+  const old=mentionedClass(previous);
+  return (old?previous.replace(new RegExp('\\b'+old+'\\b','ig'),mentionedClass(question)):previous+' 1 '+mentionedClass(question));
+ }
+ return '';
+}
+export function privateStaffQuestion(question){
+ const q=normal(question);
+ return /\b(nama|alamat|telefon|email|e-mel|ic|mykid|id)\b.*\b(murid|pelajar|penjaga|ibu bapa|bapa|ibu)\b|\b(murid|pelajar|penjaga)\b.*\b(bernama|bin|binti|alamat|telefon|ic|mykid|email|e-mel)\b|\b(senarai|list|cari|semak)\b.*\b(nama murid|nama pelajar|individu|penjaga)\b/.test(q);
+}
 // Staff tools run locally on verified, aggregate-only server responses. No student data goes to public AI.
 export function staffAnswer(question,summary){
  const q=normal(question), rows=Array.isArray(summary?.classes)?summary.classes:[];
@@ -89,7 +119,7 @@ export function staffAnswer(question,summary){
  if(/warga|citizen/.test(q))return result('Warganegara: '+sum('warga')+' | Bukan warganegara: '+sum('bukanWarga')+' | Belum diisi: '+(total-sum('warga')-sum('bukanWarga')));
  if(/\bpra\b|prasekolah/.test(q))return result('PRA: '+sum('pra')+' | Bukan PRA: '+sum('bukanPra')+' | Belum pasti: '+(total-sum('pra')-sum('bukanPra')));
  if(/jumlah|berapa|bilangan|ramai|kelas/.test(q))return result('Jumlah: '+total+' murid.\n'+selected.map(r=>'1 '+r.kelas+': '+r.total).join(' · '));
- return {text:'Saya boleh menyemak jumlah murid, demografi, rekod belum lengkap, agihan kelas dan menjana ringkasan. Untuk soalan pendidikan umum, mulakan dengan “panduan umum:”.'};
+ return {text:'Saya belum dapat mengenal pasti analisis yang diminta. Contohnya, tanya jumlah murid atau statistik mengikut kelas.'};
 }
 function boot(){
  if(document.getElementById('t1chat-launcher'))return;
@@ -123,9 +153,9 @@ function boot(){
  const title=root.querySelector('.t1chat-header small');
  function resetContext(){
   epoch++;history=[];staffLast='';messages.replaceChildren();
-  if(!panel.hidden)add(staffMode()?'Mod pengurusan: tanya statistik, agihan kelas atau rekod belum lengkap.':' '+(info.greeting||DEFAULT_GREETING));
-  if(title)title.textContent=staffMode()?'Pembantu pengurusan · Akses disahkan':'Pembantu AI · Pendaftaran Tahun 1 2027';
-  privacy.textContent=staffMode()?'Analisis setempat · Data individu tidak dihantar ke AI awam.':'AI + FAQ rasmi · Jangan taip IC, MyKid atau alamat murid.';
+  if(!panel.hidden)add(staffMode()?'Saya boleh membantu dengan pertanyaan umum, maklumat sekolah dan statistik mengikut akses anda. Tanya seperti biasa.':' '+(info.greeting||DEFAULT_GREETING));
+  if(title)title.textContent=staffMode()?'AI + Pembantu pengurusan':'Pembantu AI · Pendaftaran Tahun 1 2027';
+  privacy.textContent=staffMode()?'AI + statistik terkawal · Jangan taip IC, MyKid atau alamat murid.':'AI + FAQ rasmi · Jangan taip IC, MyKid atau alamat murid.';
   renderQuickQuestions();
  }
  if(app)new MutationObserver(resetContext).observe(app,{attributes:true,attributeFilter:['hidden']});
@@ -153,24 +183,28 @@ function boot(){
  async function ask(question){
   const val=String(question||'').trim();if(!val||busy)return;
   const turn=epoch;
-  if(staffMode()&&!/^panduan umum\s*:/i.test(val)){
+  const dataQuestion=staffMode()?staffQuestion(val,staffLast):'';
+  if(staffMode()&&privateStaffQuestion(val)&&!dataQuestion){
+   add('Untuk melindungi data murid, buka senarai murid melalui portal mengikut kebenaran anda. Jangan masukkan nama, IC atau butiran individu dalam chat.');return;
+  }
+  if(dataQuestion){
    busy=true;add(val,true);
    try{
     const r=await fetch('/api/registration2027/assistant-summary',{credentials:'same-origin',cache:'no-store'});
     if(turn!==epoch||!staffMode())return;
     if(!r.ok){add('Statistik memerlukan sesi Google yang sah dan kebenaran pendaftaran.');return;}
     const summary=await r.json();if(turn!==epoch||!staffMode())return;
-    const follow=/^(dan |pula |bagaimana dengan |kalau )/i.test(val)&&staffLast?staffLast+' '+val:val;
-    const answer=staffAnswer(follow,summary);staffLast=val;
+    const answer=staffAnswer(dataQuestion,summary);staffLast=dataQuestion;
     add(answer.text,false);
     if(answer.action){const b=document.createElement('button');b.type='button';b.textContent='Buka paparan';b.className='btn btn-ghost';b.onclick=()=>{if(turn!==epoch||!staffMode())return;const target=answer.action==='list'?document.querySelector('#mainNav [data-view="list"]'):Array.from(document.querySelectorAll('[data-dashboard-class]')).find(x=>x.dataset.dashboardClass===answer.action.slice(6));if(target){target.click();openChat(false);}else add('Buka Dashboard dahulu untuk memilih kelas.');};messages.lastElementChild.append(b);}
    }catch{if(turn===epoch)add('Statistik tidak dapat dimuatkan. Sila cuba lagi.');}finally{busy=false;}
    return;
   }
   const fallback=answerRegistrationQuestion(val,info);
-  if(fallback.curated){add(val,true);add(fallback.text+'\n\n— Jawapan rasmi sekolah',false,fallback.links||[]);return;}
+  if(staffMode())staffLast='';
+  if(fallback.curated&&!containsPrivateRegistrationDetails(val)){add(val,true);add(fallback.text+'\n\n— Jawapan rasmi sekolah',false,fallback.links||[]);return;}
   if(containsPrivateRegistrationDetails(val)){
-   add('Untuk keselamatan, maklumat berkaitan anak tidak dihantar kepada AI. '+fallback.text,false,fallback.links||[]);
+   add('Untuk keselamatan, pertanyaan yang mungkin mengandungi data individu tidak dihantar kepada AI. '+fallback.text,false,fallback.links||[]);
    return;
   }
   add(val,true);busy=true;
@@ -179,7 +213,7 @@ function boot(){
   pending.textContent='Delima PTG BOT sedang fikir... ✨';
   messages.append(pending);messages.scrollTop=messages.scrollHeight;
   const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),10000);
+  const timeout=setTimeout(()=>controller.abort(),18000);
   try{
    const r=await fetch('/api/public/ai',{
     method:'POST',credentials:'omit',cache:'no-store',
@@ -191,16 +225,17 @@ function boot(){
     history=[...history,val].slice(-3);
     add(data.text.trim()+'\n\n— Pembantu AI',false,fallback.links||[]);
    }else{
-    add(fallback.text+'\n\n— Jawapan FAQ automatik',false,fallback.links||[]);
+    const reason=['quota','client-limit'].includes(data.reason)?'Kuota AI untuk hari ini telah dicapai.':'AI tidak tersedia buat masa ini.';
+    add(fallback.text+'\n\n— Jawapan FAQ automatik · '+reason,false,fallback.links||[]);
    }
   }catch{
-   if(turn===epoch)add(fallback.text+'\n\n— Jawapan FAQ automatik',false,fallback.links||[]);
+   if(turn===epoch)add(fallback.text+'\n\n— Jawapan FAQ automatik · Sambungan AI tidak berjaya.',false,fallback.links||[]);
   }finally{clearTimeout(timeout);pending.remove();busy=false;}
  }
  function openChat(open){
   panel.hidden=!open;launcher.setAttribute('aria-expanded',String(open));
   if(open){
-   if(!messages.childNodes.length)add(staffMode()?'Mod pengurusan: tanya statistik, agihan kelas atau rekod belum lengkap.':info.greeting||DEFAULT_GREETING);
+   if(!messages.childNodes.length)add(staffMode()?'Saya boleh membantu dengan pertanyaan umum, maklumat sekolah dan statistik mengikut akses anda. Tanya seperti biasa.':info.greeting||DEFAULT_GREETING);
    refresh().then(()=>{
     if(!staffMode()&&messages.children.length===1){
      const first=messages.firstElementChild?.querySelector('p');
