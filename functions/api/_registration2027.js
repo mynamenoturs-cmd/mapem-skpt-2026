@@ -132,7 +132,35 @@ export async function handleRegistration2027({request,env,user,path}) {
  if(path==='registration2027/me'&&request.method==='GET')
   return access?json({authorized:true,user:{email:user.email,name:user.name},...access}):json({authorized:false,error:'Akaun Google belum diberikan akses ke pendaftaran Tahun 1 2027.'},403);
  if(!access)error('Akaun Google tidak mempunyai kebenaran pendaftaran Tahun 1 2027.',403);
- if(access.role==='viewer' && (request.method!=='GET'||!['registration2027/teachers','registration2027/students','registration2027/transfers','registration2027/deletions'].includes(path)))error('Akses pentadbir ini untuk paparan sahaja.',403);
+ if(access.role==='viewer' && (request.method!=='GET'||!['registration2027/teachers','registration2027/students','registration2027/transfers','registration2027/deletions','registration2027/assistant-summary'].includes(path)))error('Akses pentadbir ini untuk paparan sahaja.',403);
+ if(path==='registration2027/assistant-summary'&&request.method==='GET'){
+  // Only aggregates are returned; scope is derived from the verified server grant.
+  const sql=`SELECT class_name AS kelas,COUNT(*) AS total,
+   SUM(CASE WHEN jantina='Lelaki' THEN 1 ELSE 0 END) AS lelaki,
+   SUM(CASE WHEN jantina='Perempuan' THEN 1 ELSE 0 END) AS perempuan,
+   SUM(CASE WHEN agama='Muslim' THEN 1 ELSE 0 END) AS muslim,
+   SUM(CASE WHEN agama='Bukan Muslim' THEN 1 ELSE 0 END) AS bukanMuslim,
+   SUM(CASE WHEN warga='Warganegara' THEN 1 ELSE 0 END) AS warga,
+   SUM(CASE WHEN warga='Bukan Warganegara' THEN 1 ELSE 0 END) AS bukanWarga,
+   SUM(CASE WHEN pra='Ya' THEN 1 ELSE 0 END) AS pra,
+   SUM(CASE WHEN pra='Tidak' THEN 1 ELSE 0 END) AS bukanPra,
+   SUM(CASE WHEN trim(guardian_name)='' OR trim(guardian_ic)='' OR trim(guardian_phone)='' OR trim(address)='' OR trim(jantina)='' OR trim(agama)='' OR trim(warga)='' OR trim(bangsa)='' OR pra='Belum Pasti' THEN 1 ELSE 0 END) AS belumLengkap,
+   SUM(CASE WHEN trim(guardian_name)='' THEN 1 ELSE 0 END) AS tiadaPenjaga,
+   SUM(CASE WHEN trim(guardian_ic)='' THEN 1 ELSE 0 END) AS tiadaIc,
+   SUM(CASE WHEN trim(guardian_phone)='' THEN 1 ELSE 0 END) AS tiadaTelefon,
+   SUM(CASE WHEN trim(address)='' THEN 1 ELSE 0 END) AS tiadaAlamat,
+   SUM(CASE WHEN trim(bangsa)='' THEN 1 ELSE 0 END) AS tiadaBangsa
+   FROM registration_2027_students`;
+  const scoped=access.role==='editor';
+  const query=scoped?env.DB.prepare(sql+' WHERE class_name=? GROUP BY class_name').bind(access.kelas):env.DB.prepare(sql+' GROUP BY class_name');
+  const rows=(await query.all()).results||[];
+  const keys=['total','lelaki','perempuan','muslim','bukanMuslim','warga','bukanWarga','pra','bukanPra','belumLengkap','tiadaPenjaga','tiadaIc','tiadaTelefon','tiadaAlamat','tiadaBangsa'];
+  const classes=(scoped?[access.kelas]:CLASSES).map(kelas=>{
+   const row=rows.find(r=>r.kelas===kelas);
+   return {kelas,...Object.fromEntries(keys.map(k=>[k,Number(row?.[k]||0)]))};
+  });
+  return json({role:access.role,kelas:access.kelas,classes});
+ }
  if(path==='registration2027/teachers'&&request.method==='GET'){
   return json({teachers:await listTeachers(env)});
  }

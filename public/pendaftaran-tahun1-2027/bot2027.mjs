@@ -65,6 +65,32 @@ export function containsPrivateRegistrationDetails(question){
  return /@|(?:\d[\s-]?){10,}|mykid|kad\s*pengenalan|alamat\s*(?:rumah|anak)|nama\s*anak|anak\s*saya|anak\s*aku|anak\s*saya\s*bernama/i.test(q)||
   /(?:kelas|semak|cari).{0,35}(?:anak saya|nama anak)|anak saya.{0,35}(?:nama|kelas)/i.test(q);
 }
+// Staff tools run locally on verified, aggregate-only server responses. No student data goes to public AI.
+export function staffAnswer(question,summary){
+ const q=normal(question), rows=Array.isArray(summary?.classes)?summary.classes:[];
+ const all=['Emerald','Ruby','Sapphire','Diamond','Jade','Crystal','Topaz','Amber','Pearl'];
+ const named=all.find(c=>new RegExp('\\b'+normal(c)+'\\b').test(q));
+ const selected=named?rows.filter(r=>r.kelas===named):rows;
+ if(!selected.length)return {text:'Kelas ini di luar skop akses anda atau tiada akses yang disahkan.'};
+ const scope=named?'1 '+named:summary.role==='editor'?'1 '+summary.kelas:'Semua kelas dalam skop anda';
+ const sum=k=>selected.reduce((n,r)=>n+Number(r[k]||0),0),total=sum('total');
+ const result=text=>({text:scope+' · Statistik semasa\n'+text});
+ if(/\b(padam|delete|hapus|tukar|ubah|edit|pindah|daftar)\b/.test(q)&&!/\b(laporan|statistik|berapa|jumlah|bilangan)\b/.test(q))return {text:'Saya tidak mengubah rekod melalui chat. Gunakan borang portal mengikut kebenaran anda.'};
+ if(/^(buka|papar|lihat)\b.*(senarai|kelas|murid)/.test(q))return {text:'Gunakan butang di bawah untuk membuka '+(named?'kelas 1 '+named:'senarai murid')+'.',action:named?'class:'+named:'list'};
+ if(/belum lengkap|tidak lengkap|kosong|tiada maklumat|rekod lengkap/.test(q))return result('Rekod belum lengkap: '+sum('belumLengkap')+' daripada '+total+' murid.\nPenjaga kosong: '+sum('tiadaPenjaga')+'; IC: '+sum('tiadaIc')+'; telefon: '+sum('tiadaTelefon')+'; alamat: '+sum('tiadaAlamat')+'; bangsa: '+sum('tiadaBangsa')+'.\nRekod mungkin mempunyai lebih daripada satu medan kosong. Semak senarai murid untuk butiran.');
+ if(/paling ramai|paling sedikit|terbanyak|terendah|seimbang|banding|agihan kelas/.test(q)){
+  if(selected.length<2)return result('Hanya satu kelas dalam skop semakan ini. Jumlah: '+total+' murid.');
+  const sorted=[...selected].sort((a,b)=>b.total-a.total),max=sorted[0].total,min=sorted[sorted.length-1].total;
+  return result('Agihan kelas:\n'+sorted.map(r=>'• 1 '+r.kelas+': '+r.total+' murid').join('\n')+'\nPerbezaan tertinggi dan terendah: '+(max-min)+' murid. Keseimbangan berdasarkan bilangan sahaja; faktor lain perlu semakan guru.');
+ }
+ if(/laporan|ringkasan|statistik|demografi|analisis/.test(q))return result('Jumlah murid: '+total+'\nLelaki: '+sum('lelaki')+' | Perempuan: '+sum('perempuan')+' | Belum diisi: '+(total-sum('lelaki')-sum('perempuan'))+'\nMuslim: '+sum('muslim')+' | Bukan Muslim: '+sum('bukanMuslim')+' | Belum diisi: '+(total-sum('muslim')-sum('bukanMuslim'))+'\nWarganegara: '+sum('warga')+' | Bukan warganegara: '+sum('bukanWarga')+' | Belum diisi: '+(total-sum('warga')-sum('bukanWarga'))+'\nPRA: '+sum('pra')+' | Bukan PRA: '+sum('bukanPra')+' | Belum pasti: '+(total-sum('pra')-sum('bukanPra'))+'\nRekod belum lengkap: '+sum('belumLengkap')+'\n'+selected.map(r=>'1 '+r.kelas+': '+r.total).join(' · '));
+ if(/lelaki|perempuan|jantina/.test(q))return result('Lelaki: '+sum('lelaki')+' | Perempuan: '+sum('perempuan')+' | Belum diisi: '+(total-sum('lelaki')-sum('perempuan')));
+ if(/muslim|agama|islam/.test(q))return result('Muslim: '+sum('muslim')+' | Bukan Muslim: '+sum('bukanMuslim')+' | Belum diisi: '+(total-sum('muslim')-sum('bukanMuslim')));
+ if(/warga|citizen/.test(q))return result('Warganegara: '+sum('warga')+' | Bukan warganegara: '+sum('bukanWarga')+' | Belum diisi: '+(total-sum('warga')-sum('bukanWarga')));
+ if(/\bpra\b|prasekolah/.test(q))return result('PRA: '+sum('pra')+' | Bukan PRA: '+sum('bukanPra')+' | Belum pasti: '+(total-sum('pra')-sum('bukanPra')));
+ if(/jumlah|berapa|bilangan|ramai|kelas/.test(q))return result('Jumlah: '+total+' murid.\n'+selected.map(r=>'1 '+r.kelas+': '+r.total).join(' · '));
+ return {text:'Saya boleh menyemak jumlah murid, demografi, rekod belum lengkap, agihan kelas dan menjana ringkasan. Untuk soalan pendidikan umum, mulakan dengan “panduan umum:”.'};
+}
 function boot(){
  if(document.getElementById('t1chat-launcher'))return;
  const root=document.createElement('div');root.className='t1chat-root';
@@ -90,6 +116,19 @@ function boot(){
  const launcher=root.querySelector('#t1chat-launcher'),panel=root.querySelector('#t1chat-panel'),close=root.querySelector('.t1chat-close'),
   messages=root.querySelector('.t1chat-messages'),quick=root.querySelector('.t1chat-quick'),form=root.querySelector('form'),input=form.querySelector('input');
  let info={teachers:DEFAULT_TEACHERS,canSearchStudents:false,adminPhone:'',greeting:DEFAULT_GREETING,faqs:[]};
+ let history=[],busy=false,epoch=0,staffLast='';
+ const app=document.getElementById('app');
+ const staffMode=()=>!!app&&!app.hidden;
+ const privacy=root.querySelector('.t1chat-privacy');
+ const title=root.querySelector('.t1chat-header small');
+ function resetContext(){
+  epoch++;history=[];staffLast='';messages.replaceChildren();
+  if(!panel.hidden)add(staffMode()?'Mod pengurusan: tanya statistik, agihan kelas atau rekod belum lengkap.':' '+(info.greeting||DEFAULT_GREETING));
+  if(title)title.textContent=staffMode()?'Pembantu pengurusan · Akses disahkan':'Pembantu AI · Pendaftaran Tahun 1 2027';
+  privacy.textContent=staffMode()?'Analisis setempat · Data individu tidak dihantar ke AI awam.':'AI + FAQ rasmi · Jangan taip IC, MyKid atau alamat murid.';
+  renderQuickQuestions();
+ }
+ if(app)new MutationObserver(resetContext).observe(app,{attributes:true,attributeFilter:['hidden']});
  async function refresh(){
   try{
    const r=await fetch('/api/public/assistant',{cache:'no-store',credentials:'omit'});
@@ -112,14 +151,29 @@ function boot(){
   messages.append(el);messages.scrollTop=messages.scrollHeight;
  }
  async function ask(question){
-  const val=String(question||'').trim();if(!val)return;
+  const val=String(question||'').trim();if(!val||busy)return;
+  const turn=epoch;
+  if(staffMode()&&!/^panduan umum\s*:/i.test(val)){
+   busy=true;add(val,true);
+   try{
+    const r=await fetch('/api/registration2027/assistant-summary',{credentials:'same-origin',cache:'no-store'});
+    if(turn!==epoch||!staffMode())return;
+    if(!r.ok){add('Statistik memerlukan sesi Google yang sah dan kebenaran pendaftaran.');return;}
+    const summary=await r.json();if(turn!==epoch||!staffMode())return;
+    const follow=/^(dan |pula |bagaimana dengan |kalau )/i.test(val)&&staffLast?staffLast+' '+val:val;
+    const answer=staffAnswer(follow,summary);staffLast=val;
+    add(answer.text,false);
+    if(answer.action){const b=document.createElement('button');b.type='button';b.textContent='Buka paparan';b.className='btn btn-ghost';b.onclick=()=>{if(turn!==epoch||!staffMode())return;const target=answer.action==='list'?document.querySelector('#mainNav [data-view="list"]'):Array.from(document.querySelectorAll('[data-dashboard-class]')).find(x=>x.dataset.dashboardClass===answer.action.slice(6));if(target){target.click();openChat(false);}else add('Buka Dashboard dahulu untuk memilih kelas.');};messages.lastElementChild.append(b);}
+   }catch{if(turn===epoch)add('Statistik tidak dapat dimuatkan. Sila cuba lagi.');}finally{busy=false;}
+   return;
+  }
   const fallback=answerRegistrationQuestion(val,info);
   if(fallback.curated){add(val,true);add(fallback.text+'\n\n— Jawapan rasmi sekolah',false,fallback.links||[]);return;}
   if(containsPrivateRegistrationDetails(val)){
    add('Untuk keselamatan, maklumat berkaitan anak tidak dihantar kepada AI. '+fallback.text,false,fallback.links||[]);
    return;
   }
-  add(val,true);
+  add(val,true);busy=true;
   const pending=document.createElement('div');
   pending.className='t1chat-bubble t1chat-bot';
   pending.textContent='Delima PTG BOT sedang fikir... ✨';
@@ -129,24 +183,26 @@ function boot(){
   try{
    const r=await fetch('/api/public/ai',{
     method:'POST',credentials:'omit',cache:'no-store',
-    headers:{'Content-Type':'application/json'},body:JSON.stringify({question:val}),signal:controller.signal
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({question:val.replace(/^panduan umum\s*:/i,'').trim(),history}),signal:controller.signal
    });
    const data=r.ok?await r.json():{};
+   if(turn!==epoch)return;
    if(data.mode==='ai'&&typeof data.text==='string'&&data.text.trim()){
-    add(data.text.trim()+'\n\n— Jawapan AI berdasarkan maklumat sekolah',false,fallback.links||[]);
+    history=[...history,val].slice(-3);
+    add(data.text.trim()+'\n\n— Pembantu AI',false,fallback.links||[]);
    }else{
     add(fallback.text+'\n\n— Jawapan FAQ automatik',false,fallback.links||[]);
    }
   }catch{
-   add(fallback.text+'\n\n— Jawapan FAQ automatik',false,fallback.links||[]);
-  }finally{clearTimeout(timeout);pending.remove();}
+   if(turn===epoch)add(fallback.text+'\n\n— Jawapan FAQ automatik',false,fallback.links||[]);
+  }finally{clearTimeout(timeout);pending.remove();busy=false;}
  }
  function openChat(open){
   panel.hidden=!open;launcher.setAttribute('aria-expanded',String(open));
   if(open){
-   if(!messages.childNodes.length)add(info.greeting||DEFAULT_GREETING);
+   if(!messages.childNodes.length)add(staffMode()?'Mod pengurusan: tanya statistik, agihan kelas atau rekod belum lengkap.':info.greeting||DEFAULT_GREETING);
    refresh().then(()=>{
-    if(messages.children.length===1){
+    if(!staffMode()&&messages.children.length===1){
      const first=messages.firstElementChild?.querySelector('p');
      if(first)first.textContent=info.greeting||DEFAULT_GREETING;
     }
@@ -160,7 +216,7 @@ function boot(){
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden&&e.target.closest('.t1chat-root'))openChat(false);});
  function renderQuickQuestions(){
   quick.replaceChildren();
-  const options=Array.isArray(info.faqs)&&info.faqs.length
+  const options=staffMode()?['Jumlah murid','Statistik demografi','Rekod belum lengkap','Agihan kelas','Buat laporan pendaftaran']:Array.isArray(info.faqs)&&info.faqs.length
    ?info.faqs.filter(f=>f&&f.question).slice(0,20).map(f=>f.question):QUICK_QUESTIONS;
   for(const question of options){
    const button=document.createElement('button');button.type='button';button.textContent=question;

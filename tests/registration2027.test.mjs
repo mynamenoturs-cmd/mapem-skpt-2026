@@ -673,3 +673,22 @@ test('registration viewer sees all classes and logs, with read-only access even 
  assert.equal((await post('admins/revoke',admin,{email})).status,200);
  assert.equal((await (await call('registration2027/me',{who})).json()).role,'editor');
 });
+
+test('assistant aggregates enforce class grants and omit individual records',async()=>{
+ const {cookie,call}=fixture(),admin=await cookie('admin@gmail.com'),teacher=await cookie('guru@gmail.com'),other=await cookie('other@gmail.com'),viewer=await cookie('viewer@gmail.com');
+ const post=(route,who,body)=>call('registration2027/'+route,{who,method:'POST',body});
+ await post('access/save',admin,{email:'guru@gmail.com',kelas:'Ruby'});
+ await post('admins/save',admin,{email:'viewer@gmail.com',role:'viewer'});
+ await post('students/save',admin,{record:{...record('Ruby','A01'),jantina:'Lelaki'}});
+ await post('students/save',admin,{record:{...record('Amber','A02'),jantina:'Perempuan'}});
+ const get=who=>call('registration2027/assistant-summary',{who});
+ assert.equal((await get()).status,401);
+ assert.equal((await get(other)).status,403);
+ const scoped=await (await get(teacher)).json();
+ assert.equal(scoped.classes.length,1);assert.equal(scoped.classes[0].kelas,'Ruby');assert.equal(scoped.classes[0].total,1);
+ assert.equal(scoped.classes[0].lelaki,1);assert.equal(scoped.classes[0].belumLengkap,1);
+ assert.doesNotMatch(JSON.stringify(scoped),/MURID UJIAN|PENJAGA UJIAN|A01/);
+ const full=await (await get(viewer)).json();
+ assert.equal(full.classes.length,9);assert.equal(full.classes.reduce((n,c)=>n+c.total,0),2);
+ assert.equal((await post('assistant-summary',viewer,{})).status,403);
+});
