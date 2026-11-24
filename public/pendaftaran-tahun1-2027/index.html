@@ -667,9 +667,9 @@
 <style id="compact-portal-hub">
 .ptg-icon{display:inline-block;width:20px;height:20px;flex:none;vertical-align:middle}
 @media screen{
-#app .hero-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px clamp(12px,3vw,38px);max-width:1420px}
+#app .hero-inner{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:12px clamp(12px,3vw,38px);max-width:1420px}
 #app .hero .brand{flex:1;min-width:0;margin:0}#app .hero-caption{display:none}
-#app .hero-poster{position:relative;display:block;flex:0 0 auto;width:clamp(106px,20vw,238px);margin:0;padding:0;cursor:zoom-in;border-radius:9px}
+#app .hero-poster{position:relative;display:block;flex:0 0 auto;width:100%;margin:0;padding:0;cursor:zoom-in;border-radius:9px}
 #app .hero-poster span{position:absolute;right:4px;bottom:4px;background:#38132dd9;border-radius:4px;color:#fff3d5;padding:2px}
 #app .hero-poster .ptg-icon{width:13px;height:13px}
 #app .container.app-workspace{margin:16px auto 0;max-width:1420px;align-items:start}
@@ -699,6 +699,18 @@
 #app #smartStatsOpen{margin-top:12px}#app #hubBanner img{display:block;width:100%;height:auto;border-radius:10px}
 @media(max-width:890px){#app .workspace-sidebar{max-height:100dvh}#app .container.app-workspace{margin-top:12px}}
 @media(max-width:580px){#app .quick-tile{flex-direction:column;justify-content:center;gap:5px;padding:8px 3px;min-height:70px}#app .quick-tile strong{font-size:12px}#app .quick-grid{gap:6px}#app .hero .brand{gap:6px}#app .brand-crest-sm{width:28px;height:34px;flex:none}#app .brand-dept{font-size:10px}#app .brand-school{font-size:11px}#app .smart-greeting{margin:0 0 10px}#app #statsPanel{grid-template-columns:repeat(2,minmax(0,1fr))}#app #statsPanel .stat{padding:9px 12px}#app .hub-popup .mini-passport{display:none}}
+}
+@media screen {
+#app .workspace-sidebar .workspace-ico{width:32px;height:32px;flex:none;border:1px solid #c2996970;border-radius:10px;background:linear-gradient(150deg,#723952,#3b1734);box-shadow:inset 0 1px #fff2,0 2px 4px #210c231f;color:#ffdda7}
+#app .workspace-sidebar .workspace-ico svg{width:19px;height:19px;stroke-width:1.8}
+#app .workspace-sidebar .workspace-link.active .workspace-ico{background:#502039;border-color:#80452e;color:#ffe7b2}
+#app .workspace-link:focus-visible,#app .class-shortcut:focus-visible{outline:3px solid #c88f3c;outline-offset:2px}
+#app .class-overview{grid-column:1/-1;margin-top:5px;padding:14px;border:1px solid #dcc3ab;border-radius:16px;background:linear-gradient(120deg,#fffaf3,#f6ece5)}
+#app .class-overview h3{margin:0 0 11px;font-size:16px;color:#55213a}
+#app .class-shortcuts{display:grid;grid-template-columns:repeat(auto-fit,minmax(87px,1fr));gap:6px}
+#app .class-shortcut{display:flex;align-items:center;justify-content:space-between;gap:4px;background:#fffdf9;color:#52213b;border:1px solid #dfcbbb;border-left:3px solid var(--accent);border-radius:8px;min-height:44px;padding:6px;font:inherit;font-size:12px}
+#app .class-shortcut strong{font-size:15px;font-variant-numeric:tabular-nums}
+@media(max-width:640px){#app .class-shortcuts{grid-template-columns:repeat(3,minmax(0,1fr))}}
 }
 </style></head>
 <body>
@@ -796,6 +808,7 @@
         <div class="stat"><span class="stat-label">Bukan PRA</span><strong class="stat-value" id="statNotPra">0</strong><span class="stat-foot">tidak mengikuti prasekolah</span></div>
         <div class="stat"><span class="stat-label">Kelas Diisi</span><strong class="stat-value" id="statClasses">0 <small style="font-size:14px;color:#9b8baa">/ 9</small></strong><span class="stat-foot">kelas mempunyai rekod</span></div>
 
+      <section class="class-overview" aria-labelledby="classOverviewTitle"><h3 id="classOverviewTitle">Bilangan murid mengikut kelas</h3><div class="class-shortcuts" id="classShortcuts"></div></section>
       </section>
 
 <dialog id="hubClasses" class="hub-popup" aria-labelledby="hubClassesTitle"><header><h2 id="hubClassesTitle">Pilih kelas</h2><form method="dialog"><button class="hub-close" aria-label="Tutup"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div id="dashboardClasses"><div id="classCards" class="class-card-grid"></div><div class="dashboard-bottom-actions"><button id="showTeachersBtn" type="button" class="btn btn-ghost">Profil guru kelas</button><a href="/ibu-bapa/" class="btn btn-ghost">Paparan Ibu Bapa ↗</a></div></div></dialog>
@@ -1679,6 +1692,10 @@
         ['Semua',...CLASSES].forEach(c => $('count'+c).textContent=countFor(c));
         const dots=['#2da879','#e1587b','#3d80cd','#5da5ae','#80a95b','#aa8ace','#e5a64c','#d67b3e','#9d9fab'];
         const viewable=cloudMode&&cloudInfo?.role==='editor'?[cloudInfo.kelas]:CLASSES;
+        $('classShortcuts').innerHTML=viewable.map(c=>{
+          const count=countFor(c);
+          return '<button type="button" class="class-shortcut" data-kelas="'+esc(c)+'" style="--accent:'+dots[CLASSES.indexOf(c)]+'" aria-label="Kelas 1 '+esc(c)+', '+count+' murid"><span>'+esc(c)+'</span><strong>'+count+'</strong></button>';
+        }).join('');
         $('classCards').innerHTML=viewable.map(c=>{
            const idx=CLASSES.indexOf(c);
            const teacher=teacherFor(c);
@@ -1916,6 +1933,10 @@
         if(e.target.closest('[data-dashboard-class],#showTeachersBtn'))$('hubClasses').close();
       },true);
       $('smartStatsOpen').addEventListener('click',()=>$('hubStats').close(),true);
+      $('classShortcuts').addEventListener('click',e=>{
+        const button=e.target.closest('[data-kelas]');
+        if(button)openClassPopup(button.dataset.kelas);
+      });
       $('classCards').addEventListener('click',e=>{const btn=e.target.closest('[data-dashboard-class]');if(!btn)return;openClassPopup(btn.dataset.dashboardClass);});
       $('popupSearch').addEventListener('input',renderClassPopup);
       $('popupPraFilter').addEventListener('change',renderClassPopup);
