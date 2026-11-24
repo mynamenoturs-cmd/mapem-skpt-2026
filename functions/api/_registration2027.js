@@ -39,8 +39,9 @@ function validateRecord(v, partialImport=false) {
  noTelefon,alamat:detail(v.alamat,'Alamat',500,5)};
 }
 async function accessFor(env,user) {
+ const extra=await env.DB.prepare('SELECT role FROM registration_2027_admins WHERE email=?').bind(user.email).first();
+ if(extra?.role==='viewer')return {role:'viewer',kelas:'Semua',canManageAdmins:false};
  if(user.role==='admin')return {role:'admin',kelas:'Semua',canManageAdmins:true};
- const extra=await env.DB.prepare('SELECT email FROM registration_2027_admins WHERE email=?').bind(user.email).first();
  if(extra)return {role:'admin',kelas:'Semua',canManageAdmins:false};
  const row=await env.DB.prepare('SELECT class_name AS kelas FROM registration_2027_access WHERE email=?').bind(user.email).first();
  return row ? {role:'editor',kelas:row.kelas} : null;
@@ -131,6 +132,7 @@ export async function handleRegistration2027({request,env,user,path}) {
  if(path==='registration2027/me'&&request.method==='GET')
   return access?json({authorized:true,user:{email:user.email,name:user.name},...access}):json({authorized:false,error:'Akaun Google belum diberikan akses ke pendaftaran Tahun 1 2027.'},403);
  if(!access)error('Akaun Google tidak mempunyai kebenaran pendaftaran Tahun 1 2027.',403);
+ if(access.role==='viewer' && (request.method!=='GET'||!['registration2027/teachers','registration2027/students','registration2027/transfers','registration2027/deletions'].includes(path)))error('Akses pentadbir ini untuk paparan sahaja.',403);
  if(path==='registration2027/teachers'&&request.method==='GET'){
   return json({teachers:await listTeachers(env)});
  }
@@ -199,7 +201,7 @@ export async function handleRegistration2027({request,env,user,path}) {
   return json({ok:true,parentLookupEnabled:b.parentLookupEnabled,adminPhone:phone});
  }
  if(path==='registration2027/students'&&request.method==='GET') {
-  const query=access.role==='admin'
+  const query=access.role!=='editor'
    ? env.DB.prepare('SELECT '+columns+' FROM registration_2027_students ORDER BY class_name,name LIMIT 5000')
    : env.DB.prepare('SELECT '+columns+' FROM registration_2027_students WHERE class_name=? ORDER BY name LIMIT 5000').bind(access.kelas);
   const rows=(await query.all()).results||[];
@@ -216,12 +218,12 @@ export async function handleRegistration2027({request,env,user,path}) {
  }
  if(path==='registration2027/deletions' && request.method==='GET'){
   const sql="SELECT student_name,class_name,actor_email,at FROM registration_2027_audit WHERE action='delete'";
-  const query=access.role==='admin'?env.DB.prepare(sql+' ORDER BY id DESC'):env.DB.prepare(sql+' AND class_name=? ORDER BY id DESC').bind(access.kelas);
+  const query=access.role!=='editor'?env.DB.prepare(sql+' ORDER BY id DESC'):env.DB.prepare(sql+' AND class_name=? ORDER BY id DESC').bind(access.kelas);
   return json({records:(await query.all()).results});
  }
  if(path==='registration2027/transfers' && request.method==='GET'){
   const sql='SELECT student_name,from_class,to_class,actor_email,at FROM registration_2027_transfers';
-  const query=access.role==='admin'?env.DB.prepare(sql+' ORDER BY id DESC'):env.DB.prepare(sql+' WHERE from_class=? OR to_class=? ORDER BY id DESC').bind(access.kelas,access.kelas);
+  const query=access.role!=='editor'?env.DB.prepare(sql+' ORDER BY id DESC'):env.DB.prepare(sql+' WHERE from_class=? OR to_class=? ORDER BY id DESC').bind(access.kelas,access.kelas);
   return json({records:(await query.all()).results});
  }
  if(path==='registration2027/students/import'&&request.method==='POST') {
@@ -293,13 +295,15 @@ export async function handleRegistration2027({request,env,user,path}) {
  if(path.startsWith('registration2027/admins')) {
   if(access.role!=='admin'||access.canManageAdmins!==true)error('Hanya pentadbir MAPeM boleh melantik atau membatalkan admin Pendaftaran 2027.',403);
   if(path==='registration2027/admins'&&request.method==='GET'){
-   const rows=(await env.DB.prepare('SELECT email,granted_by AS grantedBy,updated_at AS updatedAt FROM registration_2027_admins ORDER BY email').all()).results||[];
+   const rows=(await env.DB.prepare('SELECT email,role,granted_by AS grantedBy,updated_at AS updatedAt FROM registration_2027_admins ORDER BY email').all()).results||[];
    return json({admins:rows});
   }
   if(path==='registration2027/admins/save'&&request.method==='POST'){
    const b=await parseBody(request),email=emailValue(b.email);
    if(email===user.email)error('Akaun sendiri sudah mempunyai akses pentadbir.');
-   await env.DB.prepare('INSERT INTO registration_2027_admins(email,granted_by) VALUES(?,?) ON CONFLICT(email) DO UPDATE SET granted_by=excluded.granted_by,updated_at=CURRENT_TIMESTAMP').bind(email,user.email).run();
+   const role=b.role??'admin';
+   if(!['viewer','admin'].includes(role))error('Peranan tidak sah.');
+   await env.DB.prepare('INSERT INTO registration_2027_admins(email,granted_by,role) VALUES(?,?,?) ON CONFLICT(email) DO UPDATE SET granted_by=excluded.granted_by,role=excluded.role,updated_at=CURRENT_TIMESTAMP').bind(email,user.email,role).run();
    await env.DB.prepare("INSERT INTO registration_2027_admin_audit(actor_email,target_email,action) VALUES(?,?,'grant')").bind(user.email,email).run();
    return json({ok:true});
   }

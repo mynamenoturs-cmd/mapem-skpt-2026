@@ -576,6 +576,7 @@
   </style>
 <link rel="stylesheet" href="/bot2027.css">
 <style>.demo-filters{margin:12px 0;padding:12px;border:1px solid #dbc7ca;border-radius:12px}.demo-filters summary{cursor:pointer;font-weight:650}.demo-grid{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.demo-dialog{width:min(94vw,820px);max-height:88vh;overflow:auto}.demo-dialog table{min-width:460px}.demo-dialog form{margin-top:16px;text-align:right}.demo-dialog .table-scroll{margin-top:12px}.demo-dialog .group-row th{background:#f4ebef;color:#54273b;text-align:left}</style>
+<style>body.registration-viewer #quickAdd,body.registration-viewer #quickImport,body.registration-viewer #addBtnHead,body.registration-viewer #emptyAdd,body.registration-viewer #importBtn,body.registration-viewer #popupImport,body.registration-viewer #popupAdd,body.registration-viewer [data-action="add"],body.registration-viewer [data-action="import"],body.registration-viewer .class-popup-record-actions,body.registration-viewer #tableBody td:last-child,body.registration-viewer table[aria-label="Senarai murid Tahun 1"] thead th:last-child{display:none!important}</style>
 </head>
 <body>
   <section id="printRoster" aria-label="Senarai cetakan">
@@ -644,7 +645,7 @@
           <button class="workspace-link" id="navRefresh" data-action="refresh" type="button"><span class="workspace-ico">↻</span><span>Muat Semula</span></button>
           <div class="workspace-divider"></div><div class="sidebar-label">TETAPAN & AKSES</div>
           <button class="workspace-link" id="navAccess" data-action="access" type="button" hidden><span class="workspace-ico">♙</span><span>Akses Guru</span></button>
-          <button class="workspace-link" id="navAdmins" data-action="admins" type="button" hidden><span class="workspace-ico">♛</span><span>Admin Tambahan</span></button>
+          <button class="workspace-link" id="navAdmins" data-action="admins" type="button" hidden><span class="workspace-ico">♛</span><span>Admin & Pentadbir</span></button>
           <button class="workspace-link" id="navPublicSettings" data-action="public-settings" type="button" hidden><span class="workspace-ico">☎</span><span>Hubungi Admin & Ibu Bapa</span></button>
           <a class="workspace-link" id="navBotSettings" href="/bot-admin/" hidden style="text-decoration:none"><span class="workspace-ico">🤖</span><span>Soalan & Jawapan BOT</span></a>
           <button class="workspace-link" id="navPassword" data-action="password" type="button"><span class="workspace-ico">⚿</span><span>Tukar Kata Laluan</span></button>
@@ -845,11 +846,12 @@
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="adminTitle" style="max-width:700px">
       <div class="modal-head"><div><h2 id="adminTitle">Admin Pendaftaran Tahun 1 2027</h2><p class="content-caption">Pelantikan oleh pentadbir utama sahaja.</p></div><button type="button" class="close" id="closeAdmins" aria-label="Tutup">×</button></div>
       <form id="adminsForm"><div class="form-body">
-        <div class="admin-info"><strong>Admin Pendaftaran 2027</strong> boleh melihat serta mengurus sembilan kelas, import murid dan menetapkan akses guru kelas. Pelantikan ini <strong>tidak memberikan</strong> hak admin kepada portal MAPeM 2026. Hanya admin utama boleh melantik atau membatalkan admin pendaftaran.</div>
-        <label class="field"><span>E-mel Google Guru</span><input id="adminsEmail" type="email" maxlength="254" autocomplete="off" placeholder="guru@moe-dl.edu.my" required></label>
-        <div class="form-foot" style="padding:12px 0;border:0"><button type="submit" class="btn btn-primary" id="adminsSaveBtn">Lantik Admin</button></div>
-        <h3 style="font-size:14px;margin:18px 0 12px">Admin Tambahan</h3>
-        <div class="table-scroll"><table class="access-table"><thead><tr><th>E-mel</th><th>Diberikan oleh</th><th>Tindakan</th></tr></thead><tbody id="adminsTableBody"></tbody></table></div>
+        <div class="admin-info">Pentadbir boleh menyemak sembilan kelas, statistik dan log. Pilih Admin penuh untuk memberikan kebenaran menyunting rekod dan mengurus akses guru.</div>
+        <label class="field"><span>Peranan portal</span><select id="adminsRole"><option value="viewer">Pentadbir (lihat sahaja)</option><option value="admin">Admin penuh</option></select></label>
+        <label class="field"><span>E-mel Google</span><input id="adminsEmail" type="email" maxlength="254" autocomplete="off" placeholder="guru@moe-dl.edu.my" required></label>
+        <div class="form-foot" style="padding:12px 0;border:0"><button type="submit" class="btn btn-primary" id="adminsSaveBtn">Simpan akses</button></div>
+        <h3 style="font-size:14px;margin:18px 0 12px">Admin & Pentadbir</h3>
+        <div class="table-scroll"><table class="access-table"><thead><tr><th>E-mel</th><th>Peranan</th><th>Diberikan oleh</th><th>Tindakan</th></tr></thead><tbody id="adminsTableBody"></tbody></table></div>
       </div></form>
     </section>
   </div>
@@ -1046,7 +1048,7 @@
         if(!Array.isArray(roster.records))throw Error('Respons senarai murid tidak lengkap.');
         students=roster.records;
         cloudInfo=info;cloudMode=true;vault=null;vaultKey=null;
-        activeClass=info.role==='admin'?'Semua':info.kelas;
+        activeClass=info.kelas;
         hideSensitive=true;
         $('searchInput').value='';$('praFilter').value='Semua';
         showApp();
@@ -1079,6 +1081,7 @@
         showAuth();
       }
       function updateModeUi(){
+        document.body.classList.toggle('registration-viewer',cloudMode&&cloudInfo?.role==='viewer');
         $('modeBadge').textContent=cloudMode?'☁ Cloudflare D1 • '+cloudInfo.user.email:'🔒 Setempat • Disulitkan';
         for(const id of ['backupBtn','restoreBtn','lockBtn','changePasswordBtn','openCloudBtn'])$(id).hidden=cloudMode;
         $('cloudExitBtn').hidden=!cloudMode;
@@ -1093,9 +1096,9 @@
         $('navRefresh').hidden=!cloudMode;
         $('navPassword').hidden=cloudMode;
         $('navBackup').hidden=cloudMode;
-        $('navAccount').textContent=cloudMode?cloudInfo.user.name+' · '+(cloudInfo.role==='admin'?'Pentadbir':'Guru '+cloudInfo.kelas):'Rekod pada peranti ini';
+        $('navAccount').textContent=cloudMode?cloudInfo.user.name+' · '+(cloudInfo.role==='admin'?'Admin':cloudInfo.role==='viewer'?'Pentadbir (lihat sahaja)':'Guru '+cloudInfo.kelas):'Rekod pada peranti ini';
         $('sideNote').innerHTML=cloudMode?'☁ <strong>Cloudflare D1</strong><br>Rekod disimpan berpusat dan hanya guru yang diluluskan boleh mengakses kelas masing-masing.':'🔐 <strong>Mod setempat</strong><br>Rekod hanya boleh diakses pada peranti ini dengan kata laluan. Buat sandaran berkala.';
-        document.querySelectorAll('#classNav .class-btn').forEach(b=>{b.hidden=!!cloudMode&&cloudInfo?.role!=='admin'&&b.dataset.class!==cloudInfo.kelas;});
+        document.querySelectorAll('#classNav .class-btn').forEach(b=>{b.hidden=!!cloudMode&&cloudInfo?.role==='editor'&&b.dataset.class!==cloudInfo.kelas;});
         $('footerText').textContent=cloudMode?'Mod Cloudflare D1: hanya pengguna Google yang diluluskan boleh mengakses rekod; sambungan HTTPS diperlukan.':'Mod Setempat: rekod disulitkan menggunakan kata laluan dan tersimpan dalam pelayar ini sahaja.';
       }
       function openChange(){
@@ -1162,14 +1165,14 @@
         $('adminOverlay').hidden=false;
         try{
           const data=await cloudApi('admins');
-          $('adminsTableBody').innerHTML=data.admins.map(a=>'<tr><td>'+esc(a.email)+'</td><td>'+esc(a.grantedBy)+'</td><td><button type="button" class="btn btn-ghost" data-admin-email="'+esc(a.email)+'">Batalkan Admin</button></td></tr>').join('')||'<tr><td colspan="3">Belum ada admin tambahan.</td></tr>';
+          $('adminsTableBody').innerHTML=data.admins.map(a=>'<tr><td>'+esc(a.email)+'</td><td>'+(a.role==='viewer'?'Pentadbir (lihat sahaja)':'Admin penuh')+'</td><td>'+esc(a.grantedBy)+'</td><td><button type="button" class="btn btn-ghost" data-admin-email="'+esc(a.email)+'">Batalkan Admin</button></td></tr>').join('')||'<tr><td colspan="4">Belum ada admin tambahan.</td></tr>';
         }catch(e){toast(e.message);}
       }
       async function saveAdmin(e){
         e.preventDefault();$('adminsSaveBtn').disabled=true;
         try{
-          await cloudApi('admins/save',{email:$('adminsEmail').value.trim()});
-          $('adminsEmail').value='';await openAdmins();showChangeResult('Pelantikan admin','Admin khusus Pendaftaran 2027 telah dilantik.');
+          await cloudApi('admins/save',{email:$('adminsEmail').value.trim(),role:$('adminsRole').value});
+          $('adminsEmail').value='';$('adminsRole').value='viewer';await openAdmins();showChangeResult('Akses disimpan','Peranan akaun telah dikemas kini.');
         }catch(e){showChangeResult('Pelantikan admin',e.message,'error');}
         finally{$('adminsSaveBtn').disabled=false;}
       }
@@ -1299,10 +1302,10 @@
         $('selectedTeacherUpload').hidden=!teacherEditable(activeClass);
       }
       function renderTeachers(){
-        const viewable=cloudMode&&cloudInfo?.role!=='admin'?[cloudInfo.kelas]:CLASSES;
+        const viewable=cloudMode&&cloudInfo?.role==='editor'?[cloudInfo.kelas]:CLASSES;
         $('teacherCards').innerHTML=viewable.map(kelas=>{
           const t=teacherFor(kelas);
-          return '<article class="teacher-card">'+photoThumb(t,'passport')+'<div class="teacher-card-data"><small>GURU KELAS 1 '+esc(kelas).toUpperCase()+'</small><strong>'+esc(t.namaGuru)+'</strong>'+(teacherEditable(kelas)?'<button type="button" class="teacher-card-action" data-edit-teacher="'+esc(kelas)+'">✎ Tambah / Tukar Gambar</button>':'<span class="content-caption">Foto pasport belum dimuat naik</span>')+'</div></article>';
+          return '<article class="teacher-card">'+photoThumb(t,'passport')+'<div class="teacher-card-data"><small>GURU KELAS 1 '+esc(kelas).toUpperCase()+'</small><strong>'+esc(t.namaGuru)+'</strong>'+(teacherEditable(kelas)?'<button type="button" class="teacher-card-action" data-edit-teacher="'+esc(kelas)+'">✎ Tambah / Tukar Gambar</button>':t.gambarPasport?'':'<span class="content-caption">Foto pasport belum dimuat naik</span>')+'</div></article>';
         }).join('');
       }
       function openTeacherEditor(kelas){
@@ -1425,7 +1428,7 @@
       function countFor(c) { return students.filter(s=>c==='Semua'||s.kelas===c).length; }
       function openClassPopup(kelas){
         if(!CLASSES.includes(kelas))return;
-        if(cloudMode&&cloudInfo?.role!=='admin'&&kelas!==cloudInfo.kelas)return toast('Akses kelas ini tidak dibenarkan.');
+        if(cloudMode&&cloudInfo?.role==='editor'&&kelas!==cloudInfo.kelas)return toast('Akses kelas ini tidak dibenarkan.');
         classPopupOpener=document.activeElement;
         classPopupClass=kelas;
         activeClass=kelas;
@@ -1517,7 +1520,7 @@
       }
       $('navStats').onclick=()=>{
         closeSidebar();
-        const scoped=cloudMode&&cloudInfo.role!=='admin';
+        const scoped=cloudMode&&cloudInfo.role==='editor';
         $('statsClass').replaceChildren(...(scoped?[]:[new Option('Semua kelas','')]),...(scoped?[cloudInfo.kelas]:CLASSES).map(c=>new Option('1 '+c,c)));
         $('statsClass').value=scoped?cloudInfo.kelas:activeClass==='Semua'?'':activeClass;
         renderStats();$('demoStats').showModal();
@@ -1540,7 +1543,7 @@
         $('statClasses').innerHTML=students.reduce((sum,s)=>sum.add(s.kelas),new Set()).size + ' <small style="font-size:14px;color:#9b8baa">/ 9</small>';
         ['Semua',...CLASSES].forEach(c => $('count'+c).textContent=countFor(c));
         const dots=['#2da879','#e1587b','#3d80cd','#5da5ae','#80a95b','#aa8ace','#e5a64c','#d67b3e','#9d9fab'];
-        const viewable=cloudMode&&cloudInfo?.role!=='admin'?[cloudInfo.kelas]:CLASSES;
+        const viewable=cloudMode&&cloudInfo?.role==='editor'?[cloudInfo.kelas]:CLASSES;
         $('classCards').innerHTML=viewable.map(c=>{
            const idx=CLASSES.indexOf(c);
            const teacher=teacherFor(c);

@@ -13,7 +13,7 @@ const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 function fixture(){
  const db=new DatabaseSync(':memory:');
- for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql','0021_registration2027_bot_config.sql','0022_registration_profile_transfers.sql','0023_registration_bot_name.sql','0024_registration_demographics.sql'])db.exec(file('../migrations/'+migration));
+ for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql','0021_registration2027_bot_config.sql','0022_registration_profile_transfers.sql','0023_registration_bot_name.sql','0024_registration_demographics.sql','0025_registration_viewer.sql'])db.exec(file('../migrations/'+migration));
  const DB={prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first(){return stmt.get(...values)||null;},all(){return {results:stmt.all(...values)};},run(){return {meta:{changes:stmt.run(...values).changes}};}};},first(){return stmt.get()||null;},all(){return {results:stmt.all()};}}}};
  DB.batch=statements=>{db.exec('BEGIN');try{const results=statements.map(s=>s.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;}};
  const env={DB,GOOGLE_CLIENT_ID:'fake',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
@@ -653,4 +653,23 @@ test('student demographics survive older edits and only successful deletions ent
  assert.equal((await post('delete',{uid,version:2})).status,200);
  assert.equal((await logs(who))[0].student_name,student.namaMurid);assert.equal((await logs(teacher)).length,0);
  assert.equal((await post('delete',{uid,version:2})).status,404);assert.equal((await logs(who)).length,1);
+});
+
+test('registration viewer sees all classes and logs, with read-only access even for an existing teacher',async()=>{
+ const {db,cookie,call}=fixture(),admin=await cookie('admin@gmail.com'),email='head@gmail.com',who=await cookie(email);
+ const post=(route,account,body)=>call('registration2027/'+route,{who:account,method:'POST',body});
+ await post('access/save',admin,{email,kelas:'Ruby'});
+ assert.equal((await post('admins/save',admin,{email,role:'viewer'})).status,200);
+ const me=await (await call('registration2027/me',{who})).json();
+ assert.equal(me.role,'viewer');assert.equal(me.canManageAdmins,false);assert.equal(me.kelas,'Semua');
+ for(const kelas of ['Ruby','Amber'])await post('students/save',admin,{record:record(kelas,'ID'+kelas)});
+ const list=await (await call('registration2027/students',{who})).json();
+ assert.deepEqual(list.records.map(s=>s.kelas),['Amber','Ruby']);
+ for(const path of ['teachers','transfers','deletions'])assert.equal((await call('registration2027/'+path,{who})).status,200);
+ for(const path of ['students/save','students/import','students/transfer','students/delete','teachers/save','access/save','admins/save','settings/save','bot/settings/save']){
+  assert.equal((await post(path,who,{})).status,403,path);
+ }
+ assert.equal(db.prepare('SELECT COUNT(*) AS n FROM registration_2027_students').get().n,2);
+ assert.equal((await post('admins/revoke',admin,{email})).status,200);
+ assert.equal((await (await call('registration2027/me',{who})).json()).role,'editor');
 });
