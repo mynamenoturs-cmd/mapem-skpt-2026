@@ -141,7 +141,7 @@
     .import-errors{max-height:120px;overflow:auto;font-size:12px;color:#a23747;white-space:pre-line;line-height:1.7;}
     .admin-info{background:#fff6e8;border:1px solid #ebd3a0;border-radius:10px;padding:12px;font-size:12px;color:#7a5c2a;line-height:1.7;margin-bottom:16px;}
     .error { background:#fff1f2; color:#a23747; border-radius:8px; padding:11px 12px; margin:5px 0 15px; font-size:12px; }
-    .print-heading {display:none;}
+    #printRoster {display:none;}
     @media (max-width:1050px) {
       .layout { grid-template-columns:1fr; gap:16px; }
       .class-nav {display:flex; flex-wrap:nowrap; gap:5px; align-items:center; overflow-x:auto; padding:12px; }
@@ -177,23 +177,20 @@
       .auth-card {padding:25px 20px;}
     }
     @media print {
-      @page {size:A4 landscape; margin: 11mm; }
-      body, :root { background: white !important; color:black; }
-      .hero, .stats, .class-nav, .toolbar, .actions-row, .table-bottom, footer, .row-actions, .toast { display:none !important; }
-      .container { max-width:none; margin:0; padding:0; }
-      .layout {display:block;}
-      .panel {box-shadow:none; border:0;}
-      .content-head {display:none;}
-      .print-heading {display:block; font-size:16px; padding:0 0 15px; font-weight:bold;}
-      .table-scroll {overflow:visible;}
-      table {min-width:0; font-size:8px; width:100%;}
-      thead th, tbody td {padding:5px 4px; border-bottom:1px solid #aaa; word-break:break-word;}
-      thead th {border-top:1px solid #aaa;}
-      th:last-child, td:last-child {display:none;}
-      .truncate {white-space:normal; max-width:none;}
-      .student {font-size:8px;}
-      .class-pill, .pra-pill {padding:0; background:white; color:black;}
-      tr {break-inside:avoid;}
+      @page {size:A4 portrait;margin:15mm;}
+      html,body {background:white!important;color:#261e24!important;height:auto!important;overflow:visible!important;}
+      body > :not(#printRoster),dialog::backdrop {display:none!important;}
+      body > #printRoster {display:block!important;font:11pt/1.4 Arial,sans-serif;}
+      #printRoster header {border-top:3pt solid #662945;padding:4mm 0;margin-bottom:3mm;border-bottom:1pt solid #947585;}
+      #printRoster h1 {font: bold 17pt Arial,sans-serif;margin:1mm 0;}
+      #printRoster p {margin:0;}
+      #printRoster table {width:100%;min-width:0;border-collapse:collapse;border:1.3pt solid #674453;table-layout:fixed;}
+      #printRoster th,#printRoster td {position:static;padding:2mm 3mm;border:.6pt solid #a18e97;white-space:normal;overflow-wrap:anywhere;text-align:left;color:#201b1d;font:10pt/1.35 Arial,sans-serif;}
+      #printRoster th {font-weight:bold;background:#f1e8ec;border-bottom:1.3pt solid #674453;}
+      #printRoster th:first-child {width:14mm;}
+      #printRoster th:nth-child(3),#printRoster th:last-child {width:28mm;}
+      #printRoster thead {display:table-header-group;}
+      #printRoster tr {break-inside:avoid;}
     }
 
     /* PORTAL TAHUN 1 2027 — polished application shell */
@@ -580,6 +577,10 @@
 <link rel="stylesheet" href="/bot2027.css">
 </head>
 <body>
+  <section id="printRoster" aria-label="Senarai cetakan">
+    <header><p>SK PEKAN TELIPOK</p><h1>Senarai Murid Tahun 1 · Sesi 2027</h1><p id="printHeading"></p></header>
+    <table><thead><tr><th>Bil.</th><th>Nama murid</th><th>Kelas</th><th>PRA</th></tr></thead><tbody id="printRows"></tbody></table>
+  </section>
   <main id="authPage" class="auth-page">
     <section class="login-intro" aria-label="Selamat datang">
       <div class="login-logo"><span class="brand-crest"><img class="crest-image" src="./assets/logo-sekolah-rasmi-2027.webp" alt="Lencana SK Pekan Telipok" loading="eager"></span><div><strong>SK PEKAN TELIPOK</strong><small>Tuaran, Sabah</small></div></div>
@@ -699,7 +700,6 @@
             <button type="button" class="btn btn-ghost" id="csvBtn"><svg viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v3h16v-3"/></svg> Eksport CSV</button>
           </div>
           <div class="actions-row"><span class="mini-help" id="filterSummary">0 murid dipaparkan</span><div class="action-buttons"><button type="button" class="btn btn-ghost" id="maskBtn">◉ &nbsp;Paparkan Maklumat</button><button type="button" class="btn btn-ghost" id="printBtn">▤ &nbsp;Cetak Senarai</button></div></div>
-          <div class="print-heading" id="printHeading"></div>
           <div class="table-scroll"><table aria-label="Senarai murid Tahun 1"><thead><tr><th>Bil.</th><th>ID Murid</th><th>Nama Murid</th><th>Kelas</th><th>PRA</th><th>Ibu Bapa / Penjaga</th><th>No. IC Penjaga</th><th>No. Telefon</th><th>Alamat Terkini</th><th>Tindakan</th></tr></thead><tbody id="tableBody"></tbody></table><div id="emptyState" class="empty" hidden><div class="empty-icon">♧</div><strong id="emptyTitle">Belum ada pendaftaran</strong><p id="emptyText">Tekan “Tambah Murid” untuk mula mendaftarkan murid baharu.</p><button type="button" class="btn btn-primary" id="emptyAdd">+ Tambah Murid</button></div></div>
           <div class="table-bottom"><span id="tableCount">0 rekod</span><span>Sesi 2027 • SK Pekan Telipok</span></div>
         </section>
@@ -1504,7 +1504,7 @@
         $('listCaption').textContent=activeClass==='Semua'?'Senarai murid untuk semua 9 kelas Tahun 1':'Senarai murid 1 '+activeClass+' • Sesi 2027';
         const items=filtered(); $('filterSummary').textContent=items.length+' murid dipaparkan'; $('tableCount').textContent=items.length+' daripada '+students.length+' rekod';
         $('maskBtn').textContent=hideSensitive?'◉  Paparkan Maklumat':'◉  Sembunyikan Maklumat';
-        $('printHeading').textContent='SK PEKAN TELIPOK — PENDAFTARAN TAHUN 1 2027 — '+(activeClass==='Semua'?'SEMUA KELAS':activeClass.toUpperCase())+' | '+dateText(new Date().toISOString());
+
         const tb=$('tableBody');
         tb.innerHTML=items.map((s,i)=>`<tr><td class="mono">${i+1}</td><td class="mono">${esc(s.idMurid)}</td><td><span class="student">${esc(s.namaMurid)}</span></td><td><span class="class-pill">${esc(s.kelas)}</span></td><td><span class="pra-pill ${s.pra==='Tidak'?'no':s.pra==='Belum Pasti'?'maybe':''}">${esc(s.pra)}</span></td><td>${esc(s.namaPenjaga)}</td><td class="mono">${viewValue(s.noIc)}</td><td class="mono">${viewValue(s.noTelefon)}</td><td><span class="truncate" title="${esc(s.alamat)}">${esc(s.alamat)}</span></td><td><div class="row-actions">${cloudMode?`<button type="button" class="btn btn-ghost" data-action="move" data-uid="${esc(s.uid)}">Pindah kelas</button>`:''}<button type="button" class="icon-btn" data-action="edit" data-uid="${esc(s.uid)}" title="Kemaskini murid ${esc(s.namaMurid)}" aria-label="Kemaskini murid">✎</button><button type="button" class="icon-btn danger" data-action="delete" data-uid="${esc(s.uid)}" title="Padam rekod" aria-label="Padam rekod">✕</button></div></td></tr>`).join('');
         const empty=items.length===0; tb.hidden=empty; $('emptyState').hidden=!empty;
@@ -1776,6 +1776,21 @@
       $('tableBody').addEventListener('click',e=>{ const btn=e.target.closest('[data-action]'); if(!btn)return; const s=students.find(x=>x.uid===btn.dataset.uid); if(!s)return; if(btn.dataset.action==='move')openMove(s); if(btn.dataset.action==='edit')openForm(s); else if(btn.dataset.action==='delete')deleteStudent(s.uid); });
       $('maskBtn').addEventListener('click',()=>{hideSensitive=!hideSensitive;render();});
       $('csvBtn').addEventListener('click',exportCSV);
+      window.addEventListener('beforeprint',()=>{
+        const rows=$('printRows');
+        rows.replaceChildren();
+        $('printHeading').textContent='';
+        if($('app').hidden)return;
+        const items=filtered();
+        $('printHeading').textContent=(activeClass==='Semua'?'Semua kelas':'Kelas 1 '+activeClass)+' · '+items.length+' murid · '+dateText(new Date().toISOString());
+        for(const [index,student] of items.entries()){
+          const row=rows.insertRow();
+          for(const value of [index+1,student.namaMurid,'1 '+student.kelas,student.pra]){
+            row.insertCell().textContent=value;
+          }
+        }
+      });
+      window.addEventListener('afterprint',()=>$('printRows').replaceChildren());
       $('printBtn').addEventListener('click',()=>{if(!filtered().length)return toast('Tiada rekod untuk dicetak.'); window.print();});
       $('backupBtn').addEventListener('click',backup);
       $('restoreBtn').addEventListener('click',()=>$('backupInput').click());
