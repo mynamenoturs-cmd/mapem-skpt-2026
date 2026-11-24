@@ -664,7 +664,43 @@
 @media(prefers-reduced-motion:reduce){#app .quick-tile,#app .class-summary-btn,#app .workspace-sidebar{transition:none}#app .quick-tile:hover{transform:none}}
 }
 </style>
-</head>
+<style id="compact-portal-hub">
+.ptg-icon{display:inline-block;width:20px;height:20px;flex:none;vertical-align:middle}
+@media screen{
+#app .hero-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px clamp(12px,3vw,38px);max-width:1420px}
+#app .hero .brand{flex:1;min-width:0;margin:0}#app .hero-caption{display:none}
+#app .hero-poster{position:relative;display:block;flex:0 0 auto;width:clamp(106px,20vw,238px);margin:0;padding:0;cursor:zoom-in;border-radius:9px}
+#app .hero-poster span{position:absolute;right:4px;bottom:4px;background:#38132dd9;border-radius:4px;color:#fff3d5;padding:2px}
+#app .hero-poster .ptg-icon{width:13px;height:13px}
+#app .container.app-workspace{margin:16px auto 0;max-width:1420px;align-items:start}
+#app .workspace-sidebar{max-height:calc(100dvh - 60px)}
+#app .workspace-sidebar .workspace-link{min-height:38px;padding:6px 9px;gap:8px}
+#app .workspace-ico{display:inline-grid;place-items:center;width:25px;height:25px}
+#app .workspace-ico svg{width:17px;height:17px}
+#app .dashboard-landing{padding:0}#app .smart-greeting{align-items:center;gap:6px;margin:0 0 12px}
+#app .dashboard-greeting h2{font-size:clamp(22px,2.3vw,32px);margin:0;letter-spacing:-.035em}
+#app .smart-mode{margin:0;padding:5px 10px}
+#app .quick-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0 0 14px}
+#app .quick-tile{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;min-height:61px;padding:9px 12px;gap:10px;border:1px solid #d9bb9c;border-radius:13px;background:linear-gradient(150deg,#fffcf6,#f6eae5);box-shadow:inset 0 1px #fff,0 3px 10px #46142c0d}
+#app .quick-icon{display:grid;place-items:center;margin:0;width:33px;height:33px;flex:none;color:#ffe3a5;background:linear-gradient(145deg,#823656,#48162f);border:1px solid #ac7c63;border-radius:10px;box-shadow:inset 0 1px #ffffff32}
+#app #quickList{background:linear-gradient(120deg,#692040,#42152e);border-color:#9d6d56}#app #quickList strong{color:#fff5df}
+#app #statsPanel{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}
+#app #statsPanel .stat{padding:12px;border-radius:12px}#app #statsPanel .stat-value{font-size:26px;margin:4px 0 0}#app .stat-foot{display:none}
+#app .hub-popup{width:min(710px,calc(100vw - 28px));max-height:82dvh;box-sizing:border-box;overflow:auto;margin:auto;padding:18px;color:#4a1833;background:#fff9f2;border:1px solid #d1aa75;border-radius:19px;box-shadow:0 24px 80px #300b2d55}
+.hub-popup::backdrop{background:#2a102bc2}
+#app .hub-popup>header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+#app .hub-popup h2{font-size:20px;margin:0}
+#app .hub-close,#app .mobile-nav-trigger{min-height:44px;min-width:44px;border-radius:12px}
+#app .hub-close{background:#f4e8dc;border:1px solid #dec6a9;color:#652c45}
+#app .hub-popup .class-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#app .hub-popup .class-summary-btn{min-height:60px;padding:8px;gap:5px}
+#app .hub-popup .class-summary-text small,#app .hub-popup .smart-class-track{display:none}
+#app .hub-popup .class-summary-count{font-size:17px}
+#app #smartStatsOpen{margin-top:12px}#app #hubBanner img{display:block;width:100%;height:auto;border-radius:10px}
+@media(max-width:890px){#app .workspace-sidebar{max-height:100dvh}#app .container.app-workspace{margin-top:12px}}
+@media(max-width:580px){#app .quick-tile{flex-direction:column;justify-content:center;gap:5px;padding:8px 3px;min-height:70px}#app .quick-tile strong{font-size:12px}#app .quick-grid{gap:6px}#app .hero .brand{gap:6px}#app .brand-crest-sm{width:28px;height:34px;flex:none}#app .brand-dept{font-size:10px}#app .brand-school{font-size:11px}#app .smart-greeting{margin:0 0 10px}#app #statsPanel{grid-template-columns:repeat(2,minmax(0,1fr))}#app #statsPanel .stat{padding:9px 12px}#app .hub-popup .mini-passport{display:none}}
+}
+</style></head>
 <body>
   <section id="printRoster" aria-label="Senarai cetakan">
     <header><p>SK PEKAN TELIPOK</p><h1>Senarai Murid Tahun 1 · Sesi 2027</h1><p id="printHeading"></p></header>
@@ -704,51 +740,54 @@
     <header class="hero">
       <div class="hero-inner">
         <div class="brand">
-          <button id="mobileNavToggle" class="mobile-nav-trigger" type="button" aria-label="Buka menu navigasi" aria-expanded="false">☰</button>
+          <button id="mobileNavToggle" class="mobile-nav-trigger" type="button" aria-label="Buka menu navigasi" aria-expanded="false"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
           <div class="brand-left"><span class="brand-crest brand-crest-sm"><img class="crest-image" src="./assets/logo-sekolah-rasmi-2027.webp" alt="Logo SK Pekan Telipok"></span><div><div class="brand-school">SK PEKAN TELIPOK</div><div class="brand-dept">Portal Pendaftaran Tahun 1 • Sesi 2027</div></div></div>
           <div class="brand-actions" style="flex-wrap:wrap;align-items:center"><span id="modeBadge" style="font-size:11px;color:#f6dba8;padding:0 8px">Setempat • disulitkan</span><button class="btn btn-hero" type="button" id="openCloudBtn">☁ &nbsp;Cloudflare</button><button class="btn btn-hero" type="button" id="accessBtn" hidden>⚙ &nbsp;Akses Guru</button><button class="btn btn-hero" type="button" id="adminBtn" hidden>♛ &nbsp;Admin Pendaftaran</button><button class="btn btn-hero" type="button" id="changePasswordBtn">♙ &nbsp;Tukar Kata Laluan</button><button class="btn btn-hero" type="button" id="cloudExitBtn" hidden>Keluar Google</button><button class="btn btn-hero" type="button" id="backupBtn" title="Muat turun sandaran data yang disulitkan">▣ &nbsp;Sandaran</button><button class="btn btn-hero" type="button" id="restoreBtn" title="Pulihkan fail sandaran">↥ &nbsp;Pulih</button><button class="btn btn-hero" type="button" id="lockBtn" title="Kunci akses ke data">♙ &nbsp;Kunci</button></div>
         </div>
-        <div class="hero-poster"><img src="./assets/header-pendaftaran-2027-enam-pentadbir.avif" alt="Banner rasmi Pendaftaran Murid Tahun 1 Sesi 2027 — SK Pekan Telipok" loading="eager" fetchpriority="high"></div>
+        <button type="button" id="openHubBanner" aria-label="Besarkan banner pendaftaran" class="hero-poster"><img src="./assets/header-pendaftaran-2027-enam-pentadbir.avif" alt="Banner rasmi Pendaftaran Murid Tahun 1 Sesi 2027 — SK Pekan Telipok" loading="eager" fetchpriority="high"><span><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7m0-7-7 7M10 21H3v-7m0 7 7-7"/></svg></span></button>
         <div class="hero-caption"><span>PORTAL RASMI SESI 2027</span><strong>Daftar • Semak • Urus</strong><span>9 kelas Tahun 1</span></div>
       </div>
     </header>
 
+<dialog id="hubBanner" class="hub-popup" aria-labelledby="hubBannerTitle"><header><h2 id="hubBannerTitle">Pendaftaran Tahun 1 · Sesi 2027</h2><form method="dialog"><button class="hub-close" aria-label="Tutup"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><img src="./assets/header-pendaftaran-2027-enam-pentadbir.avif" alt="Banner pendaftaran SK Pekan Telipok"></dialog>
     <main class="container app-workspace">
       <aside class="workspace-sidebar" id="workspaceSidebar">
-        <div class="sidebar-top"><span class="sidebar-label">MENU UTAMA</span><button type="button" class="sidebar-dismiss" id="closeSidebar" aria-label="Tutup menu">×</button></div>
+        <div class="sidebar-top"><span class="sidebar-label">MENU UTAMA</span><button type="button" class="sidebar-dismiss" id="closeSidebar" aria-label="Tutup menu"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
         <nav class="workspace-menu" id="mainNav" aria-label="Navigasi portal">
-          <button class="workspace-link active" data-view="dashboard" type="button"><span class="workspace-ico">▦</span><span>Dashboard</span></button>
-          <button class="workspace-link" data-view="list" type="button"><span class="workspace-ico">☷</span><span>Senarai Murid</span></button>
-          <button class="workspace-link" data-view="teachers" type="button"><span class="workspace-ico">▣</span><span>Guru Kelas & Foto</span></button>
-          <button class="workspace-link" data-action="parents" type="button"><span class="workspace-ico">♧</span><span>Paparan Ibu Bapa</span></button>
+          <button class="workspace-link active" data-view="dashboard" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 12 3l9 7v10H4V10 M9 20v-7h6v7"/></svg></span><span>Dashboard</span></button>
+          <button class="workspace-link" data-view="list" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5h13M8 12h13M8 19h13M3 5h.1M3 12h.1M3 19h.1"/></svg></span><span>Senarai Murid</span></button>
+          <button class="workspace-link" data-view="teachers" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21v-2a7 7 0 0 1 7-6h2a7 7 0 0 1 7 6v2"/></svg></span><span>Guru Kelas & Foto</span></button>
+          <button class="workspace-link" data-action="parents" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5q5-2 9 1 4-3 9-1v14q-5-2-9 1-4-3-9-1z M12 6v14"/></svg></span><span>Paparan Ibu Bapa</span></button>
           <div class="workspace-divider"></div><div class="sidebar-label">PENGURUSAN REKOD</div>
-          <button class="workspace-link" data-action="add" type="button"><span class="workspace-ico">＋</span><span>Daftar Murid</span></button>
-          <button class="workspace-link" data-action="import" type="button"><span class="workspace-ico">⇪</span><span>Import Excel / CSV</span></button>
-          <button class="workspace-link" data-action="template" type="button"><span class="workspace-ico">⇩</span><span>Templat Borang</span></button>
-          <button class="workspace-link" data-action="export" type="button"><span class="workspace-ico">▤</span><span>Eksport Senarai</span></button>
-          <button class="workspace-link" id="navStats" type="button"><span class="workspace-ico" aria-hidden="true">▥</span><span>Statistik murid</span></button>
-          <button class="workspace-link" id="navDeleted" type="button"><span class="workspace-ico" aria-hidden="true">◷</span><span>Log murid dipadam</span></button>
-          <button class="workspace-link" id="navTransfers" type="button" hidden><span class="workspace-ico" aria-hidden="true">⇄</span><span>Log pindah kelas</span></button>
-          <button class="workspace-link" id="navRefresh" data-action="refresh" type="button"><span class="workspace-ico">↻</span><span>Muat Semula</span></button>
+          <button class="workspace-link" data-action="add" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M14 20H3v-2a5 5 0 0 1 5-5h3a5 5 0 0 1 3 1M14 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0M18 10v8m-4-4h8"/></svg></span><span>Daftar Murid</span></button>
+          <button class="workspace-link" data-action="import" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg></span><span>Import Excel / CSV</span></button>
+          <button class="workspace-link" data-action="template" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5zM14 3v5h5M8 12h8m-8 4h8"/></svg></span><span>Templat Borang</span></button>
+          <button class="workspace-link" data-action="export" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3m-5 5 5-5 5 5M4 16v4h16v-4"/></svg></span><span>Eksport Senarai</span></button>
+          <button class="workspace-link" id="navStats" type="button"><span class="workspace-ico" aria-hidden="true"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v17h17M8 16v-4m5 4V7m5 9V4"/></svg></span><span>Statistik murid</span></button>
+          <button class="workspace-link" id="navDeleted" type="button"><span class="workspace-ico" aria-hidden="true"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11a9 9 0 1 1 2 7M3 5v6h6M12 7v5l4 2"/></svg></span><span>Log murid dipadam</span></button>
+          <button class="workspace-link" id="navTransfers" type="button" hidden><span class="workspace-ico" aria-hidden="true"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h17l-4-4m4 14H3l4 4M20 7l-4 4M3 17l4-4"/></svg></span><span>Log pindah kelas</span></button>
+          <button class="workspace-link" id="navRefresh" data-action="refresh" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9a8 8 0 0 0-14-4L3 9m0-6v6h6m-5 6a8 8 0 0 0 14 4l3-4m0 6v-6h-6"/></svg></span><span>Muat Semula</span></button>
           <div class="workspace-divider"></div><div class="sidebar-label">TETAPAN & AKSES</div>
-          <button class="workspace-link" id="navAccess" data-action="access" type="button" hidden><span class="workspace-ico">♙</span><span>Akses Guru</span></button>
-          <button class="workspace-link" id="navAdmins" data-action="admins" type="button" hidden><span class="workspace-ico">♛</span><span>Admin & Pentadbir</span></button>
-          <button class="workspace-link" id="navPublicSettings" data-action="public-settings" type="button" hidden><span class="workspace-ico">☎</span><span>Hubungi Admin & Ibu Bapa</span></button>
-          <a class="workspace-link" id="navBotSettings" href="/bot-admin/" hidden style="text-decoration:none"><span class="workspace-ico">🤖</span><span>Soalan & Jawapan BOT</span></a>
-          <button class="workspace-link" id="navPassword" data-action="password" type="button"><span class="workspace-ico">⚿</span><span>Tukar Kata Laluan</span></button>
-          <button class="workspace-link" id="navBackup" data-action="backup" type="button"><span class="workspace-ico">▣</span><span>Sandaran Setempat</span></button>
-          <button class="workspace-link" data-action="logout" type="button"><span class="workspace-ico">⇥</span><span>Log Keluar</span></button>
+          <button class="workspace-link" id="navAccess" data-action="access" type="button" hidden><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0M4 21v-2a7 7 0 0 1 7-6h2a7 7 0 0 1 7 6v2"/></svg></span><span>Akses Guru</span></button>
+          <button class="workspace-link" id="navAdmins" data-action="admins" type="button" hidden><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v5q0 7-8 11-8-4-8-11V6zM8 12l3 3 5-6"/></svg></span><span>Admin & Pentadbir</span></button>
+          <button class="workspace-link" id="navPublicSettings" data-action="public-settings" type="button" hidden><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h4l2 5-3 2q2 4 6 6l2-3 5 2v4q0 3-4 2Q5 18 3 7q-1-4 2-4z"/></svg></span><span>Hubungi Admin & Ibu Bapa</span></button>
+          <a class="workspace-link" id="navBotSettings" href="/bot-admin/" hidden style="text-decoration:none"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v12H4zM12 3v4M8 12h1m6 0h1m-7 4h6"/></svg></span><span>Soalan & Jawapan BOT</span></a>
+          <button class="workspace-link" id="navPassword" data-action="password" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a5 5 0 1 1 2 4L8 21H3v-5l8-8"/></svg></span><span>Tukar Kata Laluan</span></button>
+          <button class="workspace-link" id="navBackup" data-action="backup" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5zM14 3v5h5M8 12h8m-8 4h8"/></svg></span><span>Sandaran Setempat</span></button>
+          <button class="workspace-link" data-action="logout" type="button"><span class="workspace-ico"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4v16h7m-1-8h11l-4-4m4 4-4 4"/></svg></span><span>Log Keluar</span></button>
         </nav>
         <div class="sidebar-account"><span class="account-avatar">SK</span><span id="navAccount">Sesi 2027</span><span class="account-live"></span></div>
       </aside>
       <div class="workspace-body">
       <section id="dashboardLanding" class="dashboard-landing">
-        <div class="smart-greeting"><div class="dashboard-greeting"><span>SKPT · PUSAT PENGURUSAN MURID</span><h2>Dashboard Pendaftaran</h2><p>Ringkasan sesi 2027 dan semua urusan pendaftaran dalam satu ruang kerja.</p></div><span class="smart-mode" id="smartMode">Mod setempat</span></div><h3 class="smart-section-label">Tindakan pantas</h3>
+        <div class="smart-greeting"><div class="dashboard-greeting"><h2>Dashboard Pendaftaran</h2></div><span class="smart-mode" id="smartMode">Mod setempat</span></div>
         <div class="quick-grid">
-          <button type="button" id="quickAdd" class="quick-tile"><span class="quick-icon violet">＋</span><strong>Daftar Murid</strong><small>Isi maklumat murid baharu</small></button>
-          <button type="button" id="quickImport" class="quick-tile"><span class="quick-icon blue">⇪</span><strong>Import Senarai</strong><small>Muat naik data Excel / CSV</small></button>
-          <button type="button" id="quickTemplate" class="quick-tile"><span class="quick-icon gold">⇩</span><strong>Templat Excel</strong><small>Muat turun borang rasmi</small></button>
-          <button type="button" id="quickList" class="quick-tile"><span class="quick-icon mint">☷</span><strong>Semak Senarai</strong><small>Lihat semua rekod kelas</small></button>
+          <button type="button" id="quickList" class="quick-tile"><span class="quick-icon"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5h13M8 12h13M8 19h13M3 5h.1M3 12h.1M3 19h.1"/></svg></span><strong>Senarai murid</strong></button>
+          <button type="button" id="openClassPicker" class="quick-tile"><span class="quick-icon"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5q5-2 9 1 4-3 9-1v14q-5-2-9 1-4-3-9-1z M12 6v14"/></svg></span><strong>Pilih kelas</strong></button>
+          <button type="button" id="openDemography" class="quick-tile"><span class="quick-icon"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v17h17M8 16v-4m5 4V7m5 9V4"/></svg></span><strong>Statistik</strong></button>
+          <button type="button" id="quickAdd" class="quick-tile"><span class="quick-icon"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M14 20H3v-2a5 5 0 0 1 5-5h3a5 5 0 0 1 3 1M14 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0M18 10v8m-4-4h8"/></svg></span><strong>Daftar murid</strong></button>
+          <button type="button" id="quickImport" class="quick-tile"><span class="quick-icon"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg></span><strong>Import senarai</strong></button>
+          <button type="button" id="quickTemplate" class="quick-tile"><span class="quick-icon"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10l4 4v14H5zM14 3v5h5M8 12h8m-8 4h8"/></svg></span><strong>Templat Excel</strong></button>
         </div>
       </section>
       <section class="stats" id="statsPanel" aria-label="Statistik pendaftaran">
@@ -756,10 +795,11 @@
         <div class="stat"><span class="stat-label">Murid PRA</span><strong class="stat-value" id="statPra">0</strong><span class="stat-foot">pernah mengikuti prasekolah</span></div>
         <div class="stat"><span class="stat-label">Bukan PRA</span><strong class="stat-value" id="statNotPra">0</strong><span class="stat-foot">tidak mengikuti prasekolah</span></div>
         <div class="stat"><span class="stat-label">Kelas Diisi</span><strong class="stat-value" id="statClasses">0 <small style="font-size:14px;color:#9b8baa">/ 9</small></strong><span class="stat-foot">kelas mempunyai rekod</span></div>
-        <div class="smart-demographics"><div class="smart-panel-head"><div><h3>Demografi murid</h3><p>Ringkasan daripada rekod yang boleh diakses dalam sesi ini.</p></div><button type="button" class="btn btn-ghost" id="smartStatsOpen">Statistik terperinci ↗</button></div><div class="smart-demo-grid"><div class="smart-demo-card"><h4>Jantina</h4><div class="smart-demo-bar" aria-hidden="true"><span id="smartGenderBarA"></span><span id="smartGenderBarB"></span></div><div class="smart-demo-legend"><div><span><i></i>Lelaki</span><strong id="smartGenderA">0</strong></div><div><span><i></i>Perempuan</span><strong id="smartGenderB">0</strong></div><div><span><i></i>Belum / lain-lain</span><strong id="smartGenderU">0</strong></div></div></div><div class="smart-demo-card"><h4>Agama</h4><div class="smart-demo-bar" aria-hidden="true"><span id="smartReligionBarA"></span><span id="smartReligionBarB"></span></div><div class="smart-demo-legend"><div><span><i></i>Muslim</span><strong id="smartReligionA">0</strong></div><div><span><i></i>Bukan Muslim</span><strong id="smartReligionB">0</strong></div><div><span><i></i>Belum / lain-lain</span><strong id="smartReligionU">0</strong></div></div></div><div class="smart-demo-card"><h4>Kewarganegaraan</h4><div class="smart-demo-bar" aria-hidden="true"><span id="smartCitizenBarA"></span><span id="smartCitizenBarB"></span></div><div class="smart-demo-legend"><div><span><i></i>Warganegara</span><strong id="smartCitizenA">0</strong></div><div><span><i></i>Bukan Warganegara</span><strong id="smartCitizenB">0</strong></div><div><span><i></i>Belum / lain-lain</span><strong id="smartCitizenU">0</strong></div></div></div></div></div>
+
       </section>
 
-      <div id="dashboardClasses" class="dashboard-classes"><div class="dashboard-classes-title"><h3>Ringkasan Mengikut Kelas</h3><p>Nama guru kelas dan slot gambar pasport. Tekan mana-mana kad kelas untuk membuka senarai murid dan borang pendaftaran dalam pop-up, tanpa meninggalkan dashboard.</p></div><div id="classCards" class="class-card-grid"></div><div class="dashboard-bottom-actions"><button id="showTeachersBtn" type="button" class="btn btn-ghost">Lihat Semua Guru Kelas & Gambar Pasport</button><a href="/ibu-bapa/" class="btn btn-ghost">Paparan Ibu Bapa ↗</a></div></div>
+<dialog id="hubClasses" class="hub-popup" aria-labelledby="hubClassesTitle"><header><h2 id="hubClassesTitle">Pilih kelas</h2><form method="dialog"><button class="hub-close" aria-label="Tutup"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div id="dashboardClasses"><div id="classCards" class="class-card-grid"></div><div class="dashboard-bottom-actions"><button id="showTeachersBtn" type="button" class="btn btn-ghost">Profil guru kelas</button><a href="/ibu-bapa/" class="btn btn-ghost">Paparan Ibu Bapa ↗</a></div></div></dialog>
+<dialog id="hubStats" class="hub-popup" aria-labelledby="hubStatsTitle"><header><h2 id="hubStatsTitle">Statistik murid</h2><form method="dialog"><button class="hub-close" aria-label="Tutup"><svg aria-hidden="true" viewBox="0 0 24 24" class="ptg-icon" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></form></header><div class="smart-demo-grid"><div class="smart-demo-card"><h4>Jantina</h4><div class="smart-demo-bar" aria-hidden="true"><span id="smartGenderBarA"></span><span id="smartGenderBarB"></span></div><div class="smart-demo-legend"><div><span><i></i>Lelaki</span><strong id="smartGenderA">0</strong></div><div><span><i></i>Perempuan</span><strong id="smartGenderB">0</strong></div><div><span><i></i>Belum / lain-lain</span><strong id="smartGenderU">0</strong></div></div></div><div class="smart-demo-card"><h4>Agama</h4><div class="smart-demo-bar" aria-hidden="true"><span id="smartReligionBarA"></span><span id="smartReligionBarB"></span></div><div class="smart-demo-legend"><div><span><i></i>Muslim</span><strong id="smartReligionA">0</strong></div><div><span><i></i>Bukan Muslim</span><strong id="smartReligionB">0</strong></div><div><span><i></i>Belum / lain-lain</span><strong id="smartReligionU">0</strong></div></div></div><div class="smart-demo-card"><h4>Kewarganegaraan</h4><div class="smart-demo-bar" aria-hidden="true"><span id="smartCitizenBarA"></span><span id="smartCitizenBarB"></span></div><div class="smart-demo-legend"><div><span><i></i>Warganegara</span><strong id="smartCitizenA">0</strong></div><div><span><i></i>Bukan Warganegara</span><strong id="smartCitizenB">0</strong></div><div><span><i></i>Belum / lain-lain</span><strong id="smartCitizenU">0</strong></div></div></div></div><button type="button" id="smartStatsOpen" class="btn btn-primary">Pecahan mengikut kelas dan bangsa</button></dialog>
       <section id="teacherSection" class="teacher-section" hidden><div class="dashboard-greeting"><span>GURU KELAS SESI 2027</span><h2>Profil Guru Kelas Tahun 1</h2><p>Sembilan guru kelas. Ruang gambar menggunakan nisbah pasport 35 × 50 mm (7:10).</p></div><div id="teacherCards" class="teacher-card-grid"></div><p class="teacher-footnote">Foto pasport beresolusi tinggi sehingga 600 KB boleh dimuat naik oleh pentadbir atau guru yang diberi akses. Guru lain hanya boleh melihat. Dalam mod setempat, gambar boleh dilihat tetapi tidak boleh dimuat naik ke server.</p></section>
       <div class="layout" id="listLayout" hidden>
         <aside class="panel class-nav" id="classNav" aria-label="Pilih kelas">
@@ -1869,6 +1909,13 @@
       $('accessForm').addEventListener('submit',saveAccess);
       $('accessTableBody').addEventListener('click',e=>{const b=e.target.closest('[data-email]');if(b)revokeAccess(b.dataset.email);});
       $('classNav').addEventListener('click',e=>{const btn=e.target.closest('[data-class]');if(!btn)return;activeClass=btn.dataset.class;switchView('list');render();});
+      for(const [button,dialog] of [['openClassPicker','hubClasses'],['openDemography','hubStats'],['openHubBanner','hubBanner']]){
+        $(button).onclick=()=>$(dialog).showModal();
+      }
+      $('hubClasses').addEventListener('click',e=>{
+        if(e.target.closest('[data-dashboard-class],#showTeachersBtn'))$('hubClasses').close();
+      },true);
+      $('smartStatsOpen').addEventListener('click',()=>$('hubStats').close(),true);
       $('classCards').addEventListener('click',e=>{const btn=e.target.closest('[data-dashboard-class]');if(!btn)return;openClassPopup(btn.dataset.dashboardClass);});
       $('popupSearch').addEventListener('input',renderClassPopup);
       $('popupPraFilter').addEventListener('change',renderClassPopup);
