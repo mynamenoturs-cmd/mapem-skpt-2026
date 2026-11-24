@@ -13,8 +13,9 @@ const ORIGIN='https://mapem-skpt-2026.pages.dev';
 const file=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 function fixture(){
  const db=new DatabaseSync(':memory:');
- for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql','0021_registration2027_bot_config.sql','0022_registration_profile_transfers.sql','0023_registration_bot_name.sql'])db.exec(file('../migrations/'+migration));
+ for(const migration of ['0001_init.sql','0002_google_pwa.sql','0003_admin_roles.sql','0004_award_responsibilities.sql','0005_portal_announcement.sql','0006_family_hub.sql','0007_tahap2_classes.sql','0008_exclude_year6.sql','0009_activity_logs.sql','0010_preserve_delima_t2.sql','0012_cerdas_plan_subgroups.sql','0013_subject_awards_quota.sql','0014_award_title_overrides.sql','0015_multiple_announcements.sql','0016_registration_tahun1_2027.sql','0017_registration_2027_delegated_admins.sql','0018_registration_2027_login_bridge.sql','0019_registration_teachers_parent_portal.sql','0020_registration_ai_limits.sql','0021_registration2027_bot_config.sql','0022_registration_profile_transfers.sql','0023_registration_bot_name.sql','0024_registration_demographics.sql'])db.exec(file('../migrations/'+migration));
  const DB={prepare(sql){const stmt=db.prepare(sql);return {bind(...values){return {first(){return stmt.get(...values)||null;},all(){return {results:stmt.all(...values)};},run(){return {meta:{changes:stmt.run(...values).changes}};}};},first(){return stmt.get()||null;},all(){return {results:stmt.all()};}}}};
+ DB.batch=statements=>{db.exec('BEGIN');try{const results=statements.map(s=>s.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;}};
  const env={DB,GOOGLE_CLIENT_ID:'fake',GOOGLE_CLIENT_SECRET:'secret',APP_ORIGIN:ORIGIN,ADMIN_EMAILS:'admin@gmail.com'};
  async function cookie(email){
   db.prepare('INSERT INTO users(sub,email,name) VALUES(?,?,?)').run(email,email,email);
@@ -635,4 +636,21 @@ test('class transfers preserve profiles, check source and version, and log exact
  }
  const history=db.prepare('SELECT * FROM registration_2027_transfers ORDER BY id').all();
  assert.equal(history[0].actor_email,'ruby@example.com');assert.equal(history[1].actor_email,'admin@gmail.com');
+});
+
+test('student demographics survive older edits and only successful deletions enter the class-scoped log',async()=>{
+ const {db,cookie,call}=fixture(),who=await cookie('admin@gmail.com'),teacher=await cookie('guru@gmail.com');
+ db.prepare('INSERT INTO registration_2027_access(email,class_name,granted_by) VALUES(?,?,?)').run('guru@gmail.com','Ruby','admin@gmail.com');
+ const student={...record('Emerald','DEM01'),jantina:'Perempuan',agama:'Muslim',warga:'Warganegara',bangsa:'Bajau'};
+ const post=(endpoint,body)=>call('registration2027/students/'+endpoint,{who,method:'POST',body});
+ const saved=await post('save',{record:student});assert.equal(saved.status,201);
+ const {uid}=await saved.json();
+ assert.equal((await post('save',{uid,version:1,record:record('Emerald','DEM01')})).status,200);
+ const [row]=(await (await call('registration2027/students',{who})).json()).records;
+ for(const field of ['jantina','agama','warga','bangsa'])assert.equal(row[field],student[field]);
+ const logs=async user=>(await (await call('registration2027/deletions',{who:user})).json()).records;
+ assert.equal((await post('delete',{uid,version:1})).status,409);assert.equal((await logs(who)).length,0);
+ assert.equal((await post('delete',{uid,version:2})).status,200);
+ assert.equal((await logs(who))[0].student_name,student.namaMurid);assert.equal((await logs(teacher)).length,0);
+ assert.equal((await post('delete',{uid,version:2})).status,404);assert.equal((await logs(who)).length,1);
 });

@@ -575,6 +575,7 @@
   .transfer-dialog{width:min(92vw,720px);max-height:86dvh;overflow:auto;border:1px solid #e2c89f;border-radius:16px;padding:20px;color:#53263d}.transfer-dialog::backdrop{background:#230b22aa}
   </style>
 <link rel="stylesheet" href="/bot2027.css">
+<style>.demo-filters{margin:12px 0;padding:12px;border:1px solid #dbc7ca;border-radius:12px}.demo-filters summary{cursor:pointer;font-weight:650}.demo-grid{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.demo-dialog{width:min(94vw,820px);max-height:88vh;overflow:auto}.demo-dialog table{min-width:460px}.demo-dialog form{margin-top:16px;text-align:right}.demo-dialog .table-scroll{margin-top:12px}.demo-dialog .group-row th{background:#f4ebef;color:#54273b;text-align:left}</style>
 </head>
 <body>
   <section id="printRoster" aria-label="Senarai cetakan">
@@ -637,6 +638,8 @@
           <button class="workspace-link" data-action="import" type="button"><span class="workspace-ico">⇪</span><span>Import Excel / CSV</span></button>
           <button class="workspace-link" data-action="template" type="button"><span class="workspace-ico">⇩</span><span>Templat Borang</span></button>
           <button class="workspace-link" data-action="export" type="button"><span class="workspace-ico">▤</span><span>Eksport Senarai</span></button>
+          <button class="workspace-link" id="navStats" type="button">Statistik murid</button>
+          <button class="workspace-link" id="navDeleted" type="button">Log murid dipadam</button>
           <button class="workspace-link" id="navTransfers" type="button" hidden>Log pindah kelas</button>
           <button class="workspace-link" id="navRefresh" data-action="refresh" type="button"><span class="workspace-ico">↻</span><span>Muat Semula</span></button>
           <div class="workspace-divider"></div><div class="sidebar-label">TETAPAN & AKSES</div>
@@ -699,8 +702,9 @@
             <button type="button" class="btn btn-ghost" id="refreshBtn" hidden>⟳ &nbsp;Muat Semula</button>
             <button type="button" class="btn btn-ghost" id="csvBtn"><svg viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v3h16v-3"/></svg> Eksport CSV</button>
           </div>
+          <details class="demo-filters"><summary>Tapis dan susun murid</summary><div class="demo-grid"><label class="field"><span>Jantina</span><select id="filter-jantina"><option value="">Semua</option><option>Lelaki</option><option>Perempuan</option><option value="@unknown">Belum diisi</option></select></label><label class="field"><span>Status agama</span><select id="filter-agama"><option value="">Semua</option><option>Muslim</option><option>Bukan Muslim</option><option value="@unknown">Belum diisi</option></select></label><label class="field"><span>Kewarganegaraan</span><select id="filter-warga"><option value="">Semua</option><option>Warganegara</option><option>Bukan Warganegara</option><option value="@unknown">Belum diisi</option></select></label><label class="field"><span>Bangsa</span><select id="filter-bangsa"><option value="">Semua</option><option value="@unknown">Belum diisi</option></select></label><label class="field"><span>Susun mengikut</span><select id="demoSort"><option value="">Kelas, kemudian nama</option><option value="namaMurid">Nama murid</option><option value="jantina">Jantina</option><option value="agama">Status agama</option><option value="warga">Kewarganegaraan</option><option value="bangsa">Bangsa</option></select></label><button type="button" class="btn btn-ghost" id="clearDemo">Kosongkan tapisan</button></div></details>
           <div class="actions-row"><span class="mini-help" id="filterSummary">0 murid dipaparkan</span><div class="action-buttons"><button type="button" class="btn btn-ghost" id="maskBtn">◉ &nbsp;Paparkan Maklumat</button><button type="button" class="btn btn-ghost" id="printBtn">▤ &nbsp;Cetak Senarai</button></div></div>
-          <div class="table-scroll"><table aria-label="Senarai murid Tahun 1"><thead><tr><th>Bil.</th><th>ID Murid</th><th>Nama Murid</th><th>Kelas</th><th>PRA</th><th>Ibu Bapa / Penjaga</th><th>No. IC Penjaga</th><th>No. Telefon</th><th>Alamat Terkini</th><th>Tindakan</th></tr></thead><tbody id="tableBody"></tbody></table><div id="emptyState" class="empty" hidden><div class="empty-icon">♧</div><strong id="emptyTitle">Belum ada pendaftaran</strong><p id="emptyText">Tekan “Tambah Murid” untuk mula mendaftarkan murid baharu.</p><button type="button" class="btn btn-primary" id="emptyAdd">+ Tambah Murid</button></div></div>
+          <div class="table-scroll"><table aria-label="Senarai murid Tahun 1"><thead><tr><th>Bil.</th><th>ID Murid</th><th>Nama Murid</th><th>Kelas</th><th>PRA</th><th>Ibu Bapa / Penjaga</th><th>No. IC Penjaga</th><th>No. Telefon</th><th>Alamat Terkini</th><th>Jantina</th><th>Status agama</th><th>Kewarganegaraan</th><th>Bangsa</th><th>Tindakan</th></tr></thead><tbody id="tableBody"></tbody></table><div id="emptyState" class="empty" hidden><div class="empty-icon">♧</div><strong id="emptyTitle">Belum ada pendaftaran</strong><p id="emptyText">Tekan “Tambah Murid” untuk mula mendaftarkan murid baharu.</p><button type="button" class="btn btn-primary" id="emptyAdd">+ Tambah Murid</button></div></div>
           <div class="table-bottom"><span id="tableCount">0 rekod</span><span>Sesi 2027 • SK Pekan Telipok</span></div>
         </section>
       </div>
@@ -774,6 +778,10 @@
           <label class="field"><span>ID Murid <em>*</em></span><input name="idMurid" required maxlength="45" placeholder="Contoh: M20270001" autocapitalize="characters"><small>ID tidak boleh berulang dalam sistem.</small></label>
           <label class="field full"><span>Nama Murid <em>*</em></span><input name="namaMurid" required maxlength="150" placeholder="Nama penuh seperti dokumen rasmi"></label>
           <label class="field"><span>PRA (Prasekolah) <em>*</em></span><select name="pra" required><option value="" selected disabled>Pilih status PRA</option><option value="Ya">Ya</option><option value="Tidak">Tidak</option><option value="Belum Pasti">Belum Pasti</option></select></label>
+<label class="field"><span>Jantina</span><select name="jantina"><option value="">Belum diisi</option><option>Lelaki</option><option>Perempuan</option></select></label>
+<label class="field"><span>Status agama</span><select name="agama"><option value="">Belum diisi</option><option>Muslim</option><option>Bukan Muslim</option></select></label>
+<label class="field"><span>Kewarganegaraan</span><select name="warga"><option value="">Belum diisi</option><option>Warganegara</option><option>Bukan Warganegara</option></select></label>
+<label class="field"><span>Bangsa</span><input name="bangsa" list="bangsaList" maxlength="80"><datalist id="bangsaList"></datalist></label>
           <label class="field"><span>Agensi prasekolah (PAKK)</span><select name="agensiPra"><option value="">Belum diisi</option><option>KEMAS</option><option>PASTI</option><option>PERPADUAN</option><option>PRASEKOLAH KPM</option><option>SWASTA</option><option>LAIN-LAIN</option></select></label>
           <label class="field"><span>E-mel ibu bapa / penjaga</span><input type="email" name="emailPenjaga" maxlength="254" autocomplete="email"></label>
           <label class="field"><span>Nama Ibu Bapa / Penjaga <em>*</em></span><input name="namaPenjaga" required maxlength="150" placeholder="Nama penuh penjaga"></label>
@@ -851,6 +859,8 @@
     <p class="error" id="moveError" hidden></p>
     <div class="form-foot"><button type="button" class="btn btn-ghost" id="moveCancel">Batal</button><button class="btn btn-primary" id="moveSubmit">Sahkan pindahan</button></div>
   </form></dialog>
+  <dialog class="transfer-dialog demo-dialog" id="demoStats" aria-labelledby="dsTitle"><h2 id="dsTitle">Statistik murid</h2><label class="field"><span>Kelas</span><select id="statsClass"></select></label><div class="table-scroll"><table><thead><tr><th>Kategori</th><th>Lelaki</th><th>Perempuan</th><th>Jantina belum diisi</th><th>Jumlah</th></tr></thead><tbody id="demoTotals"></tbody></table></div><form method="dialog"><button class="btn btn-primary">Tutup</button></form></dialog>
+  <dialog class="transfer-dialog demo-dialog" id="deletedLog" aria-labelledby="delTitle"><h2 id="delTitle">Log murid dipadam</h2><p id="delStatus"></p><div class="table-scroll"><table><thead><tr><th>Masa (Sabah)</th><th>Nama murid</th><th>Kelas</th><th>Dipadam oleh</th></tr></thead><tbody id="deletedRows"></tbody></table></div><form method="dialog"><button class="btn btn-primary">Tutup</button></form></dialog>
   <dialog class="transfer-dialog" id="moveLog"><h2>Log pindah kelas</h2><p id="logStatus"></p><div class="table-scroll"><table><thead><tr><th>Masa (Sabah)</th><th>Murid</th><th>Kelas asal</th><th>Kelas baharu</th><th>Dipindahkan oleh</th></tr></thead><tbody id="moveHistory"></tbody></table></div><div class="form-foot"><button class="btn btn-primary" id="logClose">Tutup</button></div></dialog>
   <input id="backupInput" type="file" accept=".json,application/json" hidden>
   <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
@@ -874,6 +884,7 @@
       };
       const STORE = 'skpt-pendaftaran-t1-2027-v1';
       const ITERATIONS = 240000;
+      let localDeletions=[];
       let vault = null, vaultKey = null, students = [], activeClass = 'Semua';
       let classPopupClass = null, classPopupOpener = null;
       let editId = null, hideSensitive = true, pendingSave = Promise.resolve(), toastTimer;
@@ -908,18 +919,18 @@
         const parsed = JSON.parse(dec.decode(plaintext));
         if (!parsed || !Array.isArray(parsed.records)) throw new Error('Kandungan rekod tidak sah.');
         const clean = parsed.records.filter(r => r && typeof r === 'object' && CLASSES.includes(r.kelas) && r.uid && r.idMurid);
-        return {key, records:clean};
+        return {key, records:clean,deletions:Array.isArray(parsed.deletions)?parsed.deletions:[]};
       }
-      async function encryptPayload(records) {
+      async function encryptPayload(records,deletions=localDeletions) {
         const iv = randomBytes(12);
-        const content = enc.encode(JSON.stringify({version:1,records}));
+        const content = enc.encode(JSON.stringify({version:1,records,deletions}));
         const cipher = await crypto.subtle.encrypt({name:'AES-GCM', iv}, vaultKey, content);
         return {v:1, salt:vault.salt, iv:b64(iv), data:b64(cipher)};
       }
       function queueSave() {
-        const snapshot = structuredClone(students);
+        const snapshot = structuredClone(students),history=structuredClone(localDeletions);
         pendingSave = pendingSave.catch(() => {}).then(async () => {
-          const payload = await encryptPayload(snapshot);
+          const payload = await encryptPayload(snapshot,history);
           localStorage.setItem(STORE, JSON.stringify(payload));
           vault = payload;
         });
@@ -991,8 +1002,8 @@
         if (isNew && pass!==$('passConfirm').value) return authError('Pengesahan kata laluan tidak sepadan.');
         $('authSubmit').disabled=true; authError('');
         try {
-          if (isNew) { vault = {salt:b64(randomBytes(16))}; vaultKey=await deriveKey(pass,un64(vault.salt)); students=[]; await queueSave(); }
-          else { const stored=JSON.parse(localStorage.getItem(STORE)); const result=await decryptPayload(stored,pass); vault=stored; vaultKey=result.key; students=result.records; }
+          if (isNew) { vault = {salt:b64(randomBytes(16))}; vaultKey=await deriveKey(pass,un64(vault.salt)); students=[];localDeletions=[]; await queueSave(); }
+          else { const stored=JSON.parse(localStorage.getItem(STORE)); const result=await decryptPayload(stored,pass); vault=stored; vaultKey=result.key; students=result.records;localDeletions=result.deletions; }
           $('passInput').value=''; $('passConfirm').value=''; showApp();
         } catch(e) { authError(isNew?'Gagal menyediakan storan tersulit. Pastikan pelayar membenarkan penyimpanan.':'Kata laluan salah atau rekod tersulit rosak. Cuba lagi atau pulihkan sandaran.'); }
         finally { $('authSubmit').disabled=false; }
@@ -1105,7 +1116,7 @@
           const existing=JSON.parse(localStorage.getItem(STORE));
           await decryptPayload(existing,old);
           const salt=b64(randomBytes(16)), key=await deriveKey(next,un64(salt)),iv=randomBytes(12);
-          const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify({version:1,records:students})));
+          const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify({version:1,records:students,deletions:localDeletions})));
           const payload={v:1,salt,iv:b64(iv),data:b64(cipher)};
           localStorage.setItem(STORE,JSON.stringify(payload));
           vault=payload;vaultKey=key;
@@ -1477,10 +1488,49 @@
         }).join(''):'<div class="class-popup-empty"><strong>'+(classmates.length?'Tiada padanan carian':'Belum ada murid didaftarkan')+
           '</strong>'+(classmates.length?'Cuba ubah kata kunci atau status PRA.':'Tekan “Daftar Murid” di bawah untuk memasukkan murid pertama bagi kelas 1 '+esc(kelas)+'.')+'</div>';
       }
+      const demoFields=['jantina','agama','warga','bangsa'];
+      const unknown='Belum diisi';
+      const fold=value=>String(value??'').trim().toLocaleLowerCase('ms');
+      function ethnicities(){
+        const values=new Map();
+        for(const s of students)if(s.bangsa)values.set(fold(s.bangsa),s.bangsa);
+        return [...values.values()].sort((a,b)=>a.localeCompare(b,'ms'));
+      }
+      function refreshEthnicities(){
+        const select=$('filter-bangsa'),previous=select.value,names=ethnicities();
+        select.replaceChildren(new Option('Semua',''),...names.map(n=>new Option(n,fold(n))),new Option(unknown,'@unknown'));
+        if([...select.options].some(o=>o.value===previous))select.value=previous;
+        $('bangsaList').replaceChildren(...names.map(n=>new Option(n)));
+      }
+      function renderStats(){
+        const rows=students.filter(s=>!$('statsClass').value||s.kelas===$('statsClass').value);
+        const body=$('demoTotals');body.replaceChildren();
+        function count(label,group){
+          const tr=body.insertRow(),male=group.filter(s=>s.jantina==='Lelaki').length,female=group.filter(s=>s.jantina==='Perempuan').length;
+          for(const v of [label,male,female,group.length-male-female,group.length])tr.insertCell().textContent=v;
+        }
+        count('Jumlah murid',rows);
+        for(const [field,label,values] of [['agama','Status agama',['Muslim','Bukan Muslim']],['warga','Kewarganegaraan',['Warganegara','Bukan Warganegara']],['bangsa','Bangsa',ethnicities().filter(n=>rows.some(s=>fold(s.bangsa)===fold(n)))]]){
+          const tr=body.insertRow();tr.className='group-row';const th=document.createElement('th');th.colSpan=5;th.textContent=label;tr.append(th);
+          for(const value of [...values,''])count(value||unknown,rows.filter(s=>fold(s[field])===fold(value)));
+        }
+      }
+      $('navStats').onclick=()=>{
+        closeSidebar();
+        const scoped=cloudMode&&cloudInfo.role!=='admin';
+        $('statsClass').replaceChildren(...(scoped?[]:[new Option('Semua kelas','')]),...(scoped?[cloudInfo.kelas]:CLASSES).map(c=>new Option('1 '+c,c)));
+        $('statsClass').value=scoped?cloudInfo.kelas:activeClass==='Semua'?'':activeClass;
+        renderStats();$('demoStats').showModal();
+      };
+      $('statsClass').onchange=renderStats;
+      for(const id of [...demoFields.map(k=>'filter-'+k),'demoSort'])$(id).onchange=render;
+      $('clearDemo').onclick=()=>{for(const k of demoFields)$('filter-'+k).value='';$('demoSort').value='';$('searchInput').value='';$('praFilter').value='Semua';render();};
       function filtered() {
         const q=$('searchInput').value.trim().toLocaleLowerCase('ms'); const pra=$('praFilter').value;
-        return students.filter(s=> (activeClass==='Semua'||s.kelas===activeClass) && (pra==='Semua'||s.pra===pra) && (!q || [s.namaMurid,s.idMurid,s.namaPenjaga,s.noTelefon,s.noIc,s.alamat].some(v=>String(v??'').toLocaleLowerCase('ms').includes(q))))
-          .sort((a,b)=>CLASSES.indexOf(a.kelas)-CLASSES.indexOf(b.kelas)||a.namaMurid.localeCompare(b.namaMurid,'ms'));
+        const filters=demoFields.map(k=>[k,$('filter-'+k).value]).filter(([,v])=>v);
+        const key=$('demoSort').value;
+        return students.filter(s=>filters.every(([k,v])=>v==='@unknown'?!s[k]:fold(s[k])===fold(v)) && (activeClass==='Semua'||s.kelas===activeClass) && (pra==='Semua'||s.pra===pra) && (!q || [s.namaMurid,s.idMurid,s.namaPenjaga,s.noTelefon,s.noIc,s.alamat].some(v=>String(v??'').toLocaleLowerCase('ms').includes(q))))
+          .sort((a,b)=>(key?String(a[key]||unknown).localeCompare(String(b[key]||unknown),'ms'):CLASSES.indexOf(a.kelas)-CLASSES.indexOf(b.kelas))||a.namaMurid.localeCompare(b.namaMurid,'ms'));
       }
       function render() {
         updateModeUi();
@@ -1502,11 +1552,12 @@
         document.querySelectorAll('.class-btn').forEach(btn=>{ const yes=btn.dataset.class===activeClass; btn.classList.toggle('active',yes); btn.setAttribute('aria-pressed',yes?'true':'false'); });
         $('listTitle').textContent=activeClass==='Semua'?'Semua Pendaftaran':'Kelas 1 '+activeClass;
         $('listCaption').textContent=activeClass==='Semua'?'Senarai murid untuk semua 9 kelas Tahun 1':'Senarai murid 1 '+activeClass+' • Sesi 2027';
+        refreshEthnicities();
         const items=filtered(); $('filterSummary').textContent=items.length+' murid dipaparkan'; $('tableCount').textContent=items.length+' daripada '+students.length+' rekod';
         $('maskBtn').textContent=hideSensitive?'◉  Paparkan Maklumat':'◉  Sembunyikan Maklumat';
 
         const tb=$('tableBody');
-        tb.innerHTML=items.map((s,i)=>`<tr><td class="mono">${i+1}</td><td class="mono">${esc(s.idMurid)}</td><td><span class="student">${esc(s.namaMurid)}</span></td><td><span class="class-pill">${esc(s.kelas)}</span></td><td><span class="pra-pill ${s.pra==='Tidak'?'no':s.pra==='Belum Pasti'?'maybe':''}">${esc(s.pra)}</span></td><td>${esc(s.namaPenjaga)}</td><td class="mono">${viewValue(s.noIc)}</td><td class="mono">${viewValue(s.noTelefon)}</td><td><span class="truncate" title="${esc(s.alamat)}">${esc(s.alamat)}</span></td><td><div class="row-actions">${cloudMode?`<button type="button" class="btn btn-ghost" data-action="move" data-uid="${esc(s.uid)}">Pindah kelas</button>`:''}<button type="button" class="icon-btn" data-action="edit" data-uid="${esc(s.uid)}" title="Kemaskini murid ${esc(s.namaMurid)}" aria-label="Kemaskini murid">✎</button><button type="button" class="icon-btn danger" data-action="delete" data-uid="${esc(s.uid)}" title="Padam rekod" aria-label="Padam rekod">✕</button></div></td></tr>`).join('');
+        tb.innerHTML=items.map((s,i)=>`<tr><td class="mono">${i+1}</td><td class="mono">${esc(s.idMurid)}</td><td><span class="student">${esc(s.namaMurid)}</span></td><td><span class="class-pill">${esc(s.kelas)}</span></td><td><span class="pra-pill ${s.pra==='Tidak'?'no':s.pra==='Belum Pasti'?'maybe':''}">${esc(s.pra)}</span></td><td>${esc(s.namaPenjaga)}</td><td class="mono">${viewValue(s.noIc)}</td><td class="mono">${viewValue(s.noTelefon)}</td><td><span class="truncate" title="${esc(s.alamat)}">${esc(s.alamat)}</span></td>${demoFields.map(k=>'<td>'+esc(s[k]||unknown)+'</td>').join('')}<td><div class="row-actions">${cloudMode?`<button type="button" class="btn btn-ghost" data-action="move" data-uid="${esc(s.uid)}">Pindah kelas</button>`:''}<button type="button" class="icon-btn" data-action="edit" data-uid="${esc(s.uid)}" title="Kemaskini murid ${esc(s.namaMurid)}" aria-label="Kemaskini murid">✎</button><button type="button" class="icon-btn danger" data-action="delete" data-uid="${esc(s.uid)}" title="Padam rekod" aria-label="Padam rekod">✕</button></div></td></tr>`).join('');
         const empty=items.length===0; tb.hidden=empty; $('emptyState').hidden=!empty;
         $('emptyTitle').textContent=students.length===0?'Belum ada pendaftaran':'Tiada rekod dijumpai';
         $('emptyText').textContent=students.length===0?'Tekan “Tambah Murid” untuk mula mendaftarkan murid baharu.':'Cuba tukar kelas, status PRA atau kata kunci carian.';
@@ -1522,7 +1573,7 @@
         f.namedItem('kelas').disabled=false;
         f.namedItem('kelas').value=s?.kelas??(activeClass==='Semua'?'':activeClass);
         if(cloudMode&&cloudInfo.role!=='admin'){f.namedItem('kelas').value=cloudInfo.kelas;f.namedItem('kelas').disabled=true;}
-        for(const key of ['idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat','emailPenjaga','agensiPra']) f.namedItem(key).value=s?.[key]??'';
+        for(const key of ['idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat','emailPenjaga','agensiPra','jantina','agama','warga','bangsa']) f.namedItem(key).value=s?.[key]??'';
         for(const key of ['namaPenjaga','noIc','noTelefon','alamat']){const input=f.namedItem(key);input.required=!s;input.closest('label').querySelector('em').hidden=!!s;}
         f.agensiPra.disabled=f.pra.value==='Tidak';
         $('formOverlay').hidden=false; document.body.style.overflow='hidden';
@@ -1533,7 +1584,7 @@
         e.preventDefault();
         const f=$('studentForm').elements;
         const record={};
-        for(const field of ['kelas','idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat','emailPenjaga','agensiPra']) record[field]=f.namedItem(field).value.trim();
+        for(const field of ['kelas','idMurid','namaMurid','pra','namaPenjaga','noIc','noTelefon','alamat','emailPenjaga','agensiPra','jantina','agama','warga','bangsa']) record[field]=f.namedItem(field).value.trim();
         if(!CLASSES.includes(record.kelas)) return showChangeResult('Rekod murid','Sila pilih kelas yang sah.','error');
         if(record.agensiPra)record.pra='Ya';
         if(students.some(s=>s.uid!==editId&&s.idMurid.toLowerCase()===record.idMurid.toLowerCase())) { f.namedItem('idMurid').setCustomValidity('ID murid ini sudah digunakan.'); f.namedItem('idMurid').reportValidity(); return; }
@@ -1611,6 +1662,18 @@
           ].map(value=>'<td>'+esc(value)+'</td>').join('')+'</tr>').join('');
         }catch(err){$('logStatus').textContent=err.message;}
       };
+      $('navDeleted').onclick=async()=>{
+        closeSidebar();const body=$('deletedRows');body.replaceChildren();
+        $('delStatus').textContent='Memuatkan log…';$('deletedLog').showModal();
+        try{
+          const records=cloudMode?(await cloudApi('deletions')).records:localDeletions;
+          $('delStatus').textContent=records.length?records.length+' pemadaman':'Belum ada pemadaman direkodkan.';
+          for(const r of records){
+            const tr=body.insertRow(),time=new Date(r.at.includes('T')?r.at:r.at.replace(' ','T')+'Z');
+            for(const value of [time.toLocaleString('ms-MY',{timeZone:'Asia/Kuching'}),r.student_name||'Nama tidak direkodkan','1 '+r.class_name,r.actor_email])tr.insertCell().textContent=value;
+          }
+        }catch(e){$('delStatus').textContent=e.message;}
+      };
       async function deleteStudent(id) {
         const s=students.find(r=>r.uid===id); if(!s) return;
         if(!confirm('Padam rekod '+s.namaMurid+'? Tindakan ini tidak boleh dibatalkan.')) return;
@@ -1619,9 +1682,10 @@
           catch(e){showChangeResult('Pemadaman rekod',e.message,'error');if(e.status===409){await loadCloudStudents();render();}}
           return;
         }
-        const old=students; students=students.filter(r=>r.uid!==id);
+        const old=students,history=localDeletions; students=students.filter(r=>r.uid!==id);
+        localDeletions=[{at:new Date().toISOString(),student_name:s.namaMurid,class_name:s.kelas,actor_email:'Pengguna setempat'},...history];
         try { await queueSave(); render(); showChangeResult('Pemadaman rekod','Rekod telah dipadam.'); }
-        catch { students=old; render(); showChangeResult('Pemadaman rekod','Rekod gagal dipadam kerana masalah storan.','error'); }
+        catch { students=old;localDeletions=history; render(); showChangeResult('Pemadaman rekod','Rekod gagal dipadam kerana masalah storan.','error'); }
       }
       function csvSafe(value) { let v=String(value??''); if (/^[\s]*[=+@\-\t\r]/.test(v)) v="'"+v; return '"'+v.replace(/"/g,'""')+'"'; }
       function download(content,mime,filename) {
@@ -1630,9 +1694,9 @@
       }
       function exportCSV() {
         const rows=filtered(); if(!rows.length) return toast('Tiada rekod untuk dieksport.');
-        const headers=['Bil.','Kelas','ID Murid','Nama Murid','PRA','Nama Ibu Bapa/Penjaga','No. IC Penjaga','No. Telefon','Alamat Terkini','E-mel Penjaga','Agensi PAKK','Tarikh Daftar'];
+        const headers=['Bil.','Kelas','ID Murid','Nama Murid','PRA','Nama Ibu Bapa/Penjaga','No. IC Penjaga','No. Telefon','Alamat Terkini','E-mel Penjaga','Agensi PAKK','Jantina','Status Agama','Kewarganegaraan','Bangsa','Tarikh Daftar'];
         const lines=[headers.map(csvSafe).join(',')];
-        rows.forEach((r,i)=>lines.push([i+1,r.kelas,r.idMurid,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,r.emailPenjaga,r.agensiPra,dateText(r.createdAt??new Date().toISOString())].map(csvSafe).join(',')));
+        rows.forEach((r,i)=>lines.push([i+1,r.kelas,r.idMurid,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,r.emailPenjaga,r.agensiPra,r.jantina,r.agama,r.warga,r.bangsa,dateText(r.createdAt??new Date().toISOString())].map(csvSafe).join(',')));
         const label=activeClass==='Semua'?'Semua-Kelas':activeClass;
         download('\uFEFF'+lines.join('\r\n'),'text/csv;charset=utf-8','Pendaftaran-Tahun1-2027-'+label+'.csv');
         toast('Fail CSV dimuat turun ('+rows.length+' murid).');
@@ -1653,12 +1717,12 @@
           const result=await decryptPayload(payload,pass);
           if(!confirm('Pulihkan '+result.records.length+' rekod daripada sandaran? Semua rekod pada pelayar ini akan digantikan.')) return;
           await pendingSave;
-          localStorage.setItem(STORE,JSON.stringify(payload)); vault=payload; vaultKey=result.key; students=result.records;
+          localStorage.setItem(STORE,JSON.stringify(payload)); vault=payload; vaultKey=result.key; students=result.records;localDeletions=result.deletions;
           $('searchInput').value=''; $('praFilter').value='Semua'; activeClass='Semua'; showApp(); showChangeResult('Pemulihan sandaran','Sandaran berjaya dipulihkan ('+students.length+' rekod).');
         } catch(e) { showChangeResult('Pemulihan sandaran','Gagal pulih: kata laluan salah atau fail sandaran tidak sah.','error'); }
         finally { $('backupInput').value=''; }
       }
-      async function lock() { try { await pendingSave; } catch(e) {} students=[]; vault=null; vaultKey=null; activeClass='Semua'; $('searchInput').value=''; $('praFilter').value='Semua'; hideSensitive=true; showAuth(); }
+      async function lock() { try { await pendingSave; } catch(e) {} students=[];localDeletions=[]; vault=null; vaultKey=null; activeClass='Semua'; $('searchInput').value=''; $('praFilter').value='Semua'; hideSensitive=true; showAuth(); }
       async function boot() {
         $('retrySession').hidden=true;
         $('offlineOptions').hidden=true;

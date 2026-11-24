@@ -26,7 +26,14 @@ function validateRecord(v, partialImport=false) {
  if(emailPenjaga && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailPenjaga))error('E-mel penjaga tidak sah.');
  const agensiPra=safeText(v.agensiPra??'','Agensi prasekolah',40,0);
  if(!['','KEMAS','PASTI','PERPADUAN','PRASEKOLAH KPM','SWASTA','LAIN-LAIN'].includes(agensiPra) || (agensiPra && pra==='Tidak'))error('Agensi prasekolah tidak sah.');
- return {kelas,pra:agensiPra?'Ya':pra,emailPenjaga,agensiPra,idMurid,namaMurid:safeText(v.namaMurid,'Nama murid',150,2),
+ const demographics={};
+ for(const [field,values] of Object.entries({jantina:['Lelaki','Perempuan'],agama:['Muslim','Bukan Muslim'],warga:['Warganegara','Bukan Warganegara']})){
+  const value=safeText(v[field]??'',field,40,0);
+  if(value && !values.includes(value))error('Pilihan '+field+' tidak sah.');
+  demographics[field]=value;
+ }
+ demographics.bangsa=safeText(v.bangsa??'','Bangsa',80,0);
+ return {...demographics,kelas,pra:agensiPra?'Ya':pra,emailPenjaga,agensiPra,idMurid,namaMurid:safeText(v.namaMurid,'Nama murid',150,2),
  namaPenjaga:detail(v.namaPenjaga,'Nama penjaga',150,2),
  noIc:detail(v.noIc,'No. IC penjaga',30,4),
  noTelefon,alamat:detail(v.alamat,'Alamat',500,5)};
@@ -46,7 +53,7 @@ async function parseBody(request,limit=12000) {
  if(content.length>limit)error('Permintaan terlalu besar.',413);
  try {return JSON.parse(content);}catch {error('JSON tidak sah.');}
 }
-const columns='uid, student_id AS idMurid, class_name AS kelas, name AS namaMurid, pra, guardian_name AS namaPenjaga, guardian_ic AS noIc, guardian_phone AS noTelefon, address AS alamat, guardian_email AS emailPenjaga, preschool_agency AS agensiPra, version, created_at AS createdAt, updated_at AS updatedAt';
+const columns='uid, student_id AS idMurid, class_name AS kelas, name AS namaMurid, pra, guardian_name AS namaPenjaga, guardian_ic AS noIc, guardian_phone AS noTelefon, address AS alamat, guardian_email AS emailPenjaga, preschool_agency AS agensiPra, jantina, agama, warga, bangsa, version, created_at AS createdAt, updated_at AS updatedAt';
 async function audit(env,email,action,uid,kelas) {
  await env.DB.prepare('INSERT INTO registration_2027_audit(actor_email,action,student_uid,class_name) VALUES(?,?,?,?)').bind(email,action,uid,kelas).run();
 }
@@ -207,6 +214,11 @@ export async function handleRegistration2027({request,env,user,path}) {
   if(!done)error('Kelas atau rekod telah berubah. Muat semula senarai.',409);
   return json({ok:true,version:done.version});
  }
+ if(path==='registration2027/deletions' && request.method==='GET'){
+  const sql="SELECT student_name,class_name,actor_email,at FROM registration_2027_audit WHERE action='delete'";
+  const query=access.role==='admin'?env.DB.prepare(sql+' ORDER BY id DESC'):env.DB.prepare(sql+' AND class_name=? ORDER BY id DESC').bind(access.kelas);
+  return json({records:(await query.all()).results});
+ }
  if(path==='registration2027/transfers' && request.method==='GET'){
   const sql='SELECT student_name,from_class,to_class,actor_email,at FROM registration_2027_transfers';
   const query=access.role==='admin'?env.DB.prepare(sql+' ORDER BY id DESC'):env.DB.prepare(sql+' WHERE from_class=? OR to_class=? ORDER BY id DESC').bind(access.kelas,access.kelas);
@@ -228,8 +240,8 @@ export async function handleRegistration2027({request,env,user,path}) {
   for(const r of rows) {
    const uid=crypto.randomUUID();
    const result=await env.DB.prepare(
-    'INSERT OR IGNORE INTO registration_2027_students(uid,student_id,class_name,name,pra,guardian_name,guardian_ic,guardian_phone,address,guardian_email,preschool_agency,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
-   ).bind(uid,r.idMurid,r.kelas,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,r.emailPenjaga,r.agensiPra,user.email).run();
+    'INSERT OR IGNORE INTO registration_2027_students(uid,student_id,class_name,name,pra,guardian_name,guardian_ic,guardian_phone,address,guardian_email,preschool_agency,jantina,agama,warga,bangsa,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+   ).bind(uid,r.idMurid,r.kelas,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,r.emailPenjaga,r.agensiPra,r.jantina,r.agama,r.warga,r.bangsa,user.email).run();
    if(result.meta?.changes===1){
     inserted++;await audit(env,user.email,'create',uid,r.kelas);
    }else{skipped++;skippedIds.push(r.idMurid);}
@@ -248,8 +260,8 @@ export async function handleRegistration2027({request,env,user,path}) {
    if(!allowed(access,old.kelas))error('Rekod kelas lain tidak dibenarkan.',403);
    if(old.version!==b.version)error('Rekod telah diubah pengguna lain. Muat semula.',409);
    try{
-    const done=await env.DB.prepare("UPDATE registration_2027_students SET student_id=?,class_name=?,name=?,pra=?,guardian_name=?,guardian_ic=?,guardian_phone=?,address=?,guardian_email=COALESCE(?,guardian_email),preschool_agency=COALESCE(?,preschool_agency),version=version+1,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE uid=? AND version=? RETURNING version")
-     .bind(r.idMurid,r.kelas,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,b.record.emailPenjaga===undefined?null:r.emailPenjaga,b.record.agensiPra===undefined && r.pra!=='Tidak'?null:r.agensiPra,user.email,uid,b.version).first();
+    const done=await env.DB.prepare("UPDATE registration_2027_students SET student_id=?,class_name=?,name=?,pra=?,guardian_name=?,guardian_ic=?,guardian_phone=?,address=?,guardian_email=COALESCE(?,guardian_email),preschool_agency=COALESCE(?,preschool_agency),jantina=COALESCE(?,jantina),agama=COALESCE(?,agama),warga=COALESCE(?,warga),bangsa=COALESCE(?,bangsa),version=version+1,updated_at=CURRENT_TIMESTAMP,updated_by=? WHERE uid=? AND version=? RETURNING version")
+     .bind(r.idMurid,r.kelas,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,b.record.emailPenjaga===undefined?null:r.emailPenjaga,b.record.agensiPra===undefined && r.pra!=='Tidak'?null:r.agensiPra,...['jantina','agama','warga','bangsa'].map(k=>b.record[k]===undefined?null:r[k]),user.email,uid,b.version).first();
     if(!done)error('Rekod diubah di peranti lain. Muat semula.',409);
    }catch(e){if(/UNIQUE constraint failed/i.test(e.message||''))error('ID murid telah didaftarkan.',409);throw e;}
    await audit(env,user.email,'update',uid,r.kelas);
@@ -257,8 +269,8 @@ export async function handleRegistration2027({request,env,user,path}) {
   }
   const newUid=crypto.randomUUID();
   try{
-   await env.DB.prepare('INSERT INTO registration_2027_students(uid,student_id,class_name,name,pra,guardian_name,guardian_ic,guardian_phone,address,guardian_email,preschool_agency,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)')
-    .bind(newUid,r.idMurid,r.kelas,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,r.emailPenjaga,r.agensiPra,user.email).run();
+   await env.DB.prepare('INSERT INTO registration_2027_students(uid,student_id,class_name,name,pra,guardian_name,guardian_ic,guardian_phone,address,guardian_email,preschool_agency,jantina,agama,warga,bangsa,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .bind(newUid,r.idMurid,r.kelas,r.namaMurid,r.pra,r.namaPenjaga,r.noIc,r.noTelefon,r.alamat,r.emailPenjaga,r.agensiPra,r.jantina,r.agama,r.warga,r.bangsa,user.email).run();
   }catch(e){if(/UNIQUE constraint failed/i.test(e.message||''))error('ID murid telah didaftarkan.',409);throw e;}
   await audit(env,user.email,'create',newUid,r.kelas);
   return json({ok:true,uid:newUid,version:1},201);
@@ -269,9 +281,13 @@ export async function handleRegistration2027({request,env,user,path}) {
   const old=await env.DB.prepare('SELECT class_name AS kelas,version FROM registration_2027_students WHERE uid=?').bind(b.uid).first();
   if(!old)error('Rekod tidak dijumpai.',404);
   if(!allowed(access,old.kelas))error('Rekod kelas lain tidak dibenarkan.',403);
-  const done=await env.DB.prepare('DELETE FROM registration_2027_students WHERE uid=? AND version=?').bind(b.uid,b.version).run();
+  const match=' WHERE uid=? AND version=? AND class_name=?';
+  const args=[b.uid,b.version,old.kelas];
+  const [,done]=await env.DB.batch([
+   env.DB.prepare("INSERT INTO registration_2027_audit(actor_email,action,student_uid,class_name,student_name) SELECT ?,'delete',uid,class_name,name FROM registration_2027_students"+match).bind(user.email,...args),
+   env.DB.prepare('DELETE FROM registration_2027_students'+match).bind(...args)
+  ]);
   if(done.meta?.changes!==1)error('Rekod diubah pengguna lain. Muat semula.',409);
-  await audit(env,user.email,'delete',b.uid,old.kelas);
   return json({ok:true});
  }
  if(path.startsWith('registration2027/admins')) {

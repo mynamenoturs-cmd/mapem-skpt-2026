@@ -1,9 +1,10 @@
 // Import offline: workbook and CSV are parsed inside the user's browser, without a third-party service.
-export const HEADERS=['Kelas','ID Murid','Nama Murid','PRA','Nama Ibu Bapa/Penjaga','No IC Penjaga','No Telefon','Alamat Terkini','E-mel Penjaga','Agensi PAKK'];
+export const HEADERS=['Kelas','ID Murid','Nama Murid','PRA','Nama Ibu Bapa/Penjaga','No IC Penjaga','No Telefon','Alamat Terkini','E-mel Penjaga','Agensi PAKK','Jantina','Status Agama','Kewarganegaraan','Bangsa'];
 export const CLASSES=['Emerald','Ruby','Sapphire','Diamond','Jade','Crystal','Topaz','Amber','Pearl'];
 const decoder=new TextDecoder('utf-8',{fatal:false}),encoder=new TextEncoder();
 function cleanHeader(s){return String(s??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
 const ALIASES={
+ jantina:['Jantina'],agama:['Status Agama','Agama'],warga:['Kewarganegaraan','Taraf Warganegara'],bangsa:['Bangsa','Kaum','Etnik'],
  emailPenjaga:['E-mel Penjaga','Email Ibu Bapa','Email Penjaga'],
  agensiPra:['Agensi PAKK','Agensi Prasekolah'],
  kelas:['Kelas','Nama Kelas','Class'],
@@ -141,6 +142,10 @@ export function mapImportRows(table,{defaultClass='Semua',allowedClass=null}={})
   const pra=item.pra.toLowerCase().replace(/\s+/g,' ');
   item.pra=['y','yes','ya'].includes(pra)?'Ya':['n','no','tidak'].includes(pra)?'Tidak':['','belum pasti','belumpasti','bp'].includes(pra)?'Belum Pasti':item.pra;
   const problems=[];
+  for(const [field,options] of Object.entries({jantina:{lelaki:'Lelaki',l:'Lelaki',perempuan:'Perempuan',p:'Perempuan'},agama:{muslim:'Muslim',islam:'Muslim',bukanmuslim:'Bukan Muslim',bukanislam:'Bukan Muslim',nonmuslim:'Bukan Muslim'},warga:{warga:'Warganegara',warganegara:'Warganegara',bukanwarga:'Bukan Warganegara',bukanwarganegara:'Bukan Warganegara'}})){
+   if(item[field]){const value=options[cleanHeader(item[field])];if(typeof value==='string')item[field]=value;else problems.push(field);}
+  }
+  if(item.bangsa.length>80)problems.push('bangsa');
   item.agensiPra=item.agensiPra.toUpperCase();
   if(!['','KEMAS','PASTI','PERPADUAN','PRASEKOLAH KPM','SWASTA','LAIN-LAIN'].includes(item.agensiPra) || (item.agensiPra && item.pra==='Tidak'))problems.push('agensi prasekolah');
   if(item.agensiPra && item.pra==='Belum Pasti')item.pra='Ya';
@@ -183,13 +188,13 @@ function makeZip(content){
 export function createExcelTemplate(kelas=''){
  const fill=CLASSES.includes(kelas)?kelas:'';
  const workbook='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Pendaftaran 2027" sheetId="1" r:id="rId1"/></sheets></workbook>';
- const cols='ABCDEFGHIJ',widths=[18,23,38,18,37,24,22,55,32,25];
+ const cols='ABCDEFGHIJKLMN',widths=[18,23,38,18,37,24,22,55,32,25,18,22,24,24];
  const colxml=widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('');
  const first='<row r="1">'+HEADERS.map((h,i)=>'<c r="'+cols[i]+'1" s="1" t="inlineStr"><is><t>'+escapeXml(h)+'</t></is></c>').join('')+'</row>';
  const empty=Array.from({length:100},(_,k)=>{
   const row=k+2;return '<row r="'+row+'">'+cols.split('').map((letter,i)=>'<c r="'+letter+row+'" s="2"'+(i===0&&fill?' t="inlineStr"><is><t>'+escapeXml(fill)+'</t></is></c>':'/>')).join('')+'</row>';
  }).join('');
- const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'+colxml+'</cols><sheetData>'+first+empty+'</sheetData><autoFilter ref="A1:J101"/><dataValidations count="2"><dataValidation type="list" allowBlank="1" sqref="D2:D101"><formula1>&quot;Ya,Tidak,Belum Pasti&quot;</formula1></dataValidation><dataValidation type="list" allowBlank="1" sqref="J2:J101"><formula1>&quot;KEMAS,PASTI,PERPADUAN,PRASEKOLAH KPM,SWASTA,LAIN-LAIN&quot;</formula1></dataValidation></dataValidations></worksheet>';
+ const sheet='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'+colxml+'</cols><sheetData>'+first+empty+'</sheetData><autoFilter ref="A1:N101"/><dataValidations count="2"><dataValidation type="list" allowBlank="1" sqref="D2:D101"><formula1>&quot;Ya,Tidak,Belum Pasti&quot;</formula1></dataValidation><dataValidation type="list" allowBlank="1" sqref="J2:J101"><formula1>&quot;KEMAS,PASTI,PERPADUAN,PRASEKOLAH KPM,SWASTA,LAIN-LAIN&quot;</formula1></dataValidation></dataValidations></worksheet>';
  const styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs></styleSheet>';
  return makeZip({
   '[Content_Types].xml':'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>',
