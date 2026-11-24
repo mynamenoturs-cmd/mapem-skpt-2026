@@ -577,6 +577,93 @@
 <link rel="stylesheet" href="/bot2027.css">
 <style>.demo-filters{margin:12px 0;padding:12px;border:1px solid #dbc7ca;border-radius:12px}.demo-filters summary{cursor:pointer;font-weight:650}.demo-grid{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.demo-dialog{width:min(94vw,820px);max-height:88vh;overflow:auto}.demo-dialog table{min-width:460px}.demo-dialog form{margin-top:16px;text-align:right}.demo-dialog .table-scroll{margin-top:12px}.demo-dialog .group-row th{background:#f4ebef;color:#54273b;text-align:left}</style>
 <style>body.registration-viewer #quickAdd,body.registration-viewer #quickImport,body.registration-viewer #addBtnHead,body.registration-viewer #emptyAdd,body.registration-viewer #importBtn,body.registration-viewer #popupImport,body.registration-viewer #popupAdd,body.registration-viewer [data-action="add"],body.registration-viewer [data-action="import"],body.registration-viewer .class-popup-record-actions,body.registration-viewer #tableBody td:last-child,body.registration-viewer table[aria-label="Senarai murid Tahun 1"] thead th:last-child{display:none!important}</style>
+<style id="smart-dashboard-2027">
+/* Registration Dashboard 2.0 — scoped to the authenticated workspace */
+@media screen {
+#app{--ink:#17263c;--muted:#50647b;--line:#dbe5ee;--accent:#087b82;--nav:#0c192d;background:radial-gradient(ellipse at 95% 5%,#dceef3 0,transparent 38%),#eef3f8;color:var(--ink)}
+#app .hero{background:radial-gradient(ellipse at 85% 0%,#164960 0,transparent 57%),linear-gradient(115deg,#0b182c,#122b44);border-bottom:1px solid #24465c}
+#app .hero:before{background:repeating-linear-gradient(120deg,transparent 0 48px,#a7e8ec0a 49px 50px,transparent 51px 96px)}
+#app .hero-inner{max-width:1540px;padding-top:15px;padding-bottom:33px}
+#app .hero .brand-school{color:#f4fbff;letter-spacing:.1em}
+#app .hero .brand-dept{color:#b9d2e2}
+#app .hero-poster{border:1px solid #ffffff35;border-radius:15px;box-shadow:0 10px 35px #00112266;margin-top:12px;background:#11243b;max-width:none}
+#app .hero-poster img{max-height:340px;object-fit:contain}
+#app .hero-caption,#app .hero-caption strong{color:#c4e8eb}
+#app .container.app-workspace{margin-top:-15px;gap:22px}
+#app .workspace-sidebar{background:linear-gradient(160deg,#142b42,#0c192d 68%);border:1px solid #28475d;border-radius:18px;box-shadow:0 18px 40px #102a4324;max-height:calc(100dvh - 36px);overflow:auto}
+#app .workspace-sidebar .sidebar-label{color:#8eafc4;font-size:10px}
+#app .workspace-sidebar .workspace-link{color:#e1ebf4;min-height:43px;font-size:13px}
+#app .workspace-sidebar .workspace-ico{color:#79cbd0}
+#app .workspace-sidebar .workspace-link:hover{background:#214158;color:#fff}
+#app .workspace-sidebar .workspace-link.active{background:#bcefeb;color:#103a46;box-shadow:none}
+#app .workspace-sidebar .workspace-link.active .workspace-ico{color:#08666c}
+#app .workspace-sidebar .workspace-divider{background:#ffffff20}
+#app .workspace-sidebar .sidebar-account{border-color:#ffffff20;color:#c8dbe6;margin-top:auto;padding-top:16px}
+#app .workspace-sidebar .account-avatar{background:#c0e9e9;color:#15505b}
+#app .workspace-sidebar .sidebar-dismiss{color:#e2f3fc}
+#app .dashboard-landing{padding:18px 0 0}
+#app .dashboard-greeting>span{color:#087279;letter-spacing:.14em}
+#app .dashboard-greeting h2{color:var(--ink);font-size:clamp(25px,3vw,36px);line-height:1.12}
+#app .dashboard-greeting p{color:var(--muted);margin-bottom:18px}
+#app .smart-greeting{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#app .smart-mode{display:inline-flex;align-items:center;gap:7px;font-size:11px;color:#20576a;background:#e2f0f3;border:1px solid #c7e2e8;border-radius:99px;padding:8px 12px;font-weight:750}
+#app .smart-mode:before{content:"";width:7px;height:7px;background:#087b82;border-radius:50%;flex:none}
+#app .smart-section-label{font-size:12px;font-weight:850;letter-spacing:.05em;color:#435b72;margin:0 0 10px}
+#app .quick-grid{gap:10px;margin-bottom:22px;grid-template-columns:repeat(auto-fit,minmax(148px,1fr))}
+#app .quick-tile{background:#fff;border:1px solid var(--line);box-shadow:0 4px 15px #203c5610;border-radius:14px;padding:15px;min-height:110px;display:grid;grid-template-columns:36px minmax(0,1fr);gap:4px 10px;align-content:center;align-items:center}
+#app .quick-tile:hover{background:#f1fbfb;border-color:#8bcbd0;transform:translateY(-2px);box-shadow:0 8px 22px #16364b16}
+#app .quick-tile strong{color:var(--ink);margin:0;line-height:1.3;font-size:13px}
+#app .quick-tile small{grid-column:2;color:var(--muted);font-size:11px}
+#app .quick-icon{grid-row:1/3;width:36px;height:36px;border-radius:10px;font-size:20px}
+#app .quick-icon.violet{background:#e8f0ff;color:#315fa5}
+#app .quick-icon.gold{background:#fff0d7;color:#82591c}
+#app .quick-icon.mint{background:#def3ec;color:#1c725b}
+#app #statsPanel{gap:12px;margin-bottom:22px}
+#app #statsPanel .stat{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:0 5px 18px #203c560d;padding:17px 16px;position:relative;overflow:hidden}
+#app #statsPanel .stat:first-child{background:linear-gradient(130deg,#10253d,#164b60);border-color:#24596d}
+#app #statsPanel .stat:first-child :is(.stat-label,.stat-value,.stat-foot){color:#f0fbff}
+#app #statsPanel .stat-label{color:var(--muted);font-size:12px}
+#app #statsPanel .stat-value{font-size:clamp(27px,3.4vw,37px);color:#16354d;line-height:1.15;margin:8px 0 5px}
+#app #statsPanel .stat-foot{color:#61738a;font-size:11px}
+#app .smart-demographics{grid-column:1/-1;background:#fff;border:1px solid var(--line);border-radius:17px;padding:19px;box-shadow:0 5px 18px #203c560d}
+#app .smart-panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+#app .smart-panel-head h3{color:var(--ink);font-size:17px;margin:0 0 5px}
+#app .smart-panel-head p{color:var(--muted);font-size:12px;margin:0}
+#app .smart-demo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#app .smart-demo-card{border:1px solid var(--line);border-radius:12px;padding:13px;background:#f7fafc;min-width:0}
+#app .smart-demo-card h4{font-size:12px;color:#344e65;margin:0 0 13px}
+#app .smart-demo-bar{height:9px;display:flex;background:#dfe6ed;border-radius:99px;overflow:hidden;margin-bottom:11px}
+#app .smart-demo-bar span{height:100%;flex:none}
+#app .smart-demo-bar span:first-child{background:#157d88}
+#app .smart-demo-bar span:nth-child(2){background:#6676bf}
+#app .smart-demo-legend{display:grid;gap:6px;font-size:11px;color:#43586d}
+#app .smart-demo-legend div{display:flex;align-items:center;gap:6px;justify-content:space-between}
+#app .smart-demo-legend strong{color:#132e46;font-variant-numeric:tabular-nums;font-size:13px}
+#app .smart-demo-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;background:#157d88;margin-right:5px}
+#app .smart-demo-legend div:nth-child(2) i{background:#6676bf}
+#app .smart-demo-legend div:nth-child(3) i{background:#a5b4c3}
+#app .dashboard-classes{background:#fff;border:1px solid var(--line);border-radius:17px;box-shadow:0 5px 18px #203c560d;padding:20px}
+#app .dashboard-classes-title h3{color:var(--ink);font-size:18px}
+#app .dashboard-classes-title p{color:var(--muted)}
+#app .class-card-grid{gap:12px;grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}
+#app .class-summary-btn{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;background:#f8fafc;border:1px solid var(--line);border-left:4px solid var(--class-accent,#087b82);border-radius:13px;padding:13px;min-height:104px}
+#app .class-summary-btn:hover{background:#edf8fa;border-color:#90c7d0;border-left-color:var(--class-accent,#087b82)}
+#app .class-summary-text strong{font-size:13px;color:var(--ink)}
+#app .class-summary-text small{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+#app .mini-passport{border:1px solid #c4d2df;background:#e8eff5;color:#526d83;width:39px;box-shadow:none}
+#app .class-summary-count{font-size:22px;color:#193e56;text-align:right;font-variant-numeric:tabular-nums;line-height:1}
+#app .class-summary-count small{display:block;font-size:10px;font-weight:600;color:#50647b;margin-top:5px}
+#app .smart-class-track{grid-column:1/-1;height:5px;background:#e1e9f0;border-radius:99px;overflow:hidden}
+#app .smart-class-track span{display:block;height:100%;background:var(--class-accent,#087b82);border-radius:99px}
+#app :is(.dashboard-classes,.smart-demographics) .btn-ghost{color:#17576a;background:#f4fafb;border-color:#bfdbe1;min-height:44px;white-space:normal}
+#app :is(.dashboard-classes,.smart-demographics) .btn-ghost:hover{background:#e1f3f3}
+#app :is(button,a):focus-visible{outline:3px solid #2b91a0;outline-offset:3px}
+@media(max-width:1250px){#app .container.app-workspace{gap:15px}#app .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:890px){#app .workspace-sidebar{border-radius:0;max-height:none;height:100dvh;top:0}#app .hero-poster img{max-height:260px}#app .container.app-workspace{margin-top:0}#app .smart-demo-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:680px){#app .hero-inner{padding:13px 14px 15px}#app .hero-poster img{max-height:none}#app .smart-greeting{gap:4px}#app .smart-mode{margin-bottom:12px}#app .quick-grid{gap:8px}#app .quick-tile{padding:11px 9px;min-height:91px;grid-template-columns:30px minmax(0,1fr);gap:4px 7px}#app .quick-icon{width:30px;height:30px}#app #statsPanel .stat{padding:13px}#app .smart-demographics,#app .dashboard-classes{padding:14px}#app .smart-demo-grid{grid-template-columns:1fr;gap:9px}#app .class-card-grid{grid-template-columns:1fr}#app .class-summary-btn{min-height:82px}}
+@media(prefers-reduced-motion:reduce){#app .quick-tile,#app .class-summary-btn,#app .workspace-sidebar{transition:none}#app .quick-tile:hover{transform:none}}
+}
+</style>
 </head>
 <body>
   <section id="printRoster" aria-label="Senarai cetakan">
@@ -639,9 +726,9 @@
           <button class="workspace-link" data-action="import" type="button"><span class="workspace-ico">⇪</span><span>Import Excel / CSV</span></button>
           <button class="workspace-link" data-action="template" type="button"><span class="workspace-ico">⇩</span><span>Templat Borang</span></button>
           <button class="workspace-link" data-action="export" type="button"><span class="workspace-ico">▤</span><span>Eksport Senarai</span></button>
-          <button class="workspace-link" id="navStats" type="button">Statistik murid</button>
-          <button class="workspace-link" id="navDeleted" type="button">Log murid dipadam</button>
-          <button class="workspace-link" id="navTransfers" type="button" hidden>Log pindah kelas</button>
+          <button class="workspace-link" id="navStats" type="button"><span class="workspace-ico" aria-hidden="true">▥</span><span>Statistik murid</span></button>
+          <button class="workspace-link" id="navDeleted" type="button"><span class="workspace-ico" aria-hidden="true">◷</span><span>Log murid dipadam</span></button>
+          <button class="workspace-link" id="navTransfers" type="button" hidden><span class="workspace-ico" aria-hidden="true">⇄</span><span>Log pindah kelas</span></button>
           <button class="workspace-link" id="navRefresh" data-action="refresh" type="button"><span class="workspace-ico">↻</span><span>Muat Semula</span></button>
           <div class="workspace-divider"></div><div class="sidebar-label">TETAPAN & AKSES</div>
           <button class="workspace-link" id="navAccess" data-action="access" type="button" hidden><span class="workspace-ico">♙</span><span>Akses Guru</span></button>
@@ -656,7 +743,7 @@
       </aside>
       <div class="workspace-body">
       <section id="dashboardLanding" class="dashboard-landing">
-        <div class="dashboard-greeting"><span>GAMBARAN KESELURUHAN</span><h2>Dashboard Pendaftaran</h2><p>Semua urusan Tahun 1 dalam satu tempat. Pilih tindakan di bawah untuk memulakan kerja.</p></div>
+        <div class="smart-greeting"><div class="dashboard-greeting"><span>SKPT · PUSAT PENGURUSAN MURID</span><h2>Dashboard Pendaftaran</h2><p>Ringkasan sesi 2027 dan semua urusan pendaftaran dalam satu ruang kerja.</p></div><span class="smart-mode" id="smartMode">Mod setempat</span></div><h3 class="smart-section-label">Tindakan pantas</h3>
         <div class="quick-grid">
           <button type="button" id="quickAdd" class="quick-tile"><span class="quick-icon violet">＋</span><strong>Daftar Murid</strong><small>Isi maklumat murid baharu</small></button>
           <button type="button" id="quickImport" class="quick-tile"><span class="quick-icon blue">⇪</span><strong>Import Senarai</strong><small>Muat naik data Excel / CSV</small></button>
@@ -669,6 +756,7 @@
         <div class="stat"><span class="stat-label">Murid PRA</span><strong class="stat-value" id="statPra">0</strong><span class="stat-foot">pernah mengikuti prasekolah</span></div>
         <div class="stat"><span class="stat-label">Bukan PRA</span><strong class="stat-value" id="statNotPra">0</strong><span class="stat-foot">tidak mengikuti prasekolah</span></div>
         <div class="stat"><span class="stat-label">Kelas Diisi</span><strong class="stat-value" id="statClasses">0 <small style="font-size:14px;color:#9b8baa">/ 9</small></strong><span class="stat-foot">kelas mempunyai rekod</span></div>
+        <div class="smart-demographics"><div class="smart-panel-head"><div><h3>Demografi murid</h3><p>Ringkasan daripada rekod yang boleh diakses dalam sesi ini.</p></div><button type="button" class="btn btn-ghost" id="smartStatsOpen">Statistik terperinci ↗</button></div><div class="smart-demo-grid"><div class="smart-demo-card"><h4>Jantina</h4><div class="smart-demo-bar" aria-hidden="true"><span id="smartGenderBarA"></span><span id="smartGenderBarB"></span></div><div class="smart-demo-legend"><div><span><i></i>Lelaki</span><strong id="smartGenderA">0</strong></div><div><span><i></i>Perempuan</span><strong id="smartGenderB">0</strong></div><div><span><i></i>Belum / lain-lain</span><strong id="smartGenderU">0</strong></div></div></div><div class="smart-demo-card"><h4>Agama</h4><div class="smart-demo-bar" aria-hidden="true"><span id="smartReligionBarA"></span><span id="smartReligionBarB"></span></div><div class="smart-demo-legend"><div><span><i></i>Muslim</span><strong id="smartReligionA">0</strong></div><div><span><i></i>Bukan Muslim</span><strong id="smartReligionB">0</strong></div><div><span><i></i>Belum / lain-lain</span><strong id="smartReligionU">0</strong></div></div></div><div class="smart-demo-card"><h4>Kewarganegaraan</h4><div class="smart-demo-bar" aria-hidden="true"><span id="smartCitizenBarA"></span><span id="smartCitizenBarB"></span></div><div class="smart-demo-legend"><div><span><i></i>Warganegara</span><strong id="smartCitizenA">0</strong></div><div><span><i></i>Bukan Warganegara</span><strong id="smartCitizenB">0</strong></div><div><span><i></i>Belum / lain-lain</span><strong id="smartCitizenU">0</strong></div></div></div></div></div>
       </section>
 
       <div id="dashboardClasses" class="dashboard-classes"><div class="dashboard-classes-title"><h3>Ringkasan Mengikut Kelas</h3><p>Nama guru kelas dan slot gambar pasport. Tekan mana-mana kad kelas untuk membuka senarai murid dan borang pendaftaran dalam pop-up, tanpa meninggalkan dashboard.</p></div><div id="classCards" class="class-card-grid"></div><div class="dashboard-bottom-actions"><button id="showTeachersBtn" type="button" class="btn btn-ghost">Lihat Semua Guru Kelas & Gambar Pasport</button><a href="/ibu-bapa/" class="btn btn-ghost">Paparan Ibu Bapa ↗</a></div></div>
@@ -1525,6 +1613,7 @@
         $('statsClass').value=scoped?cloudInfo.kelas:activeClass==='Semua'?'':activeClass;
         renderStats();$('demoStats').showModal();
       };
+      $('smartStatsOpen').onclick=()=>$('navStats').click();
       $('statsClass').onchange=renderStats;
       for(const id of [...demoFields.map(k=>'filter-'+k),'demoSort'])$(id).onchange=render;
       $('clearDemo').onclick=()=>{for(const k of demoFields)$('filter-'+k).value='';$('demoSort').value='';$('searchInput').value='';$('praFilter').value='Semua';render();};
@@ -1538,6 +1627,12 @@
       function render() {
         updateModeUi();
         $('statTotal').textContent=students.length;
+        $('smartMode').textContent=cloudMode?(cloudInfo?.role==='viewer'?'Pentadbir · Lihat sahaja':cloudInfo?.role==='editor'?'Guru kelas · '+cloudInfo.kelas:'Cloudflare · Admin'):'Mod setempat';
+        for(const [id,key,a,b] of [['Gender','jantina','Lelaki','Perempuan'],['Religion','agama','Muslim','Bukan Muslim'],['Citizen','warga','Warganegara','Bukan Warganegara']]){
+          const first=students.filter(s=>fold(s[key])===fold(a)).length,second=students.filter(s=>fold(s[key])===fold(b)).length,total=students.length;
+          $('smart'+id+'A').textContent=first;$('smart'+id+'B').textContent=second;$('smart'+id+'U').textContent=total-first-second;
+          $('smart'+id+'BarA').style.width=(total?first/total*100:0)+'%';$('smart'+id+'BarB').style.width=(total?second/total*100:0)+'%';
+        }
         $('statPra').textContent=students.filter(s=>s.pra==='Ya').length;
         $('statNotPra').textContent=students.filter(s=>s.pra==='Tidak').length;
         $('statClasses').innerHTML=students.reduce((sum,s)=>sum.add(s.kelas),new Set()).size + ' <small style="font-size:14px;color:#9b8baa">/ 9</small>';
@@ -1547,7 +1642,8 @@
         $('classCards').innerHTML=viewable.map(c=>{
            const idx=CLASSES.indexOf(c);
            const teacher=teacherFor(c);
-           return '<button type="button" class="class-summary-btn" data-dashboard-class="'+esc(c)+'"><span class="class-summary-left">'+photoThumb(teacher,'mini-passport')+'<span class="class-summary-text"><strong>1 '+esc(c)+'</strong><small>'+esc(teacher.namaGuru)+'</small></span></span><span class="class-summary-count">'+countFor(c)+'</span></button>';
+           const count=countFor(c),share=students.length?count/students.length*100:0;
+           return '<button type="button" class="class-summary-btn" data-dashboard-class="'+esc(c)+'" style="--class-accent:'+dots[idx]+'"><span class="class-summary-left">'+photoThumb(teacher,'mini-passport')+'<span class="class-summary-text"><strong>1 '+esc(c)+'</strong><small>'+esc(teacher.namaGuru)+'</small></span></span><span class="class-summary-count">'+count+'<small>murid</small></span><span class="smart-class-track" aria-hidden="true"><span style="width:'+share+'%"></span></span><span class="sr-only">'+Math.round(share)+'% daripada rekod yang boleh diakses</span></button>';
         }).join('');
         renderTeachers();
         renderClassTeacherNav();
